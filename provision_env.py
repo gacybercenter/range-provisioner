@@ -22,6 +22,7 @@ guac_user = constants.GUAC_USER
 guac_password = constants.GUAC_PASS
 
 container_name = constants.CONTAINER_NAME
+source_dir = constants.ASSETS_DIR
 
 conn = openstack.connect()
 
@@ -38,12 +39,16 @@ def check_container(container_name):
             print(f"Container with the name {container_name} already exists")
         return True
 
-def make_tarfile(output_filename, source_dir):
-    with tarfile.open(output_filename, "w:gz" as tar:
-        tar.add(source_dir, arcname=os.path.basename(source_dir))
+def make_tarfile(archive_name, source_dir):
+    with tarfile.open(archive_name + '.tar.gz', mode='w:gz') as archive:
+        archive.add(source_dir)
 
-# def upload_objects(container_name):
+def upload_objects(container_name):
 
 #Check and create container for object storage if it doesn't exist
 if check_container(container_name) is None:
     create_container(container_name)
+
+#Create gzip file from assets directory
+
+make_tarfile("archive", source_dir)
