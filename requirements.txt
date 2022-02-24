@@ -1,0 +1,2 @@
+guacamole-api-wrapper
+openstacksdk

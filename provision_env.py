@@ -44,6 +44,6 @@ def make_tarfile(output_filename, source_dir):
 
 # def upload_objects(container_name):
 
-#Check and create container for object storage
+#Check and create container for object storage if it doesn't exist
 if check_container(container_name) is None:
     create_container(container_name)
