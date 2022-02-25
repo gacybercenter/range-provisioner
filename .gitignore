@@ -1,3 +1,6 @@
 constants.py
 clouds.yaml
 __pycache__/
+assets/
+*.gz
+*.tar

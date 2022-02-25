@@ -1,2 +1,4 @@
 guacamole-api-wrapper
 openstacksdk
+requests
+munch
