@@ -65,8 +65,8 @@ def upload_objects(dir, container_name):
             ) for o in objs
     ]
 
-    print(f"{assets_dir} and files have been created on the object store")
 
+    print(f"{assets_dir} and files have been created on the object store")
 
 def main():
 
