@@ -1,0 +1,54 @@
+heat_template_version: 2018-03-02
+
+description: >
+  security group setup for test environment.
+
+resources:
+  test.guacamole.security.group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      description: Allow SSH and RDP Access from Guacamole Server
+      name: test.guacamole.security.group
+      rules:
+        - remote_ip_prefix: 10.100.1.0/24
+          direction: ingress
+          protocol: tcp
+          port_range_min: 3389
+          port_range_max: 3389
+        - remote_ip_prefix: 10.100.1.0/24
+          direction: ingress
+          protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+  test.any.tcp.security.group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      description: Allow Any 
+      name: test.any.tcp.security.group
+      rules:
+        - remote_ip_prefix: 0.0.0.0/0
+          direction: ingress
+          protocol: tcp
+          port_range_min: 1
+          port_range_max: 65535
+        - remote_ip_prefix: 0.0.0.0/0
+          direction: egress
+          protocol: tcp
+          port_range_min: 1
+          port_range_max: 65535
+  test.any.udp.security.group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      description: Allow Any 
+      name: test.any.udp.security.group
+      rules:
+        - remote_ip_prefix: 0.0.0.0/0
+          direction: ingress
+          protocol: udp
+          port_range_min: 1
+          port_range_max: 65535
+        - remote_ip_prefix: 0.0.0.0/0
+          direction: egress
+          protocol: udp
+          port_range_min: 1
+          port_range_max: 65535

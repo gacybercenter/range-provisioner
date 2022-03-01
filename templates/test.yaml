@@ -1,0 +1,807 @@
+heat_template_version: 2018-03-02
+
+description: Simple Stack with Windows 10 and Debian10 LXDE
+
+parameters:
+  class:
+    type: string
+    label: Default Instance Username
+    description: Sets the login username for the instances
+    default: class1
+
+  password:
+    type: string
+    label: Default Instance Password
+    description: Sets the Login Password for the instances
+    default: passw0rd
+
+  apt_cache_proxy:
+    type: string
+    label: IP
+    description: Sets the apt-cache proxy server for prod/dev deployment (10.200.1.207 dev/ 10.100.1.118 prod) 
+    default: 10.200.1.207
+
+  heat_user:
+    type: string
+    label: Heat User
+    description: Sets the name of the owner of the heat template deployment
+    default: default_user
+
+  tenant_id:
+    type: string
+    default: None
+    description: TenantID for swift object store
+
+resources:
+  rand_string:
+    type: OS::Heat::RandomString
+    properties:
+      length: 4
+
+  # ----- Network Configuration Start ----- #
+  test_network:
+    type: OS::Neutron::Net
+    properties:
+      name:
+        str_replace:
+          template: test_network_RAND
+          params:
+            RAND: { get_param: heat_user }
+      admin_state_up: true
+      shared: false
+
+  test_subnet:
+    type: OS::Neutron::Subnet
+    depends_on: test_network
+    properties:
+      cidr: 192.168.65.0/27
+      gateway_ip:  192.168.65.30
+      dns_nameservers: [{ get_param: apt_cache_proxy }]
+      enable_dhcp: true
+      host_routes: [ ]
+      ip_version: 4
+      name:
+        str_replace:
+          template: test_subnet_RAND
+          params:
+            RAND: { get_param: heat_user }
+      network_id:
+        get_resource: test_network
+  # ----- Network Configuration End ----- #
+
+  # ----- Router Configuration Start ----- #
+  test_neutron_router:
+    type: OS::Neutron::Router
+    properties:
+      name:
+        str_replace:
+          template: test_neutron_router_RAND
+          params:
+            RAND: { get_param: heat_user }
+      external_gateway_info:
+        network: public
+
+  test_neutron_router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: test_neutron_router }
+      subnet_id: { get_resource: test_subnet }
+  # ----- Router Configuration Start ----- #
+
+
+  # ----- Linux Workstation Configuration Start ----- #
+  linux1:
+    type: OS::Nova::Server
+    properties:
+      name:
+        str_replace:
+          template: linux1_RAND
+          params:
+            RAND: { get_param: heat_user }
+      image: debian10_lxde
+      flavor: m1.small
+      diskConfig: AUTO
+      networks:
+        - port: { get_resource: linux1_port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+            declare -a commands
+
+            ## DISABLE DAILY UPDATE SERVICE / APPARMOR ##
+            commands=("BEGIN USER DATA SCRIPT START")
+            commands+=("systemctl stop apt-daily.service")
+            commands+=("systemctl stop apt-daily.timer")
+            commands+=("systemctl stop apt-daily-upgrade.timer")
+            commands+=("systemctl disable apt-daily.service")
+            commands+=("systemctl disable apt-daily.timer")
+            commands+=("systemctl disable apt-daily-upgrade.timer")
+            commands+=("systemctl kill --kill-who=all apt-daily.service")
+            commands+=("systemctl stop apparmor && systemctl disable apparmor")
+            commands+=("echo '10.100.1.235 dashboard.gacyberrange.org' >> /etc/hosts")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## USER/GROUP CREATION ##
+            commands=("BEGIN USER/GROUP CREATION")
+            commands+=("echo 'root:$pass' | chpasswd")
+            commands+=("useradd -m -U -s /bin/bash user")
+            commands+=("echo '$user:$pass' | chpasswd")
+            commands+=("usermod -aG sudo,netdev user")
+            commands+=("sed -i 's/#autologin-user=/autologin-user=user/g' /etc/lightdm/lightdm.conf")
+            commands+=("timedatectl set-timezone America/New_York")
+            commands+=("mkdir -p /home/user/demo_assets")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## ENABLES SSH ##
+            commands=("BEGIN SSH SETUP")
+            commands+=("sed -i 's/ssh_pwaut h:   0/ssh_pwauth:   1/g' /etc/cloud/cloud.cfg")
+            commands+=("sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config")
+            commands+=("sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config")
+            commands+=("sed -i 's/disable_root: true/disable_root: 0\nssh_pwauth: 1/g' /etc/cloud/cloud.cfg")
+            commands+=("sed -i 's/ssh_pwaut h:   0/ssh_pwauth:   1/g' /etc/cloud/cloud.cfg")
+            commands+=("sed -i 's/PrintMotd no/PrintMotd yes/g' /etc/ssh/sshd_config")
+            commands+=("sed -i 's/#PrintLastLog no/PrintLastLog yes/g' /etc/ssh/sshd_config")
+            commands+=("sed -i 's/#Port 22/Port 22/g' /etc/ssh/sshd_config")
+            commands+=("service sshd restart")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## PACKAGE INSTALLS ##
+            echo 'Acquire::http::proxy "http://$cache_proxy:3142";' > /etc/apt/apt.conf.d/02proxy
+            commands=("BEGIN PACKAGE INSTALLS")
+            commands+=("export DEBIAN_FRONTEND=noninteractive")
+            commands+=("apt-get update")
+            commands+=("apt-get upgrade -y")
+            commands+=("apt-get install gtkhash tcpdump nmap wireshark netcat ftp traceroute dnsutils steghide sshpass ipcalc flameshot -y")
+            commands+=("sudo apt-get remove xscreensaver")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## RDP INSTALL ##
+            commands=("BEGIN RDP SETUP")
+            commands+=("UCF_FORCE_CONFOLD=1 DEBIAN_FRONTEND=noninteractive apt -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' -y install xrdp xorgxrdp curl")
+            commands+=("adduser xrdp ssl-cert")
+            commands+=("systemctl start xrdp")
+            commands+=("systemctl enable xrdp")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## OBJECT STORE DATA ##
+            commands=("BEGIN OBJECT STORE PULL")
+            commands+=("**** Changing Background ****")
+            commands+=("wget -O /etc/alternatives/desktop-background https://gitlab.com/gacybercenter/branding/backgrounds/-/raw/main/gcr_bckgrnd_drk.jpg?inline=false")
+            commands+=("Pulling assets from Object Store")
+            commands+=("wget -O /home/user/demo_assets/elon.jpg https://dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/lesson5/assets/attachments/elon.jpg")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## AUTOLAUNCH HOST FILE UPDATE ##
+            cat > /etc/init.d/secplus_startup.sh <<"__EOF__"
+            #!/bin/bash
+            ### BEGIN INIT INFO
+            # Provides:       secplus_startup.sh
+            # Required-Start:    \$local_fs \$syslog
+            # Required-Stop:     \$local_fs \$syslog
+            # Default-Start:     2 3 4 5
+            # Default-Stop:      0 1 6
+            # Short-Description: starts secplus_startup
+            # Description:       starts secplus_startup using start-stop-daemon
+            ### END INIT INFO
+
+            FILE1=/home/user/.config/lxsession/LXDE/autostart
+            while ! [ -f "$FILE1" ]
+            do
+              echo "Waiting until profile builds"
+            done
+
+            echo "10.100.1.235 dashboard.gacyberrange.org" >> /etc/hosts
+
+            source ~/.profile
+            sed -i 's/autologin-user=user/#autologin-user=/g' /etc/lightdm/lightdm.conf
+            pkill -SIGTERM -f lxsession
+            exit 0
+            __EOF__
+
+
+            commands=("chmod 755 /etc/init.d/secplus_startup.sh")
+            commands+=("update-rc.d secplus_startup.sh defaults")
+            commands+=("*** USER DATA SCRIPT FINISHED - REBOOTING ***")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            reboot
+          params:
+            system_name: "linux1"
+            $user: { get_param: username }
+            $pass: { get_param: password }
+            $tenantID: { get_param: tenant_id }
+            $cache_proxy: { get_param: apt_cache_proxy }
+  # ----- Linux Workstation Configuration End ----- #
+
+
+  # ----- Linux Workstation Port Configuration Start ----- #
+  linux1_port:
+    type: OS::Neutron::Port
+    description: linux test IP
+    properties:
+      name:
+        str_replace:
+          template: linux1_port_RAND
+          params:
+            RAND: { get_param: heat_user }
+      network_id: { get_resource: test_network }
+      fixed_ips:
+      - ip_address: 192.168.65.21
+      security_groups:
+        - test.guacamole.security.group
+        - test.any.tcp.security.group
+        - test.any.udp.security.group
+      port_security_enabled: true
+
+  linux1_float_ip:
+    type: OS::Neutron::FloatingIP
+    depends_on: test_neutron_router
+    description: linux test Floating IP
+    properties: { floating_network: public }
+
+  linux1_ip_assoc:
+    type: OS::Neutron::FloatingIPAssociation
+    depends_on: test_neutron_router_interface
+    properties:
+      floatingip_id: { get_resource: linux1_float_ip }
+      port_id: { get_resource: linux1_port }
+
+  # ----- Linux Workstation Port Configuration End ----- #
+  
+  # ----- Linux Workstation2 Configuration Start ----- #
+  linux2:
+    type: OS::Nova::Server
+    properties:
+      name:
+        str_replace:
+          template: linux2_RAND
+          params:
+            RAND: { get_param: heat_user }
+      image: debian10_lxde
+      flavor: d1.medium
+      diskConfig: AUTO
+      networks:
+        - port: { get_resource: linux2_port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+            declare -a commands
+
+            ## DISABLE DAILY UPDATE SERVICE / APPARMOR ##
+            commands=("BEGIN USER DATA SCRIPT START")
+            commands+=("systemctl stop apt-daily.service")
+            commands+=("systemctl stop apt-daily.timer")
+            commands+=("systemctl stop apt-daily-upgrade.timer")
+            commands+=("systemctl disable apt-daily.service")
+            commands+=("systemctl disable apt-daily.timer")
+            commands+=("systemctl disable apt-daily-upgrade.timer")
+            commands+=("systemctl kill --kill-who=all apt-daily.service")
+            commands+=("systemctl stop apparmor && systemctl disable apparmor")
+            commands+=("echo '10.100.1.235 dashboard.gacyberrange.org' >> /etc/hosts")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## USER/GROUP CREATION ##
+            commands=("BEGIN USER/GROUP CREATION")
+            commands+=("echo 'root:$pass' | chpasswd")
+            commands+=("useradd -m -U -s /bin/bash user")
+            commands+=("echo '$user:$pass' | chpasswd")
+            commands+=("usermod -aG sudo,netdev user")
+            commands+=("sed -i 's/#autologin-user=/autologin-user=user/g' /etc/lightdm/lightdm.conf")
+            commands+=("timedatectl set-timezone America/New_York")
+            commands+=("mkdir -p /home/user/demo_assets")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## ENABLES SSH ##
+            commands=("BEGIN SSH SETUP")
+            commands+=("sed -i 's/ssh_pwaut h:   0/ssh_pwauth:   1/g' /etc/cloud/cloud.cfg")
+            commands+=("sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config")
+            commands+=("sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config")
+            commands+=("sed -i 's/disable_root: true/disable_root: 0\nssh_pwauth: 1/g' /etc/cloud/cloud.cfg")
+            commands+=("sed -i 's/ssh_pwaut h:   0/ssh_pwauth:   1/g' /etc/cloud/cloud.cfg")
+            commands+=("sed -i 's/PrintMotd no/PrintMotd yes/g' /etc/ssh/sshd_config")
+            commands+=("sed -i 's/#PrintLastLog no/PrintLastLog yes/g' /etc/ssh/sshd_config")
+            commands+=("sed -i 's/#Port 22/Port 22/g' /etc/ssh/sshd_config")
+            commands+=("service sshd restart")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## PACKAGE INSTALLS ##
+            echo 'Acquire::http::proxy "http://$cache_proxy:3142";' > /etc/apt/apt.conf.d/02proxy
+            commands=("BEGIN PACKAGE INSTALLS")
+            commands+=("export DEBIAN_FRONTEND=noninteractive")
+            commands+=("apt-get update")
+            commands+=("apt-get upgrade -y")
+            commands+=("apt-get install gtkhash tcpdump nmap wireshark netcat ftp traceroute dnsutils steghide sshpass vsftpd nginx ipcalc flameshot -y")
+            commands+=("sudo apt-get remove xscreensaver")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## RDP INSTALL ##
+            commands=("BEGIN RDP SETUP")
+            commands+=("UCF_FORCE_CONFOLD=1 DEBIAN_FRONTEND=noninteractive apt -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' -y install xrdp xorgxrdp curl")
+            commands+=("adduser xrdp ssl-cert")
+            commands+=("systemctl start xrdp")
+            commands+=("systemctl enable xrdp")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## CREATE WEB PAGE  ##
+            cat > /var/www/html/index.html << "__EOF__"
+            <html>
+            <a href="./hint-01.png">hint-01.png</a>
+            </html>
+            __EOF__
+
+            ## CREATE LISTENERS ##
+            cat > /root/listen1.py <<"__EOF__"
+            #!/usr/bin/env python
+            import socket
+            import time
+
+            message = bytes("\nHack the planet! Hack the planet!", 'utf-8')
+
+            s = socket.socket()
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(('0.0.0.0', 1025))
+            s.listen(5)
+
+            while True:
+              c, addr = s.accept()
+              c.send(message)
+              c.close()
+            __EOF__
+
+            chmod +x /root/listen1.py
+
+            cat > /root/listen2.py <<"__EOF__"
+            #!/usr/bin/env python
+            import socket
+            import time
+
+            message = bytes("\nThere is no right and wrong. There is only fun and boring", 'utf-8')
+
+            s = socket.socket(message)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(('0.0.0.0', 1080))
+            s.listen(5)
+
+            while True:
+              c, addr = s.accept()
+              c.send()
+              c.close()
+            __EOF__
+
+            chmod +x /root/listen2.py
+
+            cat > /root/listen3.py <<"__EOF__"
+            #!/usr/bin/env python
+            import socket
+            import time
+
+            s = socket.socket()
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            s.bind(('0.0.0.0', 1120))
+            s.listen(5)
+
+            message = bytes("\nMess with the best, die like the rest", 'utf-8')
+
+            while True:
+              c, addr = s.accept()
+              c.send(message)
+              c.close()
+            __EOF__
+
+            chmod +x /root/listen3.py
+
+            ## AUTOLAUNCH SCRIPTS ##
+            cat > /etc/init.d/autolaunch <<"__EOF__"
+            #!/bin/bash
+
+            ### BEGIN INIT INFO
+            # Provides:          autolaunch
+            # Required-Start:
+            # Required-Stop:
+            # Default-Start:     2 3 4 5
+            # Default-Stop:      0 1 6
+            # Short-Description:
+            # Description:
+            ### END INIT INFO
+
+            case "$1" in
+            start)
+                ((python /root/listen1.py) &)
+                ((python /root/listen2.py) &)
+                ((python /root/listen3.py) &)
+                ;;
+            *)
+                ;;
+            esac
+            exit 0
+            __EOF__
+
+            chmod +x /etc/init.d/autolaunch
+            update-rc.d autolaunch defaults
+            echo "AUTOSTART COMPLETE"
+
+            sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+            sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+            sed -i 's/disable_root: true/disable_root: 0\nssh_pwauth: 1/g' /etc/cloud/cloud.cfg
+            sed -i 's/ssh_pwauth:   0/ssh_pwauth:   1/g' /etc/cloud/cloud.cfg
+
+
+            sed -i 's/listen=NO/listen=YES/g' /etc/vsftpd.conf
+            sed -i 's/#write_enable=YES/write_enable=YES/g' /etc/vsftpd.conf
+
+            cat > /home/user/cc_data.json <<"__EOF__"
+            [
+              {
+                  "CreditCard": {
+                  "CardIssuer": "Visa - First United Bank, USA (Debit, Classic)",
+                  "CardNumber": "4003 9107 6503 4532",
+                  "CardExpDate": "2023/08",
+                  "CVV": "892"
+                  }
+              },
+              {
+                  "CreditCard": {
+                  "CardIssuer": "Visa - First United Bank, USA (Debit, Classic)",
+                  "CardNumber": "4003 9107 4140 3447",
+                  "CardExpDate": "2024/09",
+                  "CVV": "497"
+                  }
+              },
+              {
+                  "CreditCard": {
+                  "CardIssuer": "Visa - First United Bank, USA (Debit, Classic)",
+                  "CardNumber": "4003 9112 7524 4637",
+                  "CardExpDate": "2024/04",
+                  "CVV": "463"
+                  }
+              },
+              {
+                  "CreditCard": {
+                  "CardIssuer": "Visa - First United Bank, USA (Debit, Classic)",
+                  "CardNumber": "4003 9160 6355 6530",
+                  "CardExpDate": "2023/12",
+                  "CVV": "103"
+                  }
+              },
+              {
+                  "CreditCard": {
+                  "CardIssuer": "Visa - First United Bank, USA (Debit, Classic)",
+                  "CardNumber": "4003 9177 7232 8526",
+                  "CardExpDate": "2024/05",
+                  "CVV": "161"
+                  }
+              },
+              {
+                  "CreditCard": {
+                  "CardIssuer": "Visa - First United Bank, USA (Debit, Classic)",
+                  "CardNumber": "4003 9181 7367 8014",
+                  "CardExpDate": "2024/02",
+                  "CVV": "512"
+                  }
+              },
+              {
+                  "CreditCard": {
+                  "CardIssuer": "Visa - First United Bank, USA (Debit, Classic)",
+                  "CardNumber": "4003 9153 8256 3334",
+                  "CardExpDate": "2024/02",
+                  "CVV": "785"
+                  }
+              },
+              {
+                  "CreditCard": {
+                  "CardIssuer": "Visa - First United Bank, USA (Debit, Classic)",
+                  "CardNumber": "4003 9188 8071 6610",
+                  "CardExpDate": "2024/02",
+                  "CVV": "658"
+                  }
+              },
+              {
+                  "CreditCard": {
+                  "CardIssuer": "Visa - First United Bank, USA (Debit, Classic)",
+                  "CardNumber": "4003 9157 6446 3616",
+                  "CardExpDate": "2024/07",
+                  "CVV": "564"
+                  }
+              },
+              {
+                  "CreditCard": {
+                  "CardIssuer": "Visa - First United Bank, USA (Debit, Classic)",
+                  "CardNumber": "4003 9110 7857 0212",
+                  "CardExpDate": "2023/10",
+                  "CVV": "733"
+                  }
+              }
+            ]
+            __EOF__
+
+            ## OBJECT STORE DATA ##
+            commands=("BEGIN OBJECT STORE PULL")
+            commands+=("**** Changing Background ****")
+            commands+=("wget -O /etc/alternatives/desktop-background https://gitlab.com/gacybercenter/branding/backgrounds/-/raw/main/gcr_bckgrnd_drk.jpg?inline=false")
+            commands+=("Pulling assets from Object Store")
+            commands+=("wget -O /home/user/demo_assets/elon.jpg https://dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/lesson5/assets/attachments/elon.jpg")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            ## AUTOLAUNCH HOST FILE UPDATE ##
+            cat > /etc/init.d/secplus_startup.sh <<"__EOF__"
+            #!/bin/bash
+            ### BEGIN INIT INFO
+            # Provides:       secplus_startup.sh
+            # Required-Start:    \$local_fs \$syslog
+            # Required-Stop:     \$local_fs \$syslog
+            # Default-Start:     2 3 4 5
+            # Default-Stop:      0 1 6
+            # Short-Description: starts secplus_startup
+            # Description:       starts secplus_startup using start-stop-daemon
+            ### END INIT INFO
+
+            FILE1=/home/user/.config/lxsession/LXDE/autostart
+            while ! [ -f "$FILE1" ]
+            do
+              echo "Waiting until profile builds"
+            done
+
+            echo "10.100.1.235 dashboard.gacyberrange.org" >> /etc/hosts
+
+            source ~/.profile
+            sed -i 's/autologin-user=user/#autologin-user=/g' /etc/lightdm/lightdm.conf
+            pkill -SIGTERM -f lxsession
+            exit 0
+            __EOF__
+
+            commands=("chmod 755 /etc/init.d/secplus_startup.sh")
+            commands+=("update-rc.d secplus_startup.sh defaults")
+            commands+=("*** USER DATA SCRIPT FINISHED - REBOOTING ***")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            reboot
+          params:
+            system_name: "linux2"
+            $user: { get_param: username }
+            $pass: { get_param: password }
+            $tenantID: { get_param: tenant_id }
+            $cache_proxy: { get_param: apt_cache_proxy }
+  # ----- Linux Workstation2 Configuration End ----- #
+
+
+  # ----- Linux Workstation2 Port Configuration Start ----- #
+  linux2_port:
+    type: OS::Neutron::Port
+    description: linux test IP
+    properties:
+      name:
+        str_replace:
+          template: linux2_port_RAND
+          params:
+            RAND: { get_param: heat_user }
+      network_id: { get_resource: test_network }
+      fixed_ips:
+      - ip_address: 192.168.65.22
+      security_groups:
+        - test.guacamole.security.group
+        - test.any.tcp.security.group
+        - test.any.udp.security.group
+      port_security_enabled: true
+
+  linux2_float_ip:
+    type: OS::Neutron::FloatingIP
+    depends_on: test_neutron_router
+    description: linux test Floating IP
+    properties: { floating_network: public }
+
+  linux2_ip_assoc:
+    type: OS::Neutron::FloatingIPAssociation
+    depends_on: test_neutron_router_interface
+    properties:
+      floatingip_id: { get_resource: linux2_float_ip }
+      port_id: { get_resource: linux2_port }
+
+  # ----- Linux Workstation Port Configuration End ----- #
+
+  # ----- Windows Workstation Configuration Start ----- #
+  windows_workstation:
+    type: OS::Nova::Server
+    properties:
+      name:
+        str_replace:
+          template: windows_workstation_RAND
+          params:
+            RAND: { get_param: heat_user }
+      image: win10_21H2
+      flavor: d1.large
+      networks:
+        - port: { get_resource: windows_workstation_port }
+      diskConfig: AUTO
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #ps1_sysnative
+
+            # ERROR HANDLING #
+            $ErrorActionPreference = 'Continue'
+
+            # FIREWALL CONFIGURATIONS #
+            $cmd = @()
+            $cmd += 'Set-NetFirewallProfile -Enabled False'
+            $cmd += 'Set-NetFirewallRule -DisplayGroup "Network Discovery" -Enabled True'
+            $cmd += 'Set-NetFirewallRule -DisplayGroup "Remote Desktop" -Enabled True'
+            $cmd += 'Set-MpPreference -DisableScriptScanning $True'
+            $cmd += 'Set-MpPreference -DisableRealtimeMonitoring $True'
+            $cmd += 'Set-MpPreference -DisableIOAVProtection $True'
+            $cmd += 'New-NetFirewallRule -Name sshd -DisplayName "Allow SSH" -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22'
+            foreach($c in $cmd) {
+              Write-Host $c
+              Invoke-Expression $c
+            }
+
+            #----Set DNS Records
+            If ((Get-Content "$($env:windir)\system32\Drivers\etc\hosts" ) -notcontains "10.100.1.235 dashboard.gacyberrange.org")
+            {ac -Encoding UTF8  "$($env:windir)\system32\Drivers\etc\hosts" "10.100.1.235 dashboard.gacyberrange.org" }
+
+            # DISABLE PASSWORD COMPLEXITY #
+            $cmd = @()
+            $cmd += 'secedit /export /cfg c:\secpol.cfg'
+            $cmd += '(gc C:\secpol.cfg).replace("PasswordComplexity = 1", "PasswordComplexity = 0") | Out-File C:\secpol.cfg'
+            $cmd += '(gc C:\secpol.cfg).replace("MinimumPasswordLength = 7", "MinimumPasswordLength = 1") | Out-File C:\secpol.cfg'
+            $cmd += 'secedit /configure /db c:\windows\security\local.sdb /cfg c:\secpol.cfg /areas SECURITYPOLICY'
+            $cmd += 'rm -force c:\secpol.cfg -confirm:$false'
+            foreach($c in $cmd) {
+              Write-Host $c
+              Invoke-Expression $c
+            }
+
+            # REGISTRY CONFIGURATIONS #
+            $cmd = @()
+            $cmd += 'New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\" -Name "fDenyTSConnections" -Value "0" -PropertyType DWord -Force'
+            $cmd += 'New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "UserAuthentication" -Value "1" -PropertyType DWord -Force'
+            $cmd += 'Set-ItemProperty -Path "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System" -name "dontdisplaylastusername" -Value "1"'
+            $cmd += 'New-ItemProperty  -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Netlogon\Parameters" -Name "DisablePasswordChange" -PropertyType DWord -Value "1" -Force'
+            $cmd += 'New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows" -Name "WindowsUpdate"'
+            $cmd += 'New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" -Name "AU"'
+            $cmd += 'New-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" -Name "NoAutoUpdate" -Value "1"'
+            foreach($c in $cmd) {
+              Write-Host $c
+              Invoke-Expression $c
+            }
+
+            # USER CONFIGURATIONS #
+            $cmd = @()
+            $cmd += 'net user Administrator $pass /active:yes'
+            $cmd += 'net user $user $pass /add /active:yes'
+            $cmd += 'net user Admin /active:no'
+            $cmd += 'Add-LocalGroupMember -Member "Administrator" -Group "Remote Desktop Users"'
+            $cmd += 'Add-LocalGroupMember -Member "$user" -Group "Remote Desktop Users"'
+            # $cmd += 'REG ADD "HKLM:\Software\Microsoft\Windows\CurrentVersion\Policies\System" /f /v AutoAdminLogon /t REG_SZ /d 1'
+            # $cmd += 'REG ADD "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /f /v dontdisplaylastusername /t REG_SZ /d 1'
+            # $cmd += 'REG ADD "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /f /v DefaultUserName /t REG_SZ /d "Administrator"'
+            # $cmd += 'REG ADD "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /f /v DefaultPassword /t REG_SZ /d "$pass"'
+            foreach($c in $cmd) {
+              Write-Host $c
+              Invoke-Expression $c
+            }
+
+            # Program Installs #
+            Write-Host "Installing Chrome"
+            $LocalTempDir = $env:TEMP; $ChromeInstaller = "ChromeInstaller.exe"; (new-object    System.Net.WebClient).DownloadFile('http://dl.google.com/chrome/install/375.126/chrome_installer.exe', "$LocalTempDir\$ChromeInstaller"); & "$LocalTempDir\$ChromeInstaller" /silent /install; $Process2Monitor =  "ChromeInstaller"; Do { $ProcessesFound = Get-Process | ?{$Process2Monitor -contains $_.Name} | Select-Object -ExpandProperty Name; If ($ProcessesFound) { "Still running: $($ProcessesFound -join ', ')" | Write-Host; Start-Sleep -Seconds 2 } else { rm "$LocalTempDir\$ChromeInstaller" -ErrorAction SilentlyContinue -Verbose } } Until (!$ProcessesFound)
+            $LocalTempDir = $env:TEMP; $VSCodeInstaller = "VSCodeUserSetup-x64-1.6.2.2.exe"; (new-object   System.Net.Webclient).DownloadFile('https://aka.ms/win32-x64-user-stable', "$LocalTempDir\$VSCodeInstaller"); & Start-Process -FilePath "$LocalTempDir\$VSCodeInstaller" -Args "/silent /mergetasks=!runcode" -Wait
+            Remove-Item $LocalTempDir\$VSCodeInstaller
+
+
+            Rename-Computer -NewName "windows10"
+            Restart-Computer
+            exit 1001
+
+          params:
+            $user: { get_param: username }
+            $pass: { get_param: password }
+  # ----- windows workstation Configuration End ----- #
+  
+    # ----- windows workstation Port Configuration Start ----- #
+  windows_workstation_port:
+    type: OS::Neutron::Port
+    description: windows workstation IP
+    properties:
+      name:
+        str_replace:
+          template: windows_workstation_port_RAND
+          params:
+            RAND: { get_param: heat_user }
+      network_id: { get_resource: test_network }
+      fixed_ips:
+      - ip_address: 192.168.65.23
+      security_groups:
+        - test.guacamole.security.group
+        - test.any.tcp.security.group
+        - test.any.udp.security.group
+      port_security_enabled: true
+
+  windows_workstation_float_ip:
+    type: OS::Neutron::FloatingIP
+    depends_on: test_neutron_router
+    description: windows workstation Floating IP
+    properties: { floating_network: public }
+
+  windows_workstation_ip_assoc:
+    type: OS::Neutron::FloatingIPAssociation
+    depends_on: test_neutron_router_interface
+    properties:
+      floatingip_id: { get_resource: windows_workstation_float_ip }
+      port_id: { get_resource: windows_workstation_port }
+
+  # ----- windows workstation Port Configuration End ----- #
+  
+outputs:
+  # win10_pub:
+  #   description: Windows 10 Public IP
+  #   value: { get_attr : [windows_workstation_float_ip, floating_ip_address ] }
+  # win10_priv:
+  #   description: Windows 10 Private IP
+  #   value: { get_attr: [windows_workstation_port, 0, fixed_ips] }
+  # linux1_pub:
+  #   description: Linux 1 Public IP
+  #   value: { get_attr : [linux1_float_ip, floating_ip_address ] }
+  # linux1_priv:
+  #   description: Linux 1 Private IP
+  #   value: { get_attr: [linux1, 0, fixed_ips] }
+  # linux2_pub:
+  #   description: Linux 2 Public IP
+  #   value: { get_attr : [linux2_float_ip:, floating_ip_address ] }
+  # linux2_priv:
+  #   description: Linux 2 Private IP
+  #   value: { get_attr: [linux2, 0, fixed_ips] }
+  # username:
+  #   description: username
+  #   value: { get_param: user }
+  # password:
+  #   description: password
+  #   value: { get_param: password }
+  # heat_user:
+  #   description: owner of stack
+  #   value: { get_param: heat_user }
