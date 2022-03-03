@@ -3,11 +3,23 @@ heat_template_version: 2018-03-02
 description: Simple Stack with Windows 10 and Debian10 LXDE
 
 parameters:
-  class:
+  stack_descr:
     type: string
-    label: Default Instance Username
-    description: Sets the login username for the instances
-    default: class1
+    label: stack_descr
+    description: stack description string
+    default: sec_plus
+
+  stack_num:
+    type: string
+    label: stack_num
+    description: stack number string
+    default: 1
+
+  username:
+    type: string
+    label: Default Username
+    description: Sets the Username for the instances
+    default: user
 
   password:
     type: string
@@ -32,21 +44,30 @@ parameters:
     default: None
     description: TenantID for swift object store
 
-resources:
-  rand_string:
-    type: OS::Heat::RandomString
-    properties:
-      length: 4
+  dashboard:
+    type: string
+    default: None
+    description: url for dashboard (dashboard.dev/ dashboard)
+    default: dashboard
 
+  dashboard_record:
+    type: string
+    default: None
+    description: dashboard record for dns (10.200.1.204 dev/ 10.100.1.235 prod)
+    default: 10.100.1.235
+
+
+resources:
   # ----- Network Configuration Start ----- #
   test_network:
     type: OS::Neutron::Net
     properties:
       name:
         str_replace:
-          template: test_network_RAND
+          template: test.network.DESC.NUM
           params:
-            RAND: { get_param: heat_user }
+            DESC: { get_param: stack_descr }
+            NUM: { get_param: stack_num }
       admin_state_up: true
       shared: false
 
@@ -62,9 +83,10 @@ resources:
       ip_version: 4
       name:
         str_replace:
-          template: test_subnet_RAND
+          template: test.subnet.DESCR.NUM
           params:
-            RAND: { get_param: heat_user }
+            DESCR: { get_param: stack_descr }
+            NUM: { get_param: stack_num }
       network_id:
         get_resource: test_network
   # ----- Network Configuration End ----- #
@@ -75,9 +97,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: test_neutron_router_RAND
+          template: test.neutron_router.DESCR.NUM
           params:
-            RAND: { get_param: heat_user }
+            DESCR: { get_param: stack_descr }
+            NUM: { get_param: stack_num }
       external_gateway_info:
         network: public
 
@@ -95,9 +118,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux1_RAND
+          template: linux1.server.DESCR.NUM
           params:
-            RAND: { get_param: heat_user }
+            DESCR: { get_param: stack_descr }
+            NUM: { get_param: stack_num }
       image: debian10_lxde
       flavor: m1.small
       diskConfig: AUTO
@@ -120,7 +144,7 @@ resources:
             commands+=("systemctl disable apt-daily-upgrade.timer")
             commands+=("systemctl kill --kill-who=all apt-daily.service")
             commands+=("systemctl stop apparmor && systemctl disable apparmor")
-            commands+=("echo '10.100.1.235 dashboard.gacyberrange.org' >> /etc/hosts")
+            commands+=("echo '$dashboard_record $dashboard.gacyberrange.org' >> /etc/hosts")
             for cmd in "${commands[@]}"; do
               printf "\n**** Running: $cmd *****\n\n"
               eval $cmd
@@ -185,7 +209,10 @@ resources:
             commands+=("**** Changing Background ****")
             commands+=("wget -O /etc/alternatives/desktop-background https://gitlab.com/gacybercenter/branding/backgrounds/-/raw/main/gcr_bckgrnd_drk.jpg?inline=false")
             commands+=("Pulling assets from Object Store")
-            commands+=("wget -O /home/user/demo_assets/elon.jpg https://dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/lesson5/assets/attachments/elon.jpg")
+            commands+=("wget -O /home/user/demo_assets/elon.jpg https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson5/elon.jpg")
+            commands+=("wget -O /home/user/demo_assets/steg.py https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson5/steg.py")
+            commands+=("wget -O /home/user/demo_assets/openssh.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson10/openssh.log")
+            commands+=("wget -O /home/user/demo_assets/openssh2.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson10/openssh2.log")
             for cmd in "${commands[@]}"; do
               printf "\n**** Running: $cmd *****\n\n"
               eval $cmd
@@ -210,7 +237,7 @@ resources:
               echo "Waiting until profile builds"
             done
 
-            echo "10.100.1.235 dashboard.gacyberrange.org" >> /etc/hosts
+            echo "$dashboard_record $dashboard.gacyberrange.org" >> /etc/hosts
 
             source ~/.profile
             sed -i 's/autologin-user=user/#autologin-user=/g' /etc/lightdm/lightdm.conf
@@ -234,6 +261,8 @@ resources:
             $pass: { get_param: password }
             $tenantID: { get_param: tenant_id }
             $cache_proxy: { get_param: apt_cache_proxy }
+            $dashboard: { get_param: dashboard }
+            $dashboard_record: { get_param: dashboard_record }
   # ----- Linux Workstation Configuration End ----- #
 
 
@@ -244,9 +273,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux1_port_RAND
+          template: linux1.port.DESCR.NUM
           params:
-            RAND: { get_param: heat_user }
+            DESCR: { get_param: stack_descr }
+            NUM: { get_param: stack_num }
       network_id: { get_resource: test_network }
       fixed_ips:
       - ip_address: 192.168.65.21
@@ -277,9 +307,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux2_RAND
+          template: linux2.server.DESCR.NUM
           params:
-            RAND: { get_param: heat_user }
+            DESCR: { get_param: stack_descr }
+            NUM: { get_param: stack_num }
       image: debian10_lxde
       flavor: d1.medium
       diskConfig: AUTO
@@ -302,7 +333,7 @@ resources:
             commands+=("systemctl disable apt-daily-upgrade.timer")
             commands+=("systemctl kill --kill-who=all apt-daily.service")
             commands+=("systemctl stop apparmor && systemctl disable apparmor")
-            commands+=("echo '10.100.1.235 dashboard.gacyberrange.org' >> /etc/hosts")
+            commands+=("echo '$dashboard_record $dashboard.gacyberrange.org' >> /etc/hosts")
             for cmd in "${commands[@]}"; do
               printf "\n**** Running: $cmd *****\n\n"
               eval $cmd
@@ -559,7 +590,10 @@ resources:
             commands+=("**** Changing Background ****")
             commands+=("wget -O /etc/alternatives/desktop-background https://gitlab.com/gacybercenter/branding/backgrounds/-/raw/main/gcr_bckgrnd_drk.jpg?inline=false")
             commands+=("Pulling assets from Object Store")
-            commands+=("wget -O /home/user/demo_assets/elon.jpg https://dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/lesson5/assets/attachments/elon.jpg")
+            commands+=("wget -O /home/user/demo_assets/elon.jpg https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson5/elon.jpg")
+            commands+=("wget -O /home/user/demo_assets/steg.py https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson5/steg.py")
+            commands+=("wget -O /home/user/demo_assets/openssh.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson10/openssh.log")
+            commands+=("wget -O /home/user/demo_assets/openssh2.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson10/openssh2.log")
             for cmd in "${commands[@]}"; do
               printf "\n**** Running: $cmd *****\n\n"
               eval $cmd
@@ -584,7 +618,7 @@ resources:
               echo "Waiting until profile builds"
             done
 
-            echo "10.100.1.235 dashboard.gacyberrange.org" >> /etc/hosts
+            echo "$dashboard_record $dashboard.gacyberrange.org" >> /etc/hosts
 
             source ~/.profile
             sed -i 's/autologin-user=user/#autologin-user=/g' /etc/lightdm/lightdm.conf
@@ -607,6 +641,8 @@ resources:
             $pass: { get_param: password }
             $tenantID: { get_param: tenant_id }
             $cache_proxy: { get_param: apt_cache_proxy }
+            $dashboard: { get_param: dashboard }
+            $dashboard_record: { get_param: dashboard_record }
   # ----- Linux Workstation2 Configuration End ----- #
 
 
@@ -617,9 +653,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux2_port_RAND
+          template: linux2.port.DESCR.NUM
           params:
-            RAND: { get_param: heat_user }
+            DESCR: { get_param: stack_descr }
+            NUM: { get_param: stack_num }
       network_id: { get_resource: test_network }
       fixed_ips:
       - ip_address: 192.168.65.22
@@ -650,9 +687,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: windows_workstation_RAND
+          template: windows10.server.DESCR.NUM
           params:
-            RAND: { get_param: heat_user }
+            DESCR: { get_param: stack_descr }
+            NUM: { get_param: stack_num }
       image: win10_21H2
       flavor: d1.large
       networks:
@@ -682,8 +720,8 @@ resources:
             }
 
             #----Set DNS Records
-            If ((Get-Content "$($env:windir)\system32\Drivers\etc\hosts" ) -notcontains "10.100.1.235 dashboard.gacyberrange.org")
-            {ac -Encoding UTF8  "$($env:windir)\system32\Drivers\etc\hosts" "10.100.1.235 dashboard.gacyberrange.org" }
+            If ((Get-Content "$($env:windir)\system32\Drivers\etc\hosts" ) -notcontains "$dashboard_record $dashboard.gacyberrange.org")
+            {ac -Encoding UTF8  "$($env:windir)\system32\Drivers\etc\hosts" "$dashboard_record $dashboard.gacyberrange.org" }
 
             # DISABLE PASSWORD COMPLEXITY #
             $cmd = @()
@@ -741,6 +779,8 @@ resources:
           params:
             $user: { get_param: username }
             $pass: { get_param: password }
+            $dashboard: { get_param: dashboard }
+            $dashboard_record: { get_param: dashboard_record }
   # ----- windows workstation Configuration End ----- #
   
     # ----- windows workstation Port Configuration Start ----- #
@@ -750,9 +790,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: windows_workstation_port_RAND
+          template: windows10.server.DESCR.NUM
           params:
-            RAND: { get_param: heat_user }
+            DESCR: { get_param: stack_descr }
+            NUM: { get_param: stack_num }
       network_id: { get_resource: test_network }
       fixed_ips:
       - ip_address: 192.168.65.23
