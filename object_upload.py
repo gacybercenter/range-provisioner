@@ -1,7 +1,5 @@
 import logging
-import guacamole
 import sys
-import json
 import openstack
 import constants
 import munch
@@ -10,31 +8,18 @@ from os import walk
 from os.path import join
 
 
-# TODO: add support for arguments(i.e. host, username, password, file.rc, etc)
 event_action = constants.EVENT_ACTION
-event_user_total = constants.EVENT_USER_TOTAL
-event_user_prefix = constants.EVENT_USER_PREFIX
-event_user_connection = constants.EVENT_USER_CONNECTION
-event_user_password = constants.EVENT_USER_PASSWORD
-event_user_organization = ""
-
-guac_connection_group = constants.GUAC_CONN_GROUP
-guac_host = constants.GUAC_HOST
-guac_datasource = constants.GUAC_DATASOURCE
-guac_user = constants.GUAC_USER
-guac_password = constants.GUAC_PASS
 
 container_name = constants.CONTAINER_NAME
 assets_dir = constants.ASSETS_DIR
-swift_api_ep = constants.SWIFT_API_EP
 
 conn = openstack.connect()
 # openstack.enable_logging(debug=True)
 
 
-def create_container(container_name):
+def create_container(container_name,):
     """Create new object container"""
-    container = conn.object_store.create_container(name=container_name)
+    container = conn.object_store.create_container(name=container_name, public=True)
     print(f"Container {container_name} has been created in the object store")
 
 def upload_objects(dir, container_name):
@@ -65,8 +50,8 @@ def upload_objects(dir, container_name):
             ) for o in objs
     ]
 
-
     print(f"{assets_dir} and files have been created on the object store")
+
 
 def main():
 
@@ -79,6 +64,8 @@ def main():
         create_container(container_name)
         upload_objects(assets_dir, container_name)
         pass
+    
+
 
 if __name__ == '__main__':
     main()
