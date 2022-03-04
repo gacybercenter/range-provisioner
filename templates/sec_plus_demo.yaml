@@ -281,9 +281,8 @@ resources:
       fixed_ips:
       - ip_address: 192.168.65.21
       security_groups:
-        - test.guacamole.security.group
-        - test.any.tcp.security.group
-        - test.any.udp.security.group
+        - secplus.guacamole.security.group
+        - secplus.any.security.group
       port_security_enabled: true
 
   linux1_float_ip:
@@ -661,9 +660,8 @@ resources:
       fixed_ips:
       - ip_address: 192.168.65.22
       security_groups:
-        - test.guacamole.security.group
-        - test.any.tcp.security.group
-        - test.any.udp.security.group
+        - secplus.guacamole.security.group
+        - secplus.any.security.group
       port_security_enabled: true
 
   linux2_float_ip:
@@ -798,9 +796,8 @@ resources:
       fixed_ips:
       - ip_address: 192.168.65.23
       security_groups:
-        - test.guacamole.security.group
-        - test.any.tcp.security.group
-        - test.any.udp.security.group
+        - secplus.guacamole.security.group
+        - secplus.any.security.group
       port_security_enabled: true
 
   windows_workstation_float_ip:

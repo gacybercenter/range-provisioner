@@ -4,6 +4,8 @@ import json
 import openstack
 from openstack.config import loader
 
+cloud = constants.CLOUD
+
 guac_action = constants.GUAC_ACTION
 guac_user_total = constants.GUAC_USER_TOTAL
 guac_user_prefix = constants.GUAC_USER_PREFIX
@@ -17,16 +19,16 @@ guac_admin = constants.GUAC_ADMIN
 guac_password = constants.GUAC_ADMIN_PASS
 stack_id = constants.STACK_ID
 
+conn = openstack.connect(cloud=cloud)
 instances = {}
+
 
 def guac_session(guac_host, guac_datasource, guac_admin, guac_password):
     guac_session = guacamole.session(guac_host, guac_datasource, guac_admin, guac_password)
     guac_session.generate_token()
 
-
 def get_instances():
     config = loader.OpenStackConfig()
-    conn = openstack.connect()
     for server in conn.compute.servers():
         if server.name.startswith(f'{guac_user_prefix}'):
             id = server.name.split(".")[2]

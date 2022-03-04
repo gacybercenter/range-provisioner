@@ -7,11 +7,11 @@ from openstack.config import loader
 from os import walk
 from os.path import join
 
+cloud = constants.CLOUD
 
 swift_action = constants.SWIFT_ACTION
 container_name = constants.CONTAINER_NAME
 assets_dir = constants.ASSETS_DIR
-cloud = constants.CLOUD
 
 conn = openstack.connect(cloud=cloud)
 # openstack.enable_logging(debug=True)
