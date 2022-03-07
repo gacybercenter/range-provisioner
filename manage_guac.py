@@ -4,6 +4,8 @@ import json
 import openstack
 from openstack.config import loader
 
+cloud = constants.CLOUD
+
 guac_action = constants.GUAC_ACTION
 guac_user_total = constants.GUAC_USER_TOTAL
 guac_user_prefix = constants.GUAC_USER_PREFIX
@@ -15,22 +17,28 @@ guac_host = constants.GUAC_HOST
 guac_datasource = constants.GUAC_DATASOURCE
 guac_admin = constants.GUAC_ADMIN
 guac_password = constants.GUAC_ADMIN_PASS
-stack_id = constants.STACK_ID
+# stack_id = constants.STACK_ID
 
+config = loader.OpenStackConfig()
+conn = openstack.connect(cloud=cloud)
 instances = {}
 
 def guac_session(guac_host, guac_datasource, guac_admin, guac_password):
     guac_session = guacamole.session(guac_host, guac_datasource, guac_admin, guac_password)
     guac_session.generate_token()
 
-
 def get_instances():
-    config = loader.OpenStackConfig()
-    conn = openstack.connect()
-    for server in conn.compute.servers():
-        if server.name.startswith(f'{guac_user_prefix}'):
-            id = server.name.split(".")[2]
-            instances[id] = {"name": server.name, 'address': server.addresses['public'][0]['addr']}
+    # # Retrieve instance names and floating ip addresses
+    for instance in conn.compute.servers():
+            instance_dict = instance.addresses        
+            for item in instance_dict:
+                list_of_dicts = instance_dict[item]
+                for elem in list_of_dicts:
+                    if 'floating' in elem.values():
+                        for k, v in elem.items():
+                            if k == 'addr':
+                                float_ip = v
+            instances[instance.name] = {"name": instance.name, "address": float_ip}
     return instances
 
 def guac_create_user():
@@ -50,7 +58,6 @@ def guac_create_user():
         print(f"Created User: {guac_user_prefix}{user} with password {guac_user_password}")
         guac_session.update_user_connection(guac_user_prefix + user, vconnection["id"], "add", True)
         print(f"Associated Connectiongroup for {vconnection['name']} to {guac_user_prefix}{user}")
-    
 
 def guac_create_conn():
         if guac_user_connection == "ssh":
@@ -86,10 +93,14 @@ def guac_delete_conn():
 
 def main():
 
-    guac_session(guac_host, guac_datasource, guac_admin, guac_password)
-    get_instances(guac_user_prefix, class_id)
-
+    get_instances()
     print(instances)
+
+
+    # guac_session(guac_host, guac_datasource, guac_admin, guac_password)
+    # get_instances(guac_user_prefix, class_id)
+
+    # print(instances)
 
     # if guac_action == "create":
 
@@ -105,7 +116,7 @@ def main():
     # else:
     #     print("No Action Defined")
 
-    guac_session.delete_token()
+    # guac_session.delete_token()
 
 if __name__ == '__main__':
     main()

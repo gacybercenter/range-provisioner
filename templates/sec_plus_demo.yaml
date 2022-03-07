@@ -59,21 +59,21 @@ parameters:
 
 resources:
   # ----- Network Configuration Start ----- #
-  test_network:
+  secplus.network:
     type: OS::Neutron::Net
     properties:
       name:
         str_replace:
-          template: test.network.DESC.NUM
+          template: secplus.network.DESC.NUM
           params:
             DESC: { get_param: stack_descr }
             NUM: { get_param: stack_num }
       admin_state_up: true
       shared: false
 
-  test_subnet:
+  secplus.subnet:
     type: OS::Neutron::Subnet
-    depends_on: test_network
+    depends_on: secplus.network
     properties:
       cidr: 192.168.65.0/27
       gateway_ip:  192.168.65.30
@@ -83,32 +83,32 @@ resources:
       ip_version: 4
       name:
         str_replace:
-          template: test.subnet.DESCR.NUM
+          template: secplus.subnet.DESCR.NUM
           params:
             DESCR: { get_param: stack_descr }
             NUM: { get_param: stack_num }
       network_id:
-        get_resource: test_network
+        get_resource: secplus.network
   # ----- Network Configuration End ----- #
 
   # ----- Router Configuration Start ----- #
-  test_neutron_router:
+  secplus.neutron_router:
     type: OS::Neutron::Router
     properties:
       name:
         str_replace:
-          template: test.neutron_router.DESCR.NUM
+          template: sec_plus.neutron_router.DESCR.NUM
           params:
             DESCR: { get_param: stack_descr }
             NUM: { get_param: stack_num }
       external_gateway_info:
         network: public
 
-  test_neutron_router_interface:
+  secplus.neutron_router_interface:
     type: OS::Neutron::RouterInterface
     properties:
-      router_id: { get_resource: test_neutron_router }
-      subnet_id: { get_resource: test_subnet }
+      router_id: { get_resource: secplus.neutron_router }
+      subnet_id: { get_resource: secplus.subnet }
   # ----- Router Configuration Start ----- #
 
 
@@ -126,7 +126,7 @@ resources:
       flavor: m1.small
       diskConfig: AUTO
       networks:
-        - port: { get_resource: linux1_port }
+        - port: { get_resource: linux1.port }
       user_data_format: RAW
       user_data:
         str_replace:
@@ -267,9 +267,9 @@ resources:
 
 
   # ----- Linux Workstation Port Configuration Start ----- #
-  linux1_port:
+  linux1.port:
     type: OS::Neutron::Port
-    description: linux test IP
+    description: linux1 IP
     properties:
       name:
         str_replace:
@@ -277,7 +277,7 @@ resources:
           params:
             DESCR: { get_param: stack_descr }
             NUM: { get_param: stack_num }
-      network_id: { get_resource: test_network }
+      network_id: { get_resource: secplus.network }
       fixed_ips:
       - ip_address: 192.168.65.21
       security_groups:
@@ -285,18 +285,18 @@ resources:
         - secplus.any.security.group
       port_security_enabled: true
 
-  linux1_float_ip:
+  linux1.float_ip:
     type: OS::Neutron::FloatingIP
-    depends_on: test_neutron_router
+    depends_on: secplus.neutron_router
     description: linux test Floating IP
     properties: { floating_network: public }
 
-  linux1_ip_assoc:
+  linux1.ip_assoc:
     type: OS::Neutron::FloatingIPAssociation
-    depends_on: test_neutron_router_interface
+    depends_on: secplus.neutron_router_interface
     properties:
-      floatingip_id: { get_resource: linux1_float_ip }
-      port_id: { get_resource: linux1_port }
+      floatingip_id: { get_resource: linux1.float_ip }
+      port_id: { get_resource: linux1.port }
 
   # ----- Linux Workstation Port Configuration End ----- #
   
@@ -314,7 +314,7 @@ resources:
       flavor: d1.medium
       diskConfig: AUTO
       networks:
-        - port: { get_resource: linux2_port }
+        - port: { get_resource: linux2.port }
       user_data_format: RAW
       user_data:
         str_replace:
@@ -646,7 +646,7 @@ resources:
 
 
   # ----- Linux Workstation2 Port Configuration Start ----- #
-  linux2_port:
+  linux2.port:
     type: OS::Neutron::Port
     description: linux test IP
     properties:
@@ -656,7 +656,7 @@ resources:
           params:
             DESCR: { get_param: stack_descr }
             NUM: { get_param: stack_num }
-      network_id: { get_resource: test_network }
+      network_id: { get_resource: secplus.network }
       fixed_ips:
       - ip_address: 192.168.65.22
       security_groups:
@@ -664,23 +664,23 @@ resources:
         - secplus.any.security.group
       port_security_enabled: true
 
-  linux2_float_ip:
+  linux2.float_ip:
     type: OS::Neutron::FloatingIP
-    depends_on: test_neutron_router
+    depends_on: secplus.neutron_router
     description: linux test Floating IP
     properties: { floating_network: public }
 
-  linux2_ip_assoc:
+  linux2.ip_assoc:
     type: OS::Neutron::FloatingIPAssociation
-    depends_on: test_neutron_router_interface
+    depends_on: secplus.neutron_router_interface
     properties:
-      floatingip_id: { get_resource: linux2_float_ip }
-      port_id: { get_resource: linux2_port }
+      floatingip_id: { get_resource: linux2.float_ip }
+      port_id: { get_resource: linux2.port }
 
   # ----- Linux Workstation Port Configuration End ----- #
 
   # ----- Windows Workstation Configuration Start ----- #
-  windows_workstation:
+  windows10:
     type: OS::Nova::Server
     properties:
       name:
@@ -692,7 +692,7 @@ resources:
       image: win10_21H2
       flavor: d1.large
       networks:
-        - port: { get_resource: windows_workstation_port }
+        - port: { get_resource: windows10.port }
       diskConfig: AUTO
       user_data_format: RAW
       user_data:
@@ -782,17 +782,17 @@ resources:
   # ----- windows workstation Configuration End ----- #
   
     # ----- windows workstation Port Configuration Start ----- #
-  windows_workstation_port:
+  windows10.port:
     type: OS::Neutron::Port
     description: windows workstation IP
     properties:
       name:
         str_replace:
-          template: windows10.server.DESCR.NUM
+          template: windows10.port.DESCR.NUM
           params:
             DESCR: { get_param: stack_descr }
             NUM: { get_param: stack_num }
-      network_id: { get_resource: test_network }
+      network_id: { get_resource: secplus.network }
       fixed_ips:
       - ip_address: 192.168.65.23
       security_groups:
@@ -800,18 +800,18 @@ resources:
         - secplus.any.security.group
       port_security_enabled: true
 
-  windows_workstation_float_ip:
+  windows10.float_ip:
     type: OS::Neutron::FloatingIP
-    depends_on: test_neutron_router
+    depends_on: secplus.neutron_router
     description: windows workstation Floating IP
     properties: { floating_network: public }
 
-  windows_workstation_ip_assoc:
+  windows10.ip_assoc:
     type: OS::Neutron::FloatingIPAssociation
-    depends_on: test_neutron_router_interface
+    depends_on: secplus.neutron_router_interface
     properties:
-      floatingip_id: { get_resource: windows_workstation_float_ip }
-      port_id: { get_resource: windows_workstation_port }
+      floatingip_id: { get_resource: windows10.float_ip }
+      port_id: { get_resource: windows10.port }
 
   # ----- windows workstation Port Configuration End ----- #
   
