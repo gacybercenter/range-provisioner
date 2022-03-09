@@ -23,16 +23,12 @@ ostack_instance_id = constants.OSTACK_INSTANCE_ID
 config = loader.OpenStackConfig()
 conn = openstack.connect(cloud=cloud)
 guac_session = guacamole.session(guac_host, guac_datasource, guac_admin, guac_password)
-instances = {}
 user_accounts = []
 new_user_accounts = []
 
 
 def get_instances():
-    # # Retrieve instance names and floating ip addresses
-    for instance in conn.list_servers():
-            instances[instance.name] = {"name": instance.name, "address": instance.public_v4}
-    return instances
+    return [{'name': instance.name, 'address': instance.public_v4} for instance in conn.list_servers()]
 
 def guac_list_group():
     vconnection = {"name": guac_connection_group, "id": None}
@@ -75,17 +71,28 @@ def guac_manage_user_conns(new_user_accounts, instances):
         if name == vconnection['name'] and not vconnection['id']:
             vconnection['id'] = key
 
-    for num in range(0, guac_user_total):
-        for instance_key, instance_value in instances.items():
-            if instance_key.endswith(f'{ostack_instance_id}.{num}'):
-                instance_name = instance_value['name']
-                public_ip = instance_value['address']
-        # print(instances.values())
-        # print(instances.keys())
-        # for instance_key, v in instances.items():
-        #     if instance_key.endswith(f'{ostack_instance_id}.{num}'):
-        #         print(instance_key, v)
-        #         print(v['name'])
+    users = {}
+
+    for user in new_user_accounts:
+        user_num = user[user.find('.')+1:]
+        users[user] = [instance for instance in instances if instance['name'].endswith(user_num)]
+
+    for user,server_list in users.items():
+        for item in server_list:
+            print(user,item.get('name'),item.get('address'))
+
+
+
+        # instance_name = instance_value['name']
+
+        # for instance_key, instance_value in instances.items():
+        #     for num in range(0, guac_user_total):
+        #         if instance_key.endswith(f'{ostack_instance_id}.{num}'):
+        #             instance_name = instance_value['name']
+        #             public_ip = instance_value['address']
+        #             print(instance_name, public_ip)
+
+    # guac_session.manage_connection("post", "ssh", )
 
 
 
@@ -113,13 +120,12 @@ def guac_manage_user_conns(new_user_accounts, instances):
 def main():
     # Create new user account list
     for username in range(0, guac_user_total):
-        username = f'{guac_user_prefix}{username}'
+        username = f'{guac_user_prefix}{username+1}'
         new_user_accounts.append(username)
-
     
     # print(get_instances())
     
-    get_instances()
+    instances = get_instances()
     guac_manage_user_conns(new_user_accounts, instances)
 
     # print(get_guac_user_accounts())
