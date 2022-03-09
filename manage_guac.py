@@ -17,90 +17,120 @@ guac_host = constants.GUAC_HOST
 guac_datasource = constants.GUAC_DATASOURCE
 guac_admin = constants.GUAC_ADMIN
 guac_password = constants.GUAC_ADMIN_PASS
+ostack_instance_id = constants.OSTACK_INSTANCE_ID
 # stack_id = constants.STACK_ID
 
 config = loader.OpenStackConfig()
 conn = openstack.connect(cloud=cloud)
+guac_session = guacamole.session(guac_host, guac_datasource, guac_admin, guac_password)
 instances = {}
+user_accounts = []
+new_user_accounts = []
 
-def guac_session(guac_host, guac_datasource, guac_admin, guac_password):
-    guac_session = guacamole.session(guac_host, guac_datasource, guac_admin, guac_password)
-    guac_session.generate_token()
 
 def get_instances():
     # # Retrieve instance names and floating ip addresses
-    for instance in conn.compute.servers():
-            instance_dict = instance.addresses        
-            for item in instance_dict:
-                list_of_dicts = instance_dict[item]
-                for elem in list_of_dicts:
-                    if 'floating' in elem.values():
-                        for k, v in elem.items():
-                            if k == 'addr':
-                                float_ip = v
-            instances[instance.name] = {"name": instance.name, "address": float_ip}
+    for instance in conn.list_servers():
+            instances[instance.name] = {"name": instance.name, "address": instance.public_v4}
     return instances
 
-def guac_create_user():
-    # # NOTE: Initializing connection group dictionary and pulling identifier for specific connection group
+def guac_list_group():
+    vconnection = {"name": guac_connection_group, "id": None}
+    response = guac_session.list_connection_groups()
+    data = json.loads(response)
+
+    for key in data.keys():
+        #Initialize connection group dictionary and pull identifier for specific connection group
+        name = data[key]['name']
+        if name == vconnection["name"] and not vconnection["id"]:
+            vconnection["id"] = key
+    print(vconnection)
+
+def get_guac_user_accounts():
+    response = guac_session.list_users()
+    data = json.loads(response)
+
+    for account_name in data.keys():
+        if account_name.startswith(guac_user_prefix):
+            user_accounts.append(account_name)
+    return user_accounts
+
+def guac_manage_user_acct(guac_action, new_user_accounts):
+    for username in new_user_accounts:
+        if guac_action == "create":
+            print(username)
+            guac_session.create_user(f'{username}', guac_user_password, {"guac-organization": guac_user_organization})
+            print(f"Created User: {username} with password {guac_user_password}")
+        if guac_action == "delete":
+            guac_session.delete_user(username)
+            print(f'Deleted User: {username}')
+
+def guac_manage_user_conns(new_user_accounts, instances):
     vconnection = {"name": guac_connection_group, "id": None}
     response = guac_session.list_connection_groups()
     data = json.loads(response)
 
     for key in data.keys():
         name = data[key]['name']
-        if name == vconnection["name"] and not vconnection["id"]:
-            vconnection["id"] = key
-            # print(vconnection)
-    for user in range(0, guac_user_total):
-        user = str(user)
-        guac_session.create_user(guac_user_prefix + user, guac_user_password, {"guac-organization": guac_user_organization})
-        print(f"Created User: {guac_user_prefix}{user} with password {guac_user_password}")
-        guac_session.update_user_connection(guac_user_prefix + user, vconnection["id"], "add", True)
-        print(f"Associated Connectiongroup for {vconnection['name']} to {guac_user_prefix}{user}")
+        if name == vconnection['name'] and not vconnection['id']:
+            vconnection['id'] = key
 
-def guac_create_conn():
-        if guac_user_connection == "ssh":
-            connection = guac_session.manage_connection("post", "ssh", guac_user_prefix + user, vconnection["id"], None, {"hostname": instances[user]["address"], "port": "22", "username": "user", "password": guac_user_password}, {"max-connections": "", "max-connections-per-user": "1" })
-        if guac_user_connection == "rdp":
-            connection = guac_session.manage_connection("post", "rdp", guac_user_prefix + user, vconnection["id"], None, {"hostname": instances[user]["address"], "port": "3389", "username": "user", "password": guac_user_password, "security": "any", "ignore-cert": "true"}, {"max-connections": "", "max-connections-per-user": "1" })
-        print(f'Created Connection for: {instances[user]["address"]}')
+    for num in range(0, guac_user_total):
+        for instance_key, instance_value in instances.items():
+            if instance_key.endswith(f'{ostack_instance_id}.{num}'):
+                instance_name = instance_value['name']
+                public_ip = instance_value['address']
+        # print(instances.values())
+        # print(instances.keys())
+        # for instance_key, v in instances.items():
+        #     if instance_key.endswith(f'{ostack_instance_id}.{num}'):
+        #         print(instance_key, v)
+        #         print(v['name'])
+
+
+
+
+    # for num in range(0, guac_user_total):
+    #     for username in new_user_accounts:
+            # if instances.name.endswith(f'{ostack_instance_id}.{num}'):
+            #     print(instances.name)
+        # if conn_type == "ssh":
+        #     connection = guac_session.manage_connection("post", "ssh", username, vconnection["id"], None, {"hostname": instances})
+
     
-        vuser_connections = []
-        response = guac_session.list_connections()
-        data = json.loads(response)
+    # for username in new_user_accounts:
+    #     if conn_type == "ssh":
+    #         print()
+        # if conn_type == "rdp":
 
-        for key in data.keys():
-            name = data[key]['name']
-            if name.startswith(guac_user_prefix):
-                guac_session.update_user_connection(name, key, "add", False)
-                print(f"Associated Connection: {key} for User: {name}")
 
-def guac_delete_conn():
-        for user in range(0, guac_user_total):
-            user = str(user)
-            guac_session.delete_user(guac_user_prefix + user)
-            print(f"Deleted User: {guac_user_prefix}{user}")
 
-        response = guac_session.list_connections()
-        data = json.loads(response)
-        for key in data.keys():
-            name = data[key]['name']
-            if name.startswith(guac_user_prefix):
-                guac_session.delete_connection(key)
-                print(f"Deleted Connection: {key}")
+
+
+    # print(vuser_connections)
 
 
 def main():
+    # Create new user account list
+    for username in range(0, guac_user_total):
+        username = f'{guac_user_prefix}{username}'
+        new_user_accounts.append(username)
 
+    
+    # print(get_instances())
+    
     get_instances()
-    print(instances)
+    guac_manage_user_conns(new_user_accounts, instances)
+
+    # print(get_guac_user_accounts())
+
+    # print(conn._list_servers())
+    # guac_manage_user_acct(guac_action, new_user_accounts)
 
 
-    # guac_session(guac_host, guac_datasource, guac_admin, guac_password)
-    # get_instances(guac_user_prefix, class_id)
 
-    # print(instances)
+
+
 
     # if guac_action == "create":
 
@@ -116,7 +146,6 @@ def main():
     # else:
     #     print("No Action Defined")
 
-    # guac_session.delete_token()
 
 if __name__ == '__main__':
     main()
