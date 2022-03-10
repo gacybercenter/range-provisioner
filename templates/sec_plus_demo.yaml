@@ -3,10 +3,10 @@ heat_template_version: 2018-03-02
 description: Simple Stack with Windows 10 and Debian10 LXDE
 
 parameters:
-  stack_descr:
+  instance_descr:
     type: string
-    label: stack_descr
-    description: stack description string
+    label: instance_descr
+    description: instance description string
     default: sec_plus
 
   stack_num:
@@ -32,12 +32,6 @@ parameters:
     label: IP
     description: Sets the apt-cache proxy server for prod/dev deployment (10.200.1.207 dev/ 10.100.1.118 prod) 
     default: 10.200.1.207
-
-  heat_user:
-    type: string
-    label: Heat User
-    description: Sets the name of the owner of the heat template deployment
-    default: default_user
 
   tenant_id:
     type: string
@@ -66,7 +60,7 @@ resources:
         str_replace:
           template: secplus.network.DESC.NUM
           params:
-            DESC: { get_param: stack_descr }
+            DESC: { get_param: instance_descr }
             NUM: { get_param: stack_num }
       admin_state_up: true
       shared: false
@@ -85,7 +79,7 @@ resources:
         str_replace:
           template: secplus.subnet.DESCR.NUM
           params:
-            DESCR: { get_param: stack_descr }
+            DESCR: { get_param: instance_descr }
             NUM: { get_param: stack_num }
       network_id:
         get_resource: secplus.network
@@ -99,7 +93,7 @@ resources:
         str_replace:
           template: sec_plus.neutron_router.DESCR.NUM
           params:
-            DESCR: { get_param: stack_descr }
+            DESCR: { get_param: instance_descr }
             NUM: { get_param: stack_num }
       external_gateway_info:
         network: public
@@ -120,7 +114,7 @@ resources:
         str_replace:
           template: linux1.server.DESCR.NUM
           params:
-            DESCR: { get_param: stack_descr }
+            DESCR: { get_param: instance_descr }
             NUM: { get_param: stack_num }
       image: debian10_lxde
       flavor: m1.small
@@ -275,7 +269,7 @@ resources:
         str_replace:
           template: linux1.port.DESCR.NUM
           params:
-            DESCR: { get_param: stack_descr }
+            DESCR: { get_param: instance_descr }
             NUM: { get_param: stack_num }
       network_id: { get_resource: secplus.network }
       fixed_ips:
@@ -308,7 +302,7 @@ resources:
         str_replace:
           template: linux2.server.DESCR.NUM
           params:
-            DESCR: { get_param: stack_descr }
+            DESCR: { get_param: instance_descr }
             NUM: { get_param: stack_num }
       image: debian10_lxde
       flavor: d1.medium
@@ -654,7 +648,7 @@ resources:
         str_replace:
           template: linux2.port.DESCR.NUM
           params:
-            DESCR: { get_param: stack_descr }
+            DESCR: { get_param: instance_descr }
             NUM: { get_param: stack_num }
       network_id: { get_resource: secplus.network }
       fixed_ips:
@@ -687,7 +681,7 @@ resources:
         str_replace:
           template: windows10.server.DESCR.NUM
           params:
-            DESCR: { get_param: stack_descr }
+            DESCR: { get_param: instance_descr }
             NUM: { get_param: stack_num }
       image: win10_21H2
       flavor: d1.large
@@ -790,7 +784,7 @@ resources:
         str_replace:
           template: windows10.port.DESCR.NUM
           params:
-            DESCR: { get_param: stack_descr }
+            DESCR: { get_param: instance_descr }
             NUM: { get_param: stack_num }
       network_id: { get_resource: secplus.network }
       fixed_ips:
@@ -840,6 +834,3 @@ outputs:
   # password:
   #   description: password
   #   value: { get_param: password }
-  # heat_user:
-  #   description: owner of stack
-  #   value: { get_param: heat_user }
