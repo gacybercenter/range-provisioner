@@ -29,17 +29,6 @@ conn = openstack.connect(cloud=cloud)
 guac_session = guacamole.session(guac_host, guac_datasource, guac_admin, guac_password)
 
 
-def guac_list_group():
-    vconnection = {"name": guac_connection_group, "id": None}
-    response = guac_session.list_connection_groups()
-    data = json.loads(response)
-
-    for key in data.keys():
-        #Initialize connection group dictionary and pull identifier for specific connection group
-        name = data[key]['name']
-        if name == vconnection["name"] and not vconnection["id"]:
-            vconnection["id"] = key
-
 def create_usernames():
     new_usernames = [f'{guac_user_prefix}{username+1}' for username in range(guac_user_total)]
     return new_usernames
@@ -67,12 +56,10 @@ def guac_manage_user_acct(guac_action):
     for username in usernames:
         if guac_action == "create":
             guac_session.create_user(f'{username}', guac_user_password, {"guac-organization": guac_user_organization})
-            print(f"Created User: {username} with password {guac_user_password}")
+            print(f"Guacamole:  Created User Account: {username}")
         if guac_action == "delete":
             guac_session.delete_user(username)
-            print(f'Deleted User: {username}')
-
-# , 'group_id': None, 'user_id': None, 'instance_name': None, 'guac_instance_name': None, 'instance_address': None
+            print(f'Guacamole:  Deleted User Account: {username}')
 
 def guac_manage_user_conns(guac_action, guac_user_conn_proto):
     vconnection = {'name': guac_connection_group}
@@ -95,23 +82,28 @@ def guac_manage_user_conns(guac_action, guac_user_conn_proto):
                 for proto in guac_user_conn_proto:
                     if proto == "ssh":
                         guac_session.manage_connection("post", "ssh", vconnection['guac_instance_name'] + ".ssh", vconnection['group_id'], None, {"hostname": vconnection['instance_address'], "port": "22", "username": ostack_instance_username, "password": ostack_instance_pw}, {"max-connections": "", "max-connections-per-user": "1" })
+                        print(f'Guacamole:  Created connection for {vconnection["guac_instance_name"]} ssh connection with address: {vconnection["instance_address"]}')
                     if proto == "rdp":
                         guac_session.manage_connection("post", "rdp", vconnection['guac_instance_name'] + ".rdp", vconnection['group_id'], None, {"hostname": vconnection['instance_address'], "port": "3389", "username": ostack_instance_username, "password": ostack_instance_pw, "security": "any", "ignore-cert": "true"}, {"max-connections": "", "max-connections-per-user": "1" })
-
+                        print(f'Guacamole:  Created connection for {vconnection["guac_instance_name"]} rdp connection with address: {vconnection["instance_address"]}')
             vuser_conns = json.loads(guac_session.list_connections())
             vuser_conn_id = [ key for key in vuser_conns.keys() if vuser_conns[key]['name'].startswith(vconnection['guac_instance_name']) ]
-            if vuser_conn_id:
+            if vuser_conn_id and guac_action == "create":
                 vconnection.update({'conn_id': vuser_conn_id[0]})
                 guac_session.update_user_connection(vconnection['user'], vconnection['group_id'], "add", True)
                 guac_session.update_user_connection(vconnection['user'], vconnection['conn_id'], "add", False)
+                print(f'Guacamole:  Associated connections for {vconnection["user"]} with id {vconnection["conn_id"]} for server {vconnection["guac_instance_name"]}')
+            
             if guac_action == "delete":
+                vconnection.update({'conn_id': vuser_conn_id[0]})
                 if vconnection['user']:
                     guac_session.delete_connection(vconnection['conn_id'])
+                    print(f'Guacamole:  Deleted connection for {vconnection["guac_instance_name"]} with {vconnection["conn_id"]}')
 
 
 def main():
     guac_manage_user_acct(guac_action)
     guac_manage_user_conns(guac_action, guac_user_conn_proto)
-
+    
 if __name__ == '__main__':
     main()

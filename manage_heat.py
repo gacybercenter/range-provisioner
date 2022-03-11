@@ -36,7 +36,7 @@ def deploy_stack(stack_name, template, parameters):
 
     name = conn.search_stacks(name_or_id=stack_name)
     stack_munch = (name[0])
-    print(f"The stack {stack_munch.stack_name} has been deployed with a status of {stack_munch.status}")
+    print(f"Openstack_Heat:  The stack {stack_munch.stack_name} has been deployed with a status of {stack_munch.status}")
 
 
 def update_stack(stack_name, template, parameters):
@@ -63,9 +63,9 @@ def main():
         stack_exists = conn.search_stacks(name_or_id=sec_name)
         if stack_exists:
             stack = stack_exists[0].name
-            print(f"Security group {stack} already exists")
+            print(f"Openstack_Heat:  Security group {stack} already exists")
         else:
-            print(f"Stack {sec_name} secgroup stack is being created with {secgroup_template} template")
+            print(f"Openstack_Heat:  Stack {sec_name} secgroup stack is being created with {secgroup_template} template")
             deploy_stack(sec_name, secgroup_template, parameters)
 
     if sec_action == "update":
@@ -73,20 +73,20 @@ def main():
         stack_exists = conn.search_stacks(name_or_id=sec_name)
         if stack_exists:
             stack = stack_exists[0].name
-            print(f"Stack {sec_name} security group exists... deleting")
+            print(f"Openstack_Heat:  Stack {sec_name} security group exists... deleting")
             update_stack(sec_name, secgroup_template, parameters)
         else:
-            print(f"Security group {sec_name} can't be updated, it doesn't exist")
+            print(f"Openstack_Heat:  Security group {sec_name} can't be updated, it doesn't exist")
 
     if sec_action == "delete":
         sec_name = f"{stack_descr}.secgroups"
         stack_exists = conn.search_stacks(name_or_id=sec_name)
         if stack_exists:
             stack = stack_exists[0].name
-            print(f"Stack {sec_name} security group exists... deleting")
+            print(f"Openstack_Heat:  Stack {sec_name} security group exists... deleting")
             delete_stack(sec_name)
         else:
-            print(f"Security group {sec_name} can't be deleted, it doesn't exist")
+            print(f"Openstack_Heat:  Security group {sec_name} can't be deleted, it doesn't exist")
 
     if stack_action == "create":
         parameters = {
@@ -104,10 +104,10 @@ def main():
                 if len(stack_exists) > 0:
                     stack_munch = (stack_exists[0])
                     if stack_munch.stack_name == stack_name:
-                        print(f"Stack {stack_name} already exists")
+                        print(f"Openstack_Heat:  Stack {stack_name} already exists")
                         stack_exists = True
                 else:
-                    print(f"Stack {stack_name} environment is being created with {stack_template} template")
+                    print(f"Openstack_Heat:  Stack {stack_name} environment is being created with {stack_template} template")
                     deploy_stack(stack_name, stack_template, parameters)
         except Exception as e:
             # print(f"An exception occurred for creation of stack {stack_name}")
@@ -125,10 +125,10 @@ def main():
             stack_exists = conn.search_stacks(name_or_id=stack_name)
             stack_munch = (stack_exists[0])
             if stack_munch.stack_name == stack_name:
-                print(f"Stack {stack_name} exists... updating")
+                print(f"Openstack_Heat:  Stack {stack_name} exists... updating")
                 update_stack(stack_name, stack_template, parameters)
         except:
-            print(f"Stack {stack_name} can't be updated, it doesn't exist")
+            print(f"Openstack_Heat:  Stack {stack_name} can't be updated, it doesn't exist")
 
     if stack_action == "delete":
         for number in range(stack_num):
@@ -138,10 +138,10 @@ def main():
                 stack_exists = conn.search_stacks(name_or_id=stack_name)
                 stack_munch = (stack_exists[0])
                 if stack_munch.stack_name == stack_name:
-                    print(f"Stack {stack_name} exists... deleting")
+                    print(f"Openstack_Heat:  Stack {stack_name} exists... deleting")
                     delete_stack(stack_name)
             except:
-                print(f"Stack {stack_name} can't be deleted, it doesn't exist")
+                print(f"Openstack_Heat:  Stack {stack_name} can't be deleted, it doesn't exist")
             
 
 

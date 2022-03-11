@@ -20,7 +20,7 @@ conn = openstack.connect(cloud=cloud)
 def create_container(container_name):
     """Create new object store container"""
     conn.object_store.create_container(name=container_name)
-    print(f"Container {container_name} has been created in the object store")
+    print(f"Openstack_Swift:  Container {container_name} has been created in the object store")
     #Set container to public
     conn.set_container_access(name=container_name, access="public")
 
@@ -54,7 +54,7 @@ def upload_objs(dir, container_name):
 
     objects = conn.list_objects(container_name)
 
-    print(f"The following objects have been created on the object store:")
+    print(f"Openstack_Swift:  The following objects have been created in the object store:")
     for obj in objects:
         print(f"  - {obj.name}")  
 
@@ -62,12 +62,12 @@ def upload_objs(dir, container_name):
 def delete_objs(container_name):
     """delete container objects"""
     objects = conn.list_objects(container_name)
-    print(f"The following objects were deleted from the {container_name} container:")
+    print(f"Openstack_Swift:  The following objects were deleted from the {container_name} container:")
     for obj in objects:
         conn.delete_object(container_name, str(obj.name))
         print(f"  - {obj.name}")  
     conn.delete_container(container_name)
-    print(f"{container_name} container has been deleted from the object store")
+    print(f"Openstack_Swift:  {container_name} container has been deleted from the object store")
 
 
 def main():
@@ -76,7 +76,7 @@ def main():
         container_result = conn.search_containers(container_name)
         if container_result:
             container = container_result[0].name
-            print(f"{container_name} already exists in the object store")
+            print(f"Openstack_Swift:  {container_name} already exists in the object store")
         else:
             create_container(container_name)
             upload_objs(assets_dir, container_name)
@@ -85,7 +85,7 @@ def main():
     elif swift_action == "delete":
         container_result = conn.search_containers(container_name)
         if not container_result:
-            print(f"{container_name} doesn't exist in the object store")
+            print(f"Openstack_Swift:  {container_name} doesn't exist in the object store")
         else:
             delete_objs(container_name)
 
