@@ -99,7 +99,7 @@ def main():
         try:
             for number in range(stack_num):
                 stack_name = f'{stack_descr}.{number+1}'
-                parameters["stack_num"] = number
+                parameters["stack_num"] = number+1
                 stack_exists = conn.search_stacks(name_or_id=stack_name)
                 if len(stack_exists) > 0:
                     stack_munch = (stack_exists[0])
@@ -133,7 +133,7 @@ def main():
     if stack_action == "delete":
         for number in range(stack_num):
             stack_name = f'{stack_descr}.{number+1}'
-            parameters["stack_num"] = number
+            parameters["stack_num"] = number+1
             try:
                 stack_exists = conn.search_stacks(name_or_id=stack_name)
                 stack_munch = (stack_exists[0])
