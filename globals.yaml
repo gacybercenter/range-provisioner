@@ -1,0 +1,27 @@
+---
+#YAML for storing range provisioning parameters
+global:
+    cloud: gcr
+    num_users: 3
+    guac_host: https://guac.gacyberrange.org/guacamole
+    name: security_plus
+
+guacamole:
+    enabled: True
+    username: user
+    user_org: ""
+
+openstack:
+    enabled: True
+
+swift:
+    enabled: True
+    container_name: sec_plus
+
+## Variables that are stored privately (never store these in this yaml):
+##     - clouds.yaml file (referenced via the cloud parameter)
+##        
+##     - tenant id
+##     - guac admin user
+##     - guac admin password
+##     - guac user password

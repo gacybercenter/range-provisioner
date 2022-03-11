@@ -2,9 +2,10 @@ import constants
 import guacamole
 import json
 import openstack
+import yaml
 from openstack.config import loader
 
-cloud = constants.CLOUD
+cloud = "gcr"
 
 guac_action = constants.GUAC_ACTION
 guac_user_total = constants.GUAC_USER_TOTAL
@@ -104,6 +105,7 @@ def guac_manage_user_conns(guac_action, guac_user_conn_proto):
 def main():
     guac_manage_user_acct(guac_action)
     guac_manage_user_conns(guac_action, guac_user_conn_proto)
+
     
 if __name__ == '__main__':
     main()
