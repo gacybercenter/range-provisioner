@@ -40,7 +40,6 @@ parameters:
 
   dashboard:
     type: string
-    default: None
     description: url for dashboard (dashboard.dev/ dashboard)
     default: dashboard
 
@@ -49,6 +48,10 @@ parameters:
     default: None
     description: dashboard record for dns (10.200.1.204 dev/ 10.100.1.235 prod)
     default: 10.100.1.235
+
+  guac_conns:
+    type: list
+    default: [ rdp, ssh ]
 
 
 resources:
