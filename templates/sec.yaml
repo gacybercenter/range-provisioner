@@ -4,6 +4,10 @@ description: >
   security group setup for security plus environment.
 
 parameters:
+  name:
+    type: string
+    label: name of secgroup stack
+    default: sec_plus_sec_groups
   ports:
     type: comma_delimited_list
     label: ports

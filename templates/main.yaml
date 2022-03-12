@@ -3,16 +3,22 @@ heat_template_version: 2018-03-02
 description: Simple Stack with Windows 10 and Debian10 LXDE
 
 parameters:
-  instance_descr:
+  name:
     type: string
-    label: instance_descr
-    description: instance description string
+    label: stack name
+    description: stack naming scheme for range provisioner
     default: sec_plus
+
+  user_id:
+    type: string
+    label: resource id
+    description: user id association for range provisioner
+    default: user
 
   stack_num:
     type: string
     label: stack_num
-    description: stack number string
+    description: resource number id for range provisioner
     default: 1
 
   username:
@@ -50,8 +56,8 @@ parameters:
     default: 10.100.1.235
 
   guac_conns:
-    type: list
-    default: [ rdp, ssh ]
+    type: comma_delimited_list
+    default: "rdp,ssh"
 
 
 resources:
@@ -61,9 +67,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: secplus.network.DESC.NUM
+          template: network.NAME.USER_ID.NUM
           params:
-            DESC: { get_param: instance_descr }
+            NAME: { get_param: name }
+            USER_ID: { get_param: user_id }
             NUM: { get_param: stack_num }
       admin_state_up: true
       shared: false
@@ -80,9 +87,10 @@ resources:
       ip_version: 4
       name:
         str_replace:
-          template: secplus.subnet.DESCR.NUM
+          template: subnet.NAME.USER_ID.NUM
           params:
-            DESCR: { get_param: instance_descr }
+            NAME: { get_param: name }
+            USER_ID: { get_param: user_id }
             NUM: { get_param: stack_num }
       network_id:
         get_resource: secplus.network
@@ -94,9 +102,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: sec_plus.neutron_router.DESCR.NUM
+          template: neutron_router.NAME.USER_ID.NUM
           params:
-            DESCR: { get_param: instance_descr }
+            NAME: { get_param: name }
+            USER_ID: { get_param: user_id }
             NUM: { get_param: stack_num }
       external_gateway_info:
         network: public
@@ -115,9 +124,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux1.server.DESCR.NUM
+          template: linux1.server.NAME.USER_ID.NUM
           params:
-            DESCR: { get_param: instance_descr }
+            NAME: { get_param: name }
+            USER_ID: { get_param: user_id }
             NUM: { get_param: stack_num }
       image: debian10_lxde
       flavor: m1.small
@@ -270,9 +280,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux1.port.DESCR.NUM
+          template: linux1.port.NAME.USER_ID.NUM
           params:
-            DESCR: { get_param: instance_descr }
+            NAME: { get_param: name }
+            USER_ID: { get_param: user_id }
             NUM: { get_param: stack_num }
       network_id: { get_resource: secplus.network }
       fixed_ips:
@@ -303,9 +314,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux2.server.DESCR.NUM
+          template: linux2.server.NAME.USER_ID.NUM
           params:
-            DESCR: { get_param: instance_descr }
+            NAME: { get_param: name }
+            USER_ID: { get_param: user_id }
             NUM: { get_param: stack_num }
       image: debian10_lxde
       flavor: d1.medium
@@ -649,9 +661,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux2.port.DESCR.NUM
+          template: linux2.port.NAME.USER_ID.NUM
           params:
-            DESCR: { get_param: instance_descr }
+            NAME: { get_param: name }
+            USER_ID: { get_param: user_id }
             NUM: { get_param: stack_num }
       network_id: { get_resource: secplus.network }
       fixed_ips:
@@ -682,9 +695,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: windows10.server.DESCR.NUM
+          template: windows10.server.NAME.DESCR.NUM
           params:
-            DESCR: { get_param: instance_descr }
+            NAME: { get_param: name }
+            USER_ID: { get_param: user_id }
             NUM: { get_param: stack_num }
       image: win10_21H2
       flavor: d1.large
@@ -785,9 +799,10 @@ resources:
     properties:
       name:
         str_replace:
-          template: windows10.port.DESCR.NUM
+          template: windows10.port.NAME.DESCR.NUM
           params:
-            DESCR: { get_param: instance_descr }
+            NAME: { get_param: name }
+            USER_ID: { get_param: user_id }
             NUM: { get_param: stack_num }
       network_id: { get_resource: secplus.network }
       fixed_ips:

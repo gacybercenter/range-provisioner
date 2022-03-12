@@ -4,7 +4,6 @@ global:
     cloud: gcr
     num_users: 3
     guac_host: https://guac.gacyberrange.org/guacamole
-    name: security_plus
 
 guacamole:
     enabled: True
@@ -12,7 +11,9 @@ guacamole:
     user_org: ""
 
 openstack:
-    enabled: True
+    main_action: delete
+    sec_action:
+
 
 swift:
     enabled: True
