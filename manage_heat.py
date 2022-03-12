@@ -7,11 +7,11 @@ from openstack.config import loader
 from heatclient.client import Client
 
 # Specifies cloud params in clouds.yaml
-cloud = "gcr"
+
 
 # Template dir/params
 template_dir = './templates/'
-stack_template = f'{template_dir}main.yaml'
+main_template = f'{template_dir}main.yaml'
 secgroup_template = f'{template_dir}sec.yaml'
 globals_template = 'globals.yaml'
 
@@ -30,58 +30,110 @@ stack_action = constants.OSTACK_STACK_ACTION
 
 # openstack.enable_logging(debug=True)
 
-config = loader.OpenStackConfig()
-conn = openstack.connect(cloud=cloud)
-
-
-
 def load_template(template):
     with open(template, 'r') as file:
         params_template = yaml.safe_load(file)
     return params_template
 
-
-def deploy_stack(stack_name, template, parameters):
-    conn.create_stack(
-        name=stack_name,
-        template_file=template,
-        rollback=False,
-        wait=True,
-        **parameters,
-    )
-
-    name = conn.search_stacks(name_or_id=stack_name)
-    stack_munch = (name[0])
-    print(f"Openstack_Heat:  The stack {stack_munch.stack_name} has been deployed with a status of {stack_munch.status}")
-
-
 def update_stack(stack_name, template, parameters):
-    conn.update_stack(
-        name_or_id=stack_name,
-        template_file=template,
-        rollback=False,
-        wait=True,
-        **parameters,
-    )
+    if search_stack(stack_name):
+        print(f"Openstack_Heat:  The stack {stack_name} exists... updating")
+        conn.update_stack(
+            name_or_id=stack_name,
+            template_file=template,
+            rollback=False,
+            wait=True,
+            **parameters,
+        )
+    else:
+        print(f"Openstack_Heat:  The stack {stack_name} cannot be updated, it doesn't exist")
 
 def delete_stack(stack_name):
-    conn.delete_stack(
-        name_or_id=stack_name,
-        wait=True,
-    )
+    if search_stack(stack_name):
+        print(f"Openstack_Heat:  The stack {stack_name} exists... deleting")
+        conn.delete_stack(name_or_id=stack_name)
+    else:
+        print(f"Openstack_Heat ERROR:  The stack {stack_name} cannot be deleted, it doesn't exist")
+
+
+def create_stack(stack_name, template, parameters):
+    if search_stack(stack_name):
+        print(f"Openstack_Heat ERROR:  The stack {stack_name} already exists")
+    else:
+        conn.create_stack(
+            name=stack_name,
+            template_file=template,
+            rollback=False,
+            **parameters,
+        )
+        print(f"Openstack_Heat:  The stack {stack_name} is creating...")
+
+def search_stack(stack_name):
+    print(f'Openstack_Heat:  searching for {stack_name}...')
+    stack_exists = conn.search_stacks(name_or_id=stack_name)
+    return(stack_exists)
+
 
 
 def main():
-    parameters = {}
-    
-    heat_params = load_template(stack_template)
+    heat_dict = {}
+    heat_params = load_template(main_template)
     global_params = load_template(globals_template)
-    tenant_id = load_template('clouds.yaml')['clouds']['gcr']['auth']['project_id']
-    username = heat_params['parameters']['username']['default']
-    password = heat_params['parameters']['password']['default']
+    sec_params = load_template(secgroup_template)
 
-    if global_params['openstack']['enabled'] is True:
-        print("It's True!")
+    heat_dict.update({'num_stacks': global_params['global']['num_users']})
+    heat_dict.update({'main_action': global_params['openstack']['main_action']})
+    heat_dict.update({'main_stack_name': heat_params['parameters']['name']['default']})
+    heat_dict.update({'sec_action': global_params['openstack']['sec_action']})
+    heat_dict.update({'sec_stack_name': sec_params['parameters']['name']['default']})
+    heat_dict.update({'tenant_id': load_template('clouds.yaml')['clouds']['gcr']['auth']['project_id']})
+    heat_dict.update({'username': heat_params['parameters']['username']['default']})
+    heat_dict.update({'password': heat_params['parameters']['password']['default']})
+    
+    
+    if heat_dict['sec_action'] == "delete":
+        delete_stack(heat_dict['sec_stack_name'])
+    if heat_dict['sec_action'] == 'update':
+        update_stack(heat_dict['sec_stack_name'], secgroup_template, None)
+
+    for num in range(1, heat_dict['num_stacks']+1):
+        heat_dict.update({'stack_num': num})
+        parameters = {
+            "tenant_id" : heat_dict['tenant_id'],
+            "stack_num" : heat_dict['stack_num'],
+        }
+
+        if heat_dict['main_action'] == 'delete':
+            delete_stack(f'{heat_dict["main_stack_name"]}.{num}')
+        if heat_dict['main_action'] == 'update':
+            update_stack(f'{heat_dict["main_stack_name"]}.{num}', main_template, parameters)
+        if heat_dict['main_action'] == 'create':
+            create_stack(f'{heat_dict["main_stack_name"]}.{num}', main_template, parameters)            
+
+
+
+
+
+
+
+        # if conn.search_stacks(name_or_id=heat_dict['sec_stack_name']):
+        #     print(f"Openstack_Heat:  Stack {heat_dict['sec_stack_name']} security group exists... deleting")
+        # else:
+        #     print(f"Openstack_Heat:  ERROR: Security group {heat_dict['sec_stack_name']} doesn't exist")
+    # if heat_dict['main_action'] == "delete":
+    #     if conn.search
+    
+    
+    # if heat_dict['sec_action'] == "update":
+
+    # if heat_dict['sec_action'] == "create":
+
+
+    # if heat_dict['main_action'] == "delete":
+    # if heat_dict['main_action'] == "update":
+    # if heat_dict['main_action'] == "create":
+
+
 
 
     
@@ -179,4 +231,7 @@ def main():
 
 
 if __name__ == '__main__':
+    cloud = load_template('globals.yaml')['global']['cloud']
+    config = loader.OpenStackConfig()
+    conn = openstack.connect(cloud=cloud)
     main()
