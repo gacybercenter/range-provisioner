@@ -22,8 +22,8 @@ def update_stack(stack_name, template, parameters):
             **parameters,
         )
     else:
-        print(f"Openstack_Heat:  The stack {stack_name} cannot be updated,\
-            it doesn't exist")
+        print(f"Openstack_Heat:  The stack {stack_name} cannot be updated,"
+              " it doesn't exist")
 
 
 def delete_stack(stack_name):
@@ -32,8 +32,8 @@ def delete_stack(stack_name):
         conn.delete_stack(name_or_id=stack_name)
         print(f"Openstack_Heat:  The stack {stack_name} exists... deleting")
     else:
-        print(f"Openstack_Heat ERROR:  The stack {stack_name} cannot be deleted,\
-            it doesn't exist")
+        print(f"Openstack_Heat ERROR:  The stack {stack_name} cannot be"
+              " deleted, it doesn't exist")
 
 
 def create_stack(stack_name, template, parameters):
@@ -52,14 +52,14 @@ def create_stack(stack_name, template, parameters):
                 rollback=False,
                 **parameters,
             )
-        print(f"Openstack_Heat:  The stack {stack_name} is creating...")
+        print(f"Openstack_Heat:  The stack {stack_name} has been created")
     except Exception as e:
         print(f"Openstack_Heat ERROR:  {e}")
 
 
 def search_stack(stack_name):
     """Search if stack exists"""
-    print(f'Openstack_Heat:  searching for {stack_name}...')
+    print(f"Openstack_Heat:  Searching for {stack_name}...")
     stack_exists = conn.search_stacks(name_or_id=stack_name)
     return(stack_exists)
 
@@ -98,7 +98,8 @@ def main():
     if heat_dict['sec_action'] == 'create':
         create_stack(heat_dict['sec_stack_name'], secgroup_template, None)
 
-    # Main template action for a given number of stacks
+    # Main template action for a given number of stacks based on globals
+    #  template data
     for num in range(1, heat_dict['num_stacks']+1):
         heat_dict.update({'stack_num': num})
         parameters = {
@@ -116,15 +117,15 @@ def main():
 
 
 if __name__ == '__main__':
-    print('***  Begin heat management script  ***\n')
-    template_dir = './templates/'
-    main_template = f'{template_dir}main.yaml'
-    secgroup_template = f'{template_dir}sec.yaml'
+    print("***  Begin Heat management script  ***\n")
     globals_template = 'globals.yaml'
-    cloud = load_template('globals.yaml')['global']['cloud']
+    template_dir = load_template('globals.yaml')['openstack']['template_dir']
+    main_template = f'{template_dir}/main.yaml'
+    secgroup_template = f'{template_dir}/sec.yaml'
     config = loader.OpenStackConfig()
-    conn = openstack.connect(cloud=cloud)
+    conn = openstack.connect(cloud=load_template
+                             (globals_template)['global']['cloud'])
     openstack.enable_logging(debug=load_template
-                             ('globals.yaml')['global']['debug'])
+                             (globals_template)['global']['debug'])
     main()
-    print('\n*** End heat management script  ***')
+    print("\n*** End Heat management script  ***")

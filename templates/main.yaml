@@ -44,6 +44,11 @@ parameters:
     default: None
     description: TenantID for swift object store
 
+  container_name:
+    type: string
+    description: name for object store container for instance assets
+    default: sec_plus
+
   dashboard:
     type: string
     description: url for dashboard (dashboard.dev/ dashboard)
@@ -216,10 +221,10 @@ resources:
             commands+=("**** Changing Background ****")
             commands+=("wget -O /etc/alternatives/desktop-background https://gitlab.com/gacybercenter/branding/backgrounds/-/raw/main/gcr_bckgrnd_drk.jpg?inline=false")
             commands+=("Pulling assets from Object Store")
-            commands+=("wget -O /home/user/demo_assets/elon.jpg https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson5/elon.jpg")
-            commands+=("wget -O /home/user/demo_assets/steg.py https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson5/steg.py")
-            commands+=("wget -O /home/user/demo_assets/openssh.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson10/openssh.log")
-            commands+=("wget -O /home/user/demo_assets/openssh2.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson10/openssh2.log")
+            commands+=("wget -O /home/user/demo_assets/elon.jpg https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/elon.jpg")
+            commands+=("wget -O /home/user/demo_assets/steg.py https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/steg.py")
+            commands+=("wget -O /home/user/demo_assets/openssh.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson10/openssh.log")
+            commands+=("wget -O /home/user/demo_assets/openssh2.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson10/openssh2.log")
             for cmd in "${commands[@]}"; do
               printf "\n**** Running: $cmd *****\n\n"
               eval $cmd
@@ -267,6 +272,7 @@ resources:
             $user: { get_param: username }
             $pass: { get_param: password }
             $tenantID: { get_param: tenant_id }
+            $container_name: { get_param: container_name }
             $cache_proxy: { get_param: apt_cache_proxy }
             $dashboard: { get_param: dashboard }
             $dashboard_record: { get_param: dashboard_record }
@@ -598,10 +604,10 @@ resources:
             commands+=("**** Changing Background ****")
             commands+=("wget -O /etc/alternatives/desktop-background https://gitlab.com/gacybercenter/branding/backgrounds/-/raw/main/gcr_bckgrnd_drk.jpg?inline=false")
             commands+=("Pulling assets from Object Store")
-            commands+=("wget -O /home/user/demo_assets/elon.jpg https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson5/elon.jpg")
-            commands+=("wget -O /home/user/demo_assets/steg.py https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson5/steg.py")
-            commands+=("wget -O /home/user/demo_assets/openssh.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson10/openssh.log")
-            commands+=("wget -O /home/user/demo_assets/openssh2.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/sec_plus/assets/lesson10/openssh2.log")
+            commands+=("wget -O /home/user/demo_assets/elon.jpg https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/elon.jpg")
+            commands+=("wget -O /home/user/demo_assets/steg.py https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/steg.py")
+            commands+=("wget -O /home/user/demo_assets/openssh.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson10/openssh.log")
+            commands+=("wget -O /home/user/demo_assets/openssh2.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson10/openssh2.log")
             for cmd in "${commands[@]}"; do
               printf "\n**** Running: $cmd *****\n\n"
               eval $cmd
@@ -648,6 +654,7 @@ resources:
             $user: { get_param: username }
             $pass: { get_param: password }
             $tenantID: { get_param: tenant_id }
+            $container_name: { get_param: container_name }
             $cache_proxy: { get_param: apt_cache_proxy }
             $dashboard: { get_param: dashboard }
             $dashboard_record: { get_param: dashboard_record }
