@@ -320,7 +320,7 @@ resources:
             USER_ID: { get_param: user_id }
             NUM: { get_param: stack_num }
       image: debian10_lxde
-      flavor: d1.medium
+      flavor: m1.small
       diskConfig: AUTO
       networks:
         - port: { get_resource: linux2.port }

@@ -1,6 +1,7 @@
 ---
 #YAML for storing range provisioning parameters
 global:
+    debug: False
     cloud: gcr
     num_users: 3
     guac_host: https://guac.gacyberrange.org/guacamole
@@ -12,7 +13,7 @@ guacamole:
 
 openstack:
     main_action: delete
-    sec_action:
+    sec_action: delete
 
 
 swift:
