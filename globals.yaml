@@ -14,11 +14,12 @@ guacamole:
 openstack:
     main_action: delete
     sec_action: delete
+    template_dir: templates
 
 
 swift:
-    enabled: True
-    container_name: sec_plus
+    action: create
+    asset_dir: assets
 
 ## Variables that are stored privately (never store these in this yaml):
 ##     - clouds.yaml file (referenced via the cloud parameter)
