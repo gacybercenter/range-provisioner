@@ -1,8 +1,6 @@
-import openstack
-from os import walk
-from os.path import join
+from os import walk, path
 from yaml import safe_load
-from openstack.config import loader
+from openstack import config, connect, enable_logging
 
 
 def load_template(template):
@@ -45,7 +43,7 @@ def upload_objs(container_name, dir):
         if not (_ds + _fs):
             dir_markers.append(_dir)
         else:
-            objs.extend([join(_dir, _f) for _f in _fs])
+            objs.extend([path.join(_dir, _f) for _f in _fs])
 
     # Create directory markers for folder structure
     dir_markers = [
@@ -108,13 +106,13 @@ def main():
     swift_dict.update({'assets_dir': assets_dir})
 
     # Swift actions based on globals template data
-    if swift_dict['swift_action'] == "create":
+    if swift_dict['swift_action'] == 'create':
         create_container(swift_dict['container_name'])
         upload_objs(swift_dict['container_name'], swift_dict['assets_dir'])
-    if swift_dict['swift_action'] == "delete":
+    if swift_dict['swift_action'] == 'delete':
         delete_objs(swift_dict['container_name'])
         delete_container(swift_dict['container_name'])
-    if swift_dict['swift_action'] == "update":
+    if swift_dict['swift_action'] == 'update':
         upload_objs(swift_dict['container_name'], swift_dict['assets_dir'])
         print("Openstack_Swift:  Updated"
               f" {swift_dict['container_name']} container objects")
@@ -123,13 +121,13 @@ def main():
 if __name__ == '__main__':
     print("***  Begin Swift object storage script  ***\n")
     globals_template = 'globals.yaml'
-    template_dir = load_template('globals.yaml')['openstack']['template_dir']
+    template_dir = load_template(globals_template)['openstack']['template_dir']
     main_template = f'{template_dir}/main.yaml'
-    assets_dir = load_template('globals.yaml')['swift']['asset_dir']
-    config = loader.OpenStackConfig()
-    conn = openstack.connect(cloud=load_template
-                             (globals_template)['global']['cloud'])
-    openstack.enable_logging(debug=load_template
-                             (globals_template)['global']['debug'])
+    assets_dir = load_template(globals_template)['swift']['asset_dir']
+    config = config.loader.OpenStackConfig()
+    conn = connect(cloud=load_template
+                   (globals_template)['global']['cloud'])
+    enable_logging(debug=load_template
+                   (globals_template)['global']['debug'])
     main()
     print("\n*** End Swift object storage script  ***")

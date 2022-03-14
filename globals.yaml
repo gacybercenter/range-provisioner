@@ -4,11 +4,13 @@ global:
     debug: False
     cloud: gcr
     num_users: 3
-    guac_host: https://guac.gacyberrange.org/guacamole
 
 guacamole:
-    enabled: True
-    username: user
+    guac_host: https://guac.gacyberrange.org/guacamole
+    action: create
+    conn_group_action: delete
+    conn_group_name: test_group
+    username_prefix: user
     user_org: ""
 
 openstack:
@@ -18,7 +20,7 @@ openstack:
 
 
 swift:
-    action: create
+    action: delete
     asset_dir: assets
 
 ## Variables that are stored privately (never store these in this yaml):
