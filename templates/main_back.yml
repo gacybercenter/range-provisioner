@@ -9,6 +9,18 @@ parameters:
     description: stack naming scheme for range provisioner
     default: sec_plus
 
+  user_id:
+    type: string
+    label: resource id
+    description: user id association for range provisioner
+    default: user
+
+  stack_num:
+    type: string
+    label: stack_num
+    description: resource number id for range provisioner
+    default: 1
+
   username:
     type: string
     label: Default Username
@@ -60,9 +72,11 @@ resources:
     properties:
       name:
         str_replace:
-          template: network.INSTANCE_ID
+          template: network.INSTANCE_ID.USER_ID.NUM
           params:
             INSTANCE_ID: { get_param: instance_id }
+            USER_ID: { get_param: user_id }
+            NUM: { get_param: stack_num }
       admin_state_up: true
       shared: false
 
@@ -78,9 +92,11 @@ resources:
       ip_version: 4
       name:
         str_replace:
-          template: subnet.INSTANCE_ID
+          template: subnet.INSTANCE_ID.USER_ID.NUM
           params:
             INSTANCE_ID: { get_param: instance_id }
+            USER_ID: { get_param: user_id }
+            NUM: { get_param: stack_num }
       network_id:
         get_resource: secplus.network
   # ----- Network Configuration End ----- #
@@ -91,9 +107,11 @@ resources:
     properties:
       name:
         str_replace:
-          template: neutron_router.INSTANCE_ID
+          template: neutron_router.INSTANCE_ID.USER_ID.NUM
           params:
             INSTANCE_ID: { get_param: instance_id }
+            USER_ID: { get_param: user_id }
+            NUM: { get_param: stack_num }
       external_gateway_info:
         network: public
 
@@ -111,9 +129,11 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux1.server.INSTANCE_ID
+          template: linux1.server.INSTANCE_ID.USER_ID.NUM
           params:
             INSTANCE_ID: { get_param: instance_id }
+            USER_ID: { get_param: user_id }
+            NUM: { get_param: stack_num }
       image: debian10_lxde
       flavor: m1.small
       diskConfig: AUTO
@@ -266,9 +286,11 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux1.port.INSTANCE_ID
+          template: linux1.port.INSTANCE_ID.USER_ID.NUM
           params:
             INSTANCE_ID: { get_param: instance_id }
+            USER_ID: { get_param: user_id }
+            NUM: { get_param: stack_num }
       network_id: { get_resource: secplus.network }
       fixed_ips:
       - ip_address: 192.168.65.21
@@ -298,9 +320,11 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux2.server.INSTANCE_ID
+          template: linux2.server.INSTANCE_ID.USER_ID.NUM
           params:
             INSTANCE_ID: { get_param: instance_id }
+            USER_ID: { get_param: user_id }
+            NUM: { get_param: stack_num }
       image: debian10_lxde
       flavor: m1.small
       diskConfig: AUTO
@@ -644,9 +668,11 @@ resources:
     properties:
       name:
         str_replace:
-          template: linux2.port.INSTANCE_ID
+          template: linux2.port.INSTANCE_ID.USER_ID.NUM
           params:
             INSTANCE_ID: { get_param: instance_id }
+            USER_ID: { get_param: user_id }
+            NUM: { get_param: stack_num }
       network_id: { get_resource: secplus.network }
       fixed_ips:
       - ip_address: 192.168.65.22
@@ -676,9 +702,11 @@ resources:
     properties:
       name:
         str_replace:
-          template: windows10.server.INSTANCE_ID
+          template: windows10.server.INSTANCE_ID.USER_ID.NUM
           params:
             INSTANCE_ID: { get_param: instance_id }
+            USER_ID: { get_param: user_id }
+            NUM: { get_param: stack_num }
       image: win10_21H2
       flavor: d1.large
       networks:
@@ -778,9 +806,11 @@ resources:
     properties:
       name:
         str_replace:
-          template: windows10.port.INSTANCE_ID
+          template: windows10.port.INSTANCE_ID.USER_ID.NUM
           params:
             INSTANCE_ID: { get_param: instance_id }
+            USER_ID: { get_param: user_id }
+            NUM: { get_param: stack_num }
       network_id: { get_resource: secplus.network }
       fixed_ips:
       - ip_address: 192.168.65.23

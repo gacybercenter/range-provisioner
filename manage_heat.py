@@ -66,6 +66,7 @@ def search_stack(stack_name):
 def main():
     # Create main dictionary and load templates
     heat_dict = {}
+    extra_params = {}
     heat_params = load_template(main_template)
     global_params = load_template(globals_template)
     sec_params = load_template(secgroup_template)
@@ -76,18 +77,24 @@ def main():
     heat_dict.update({'main_action':
                      global_params['openstack']['main_action']})
     heat_dict.update({'main_stack_name':
-                     heat_params['parameters']['name']['default']})
+                     f"{heat_params['parameters']['instance_id']['default']}.{global_params['global']['username_prefix']}"})
     heat_dict.update({'sec_action':
                      global_params['openstack']['sec_action']})
     heat_dict.update({'sec_stack_name':
                      sec_params['parameters']['name']['default']})
-    heat_dict.update({'tenant_id':
-                     load_template('clouds.yaml')
-                     ['clouds']['gcr']['auth']['project_id']})
     heat_dict.update({'username':
                      heat_params['parameters']['username']['default']})
     heat_dict.update({'password':
                      heat_params['parameters']['password']['default']})
+
+    # Create dynamic parameters dictionary
+    for k, v in heat_params['parameters'].items():
+        extra_params.update({f"{k}": v['default']})
+    
+    print(heat_dict['main_stack_name'])
+
+    extra_params.update({'tenant_id': load_template('clouds.yaml')['clouds']['gcr']['auth']['project_id']})
+    extra_params.update({'instance_id': heat_dict['main_stack_name']})
 
     # Security group template actions
     if heat_dict['sec_action'] == 'delete':
@@ -101,10 +108,9 @@ def main():
     #  template data
     for num in range(1, heat_dict['num_stacks']+1):
         heat_dict.update({'stack_num': num})
-        parameters = {
-            "tenant_id": heat_dict['tenant_id'],
-            "stack_num": heat_dict['stack_num'],
-        }
+        extra_params.update({"instance_id": f'{heat_dict["main_stack_name"]}.{num}'})
+        parameters = extra_params
+        print(parameters)
         if heat_dict['main_action'] == 'delete':
             delete_stack(f'{heat_dict["main_stack_name"]}.{num}')
         if heat_dict['main_action'] == 'update':
