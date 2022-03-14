@@ -1,6 +1,5 @@
-import openstack
 from yaml import safe_load
-from openstack.config import loader
+from openstack import config, connect, enable_logging
 
 
 def load_template(template):
@@ -91,7 +90,7 @@ def main():
                      heat_params['parameters']['password']['default']})
 
     # Security group template actions
-    if heat_dict['sec_action'] == "delete":
+    if heat_dict['sec_action'] == 'delete':
         delete_stack(heat_dict['sec_stack_name'])
     if heat_dict['sec_action'] == 'update':
         update_stack(heat_dict['sec_stack_name'], secgroup_template, None)
@@ -119,13 +118,13 @@ def main():
 if __name__ == '__main__':
     print("***  Begin Heat management script  ***\n")
     globals_template = 'globals.yaml'
-    template_dir = load_template('globals.yaml')['openstack']['template_dir']
+    template_dir = load_template(globals_template)['openstack']['template_dir']
     main_template = f'{template_dir}/main.yaml'
     secgroup_template = f'{template_dir}/sec.yaml'
-    config = loader.OpenStackConfig()
-    conn = openstack.connect(cloud=load_template
-                             (globals_template)['global']['cloud'])
-    openstack.enable_logging(debug=load_template
-                             (globals_template)['global']['debug'])
+    config = config.loader.OpenStackConfig()
+    conn = connect(cloud=load_template
+                   (globals_template)['global']['cloud'])
+    enable_logging(debug=load_template
+                   (globals_template)['global']['debug'])
     main()
     print("\n*** End Heat management script  ***")
