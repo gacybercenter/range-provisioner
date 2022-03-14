@@ -7,10 +7,10 @@ global:
 
 guacamole:
     guac_host: https://guac.gacyberrange.org/guacamole
-    action: create
-    conn_group_action: delete
+    action: delete
+    conn_group_action:
     conn_group_name: test_group
-    username_prefix: user
+    username_prefix: test_user
     user_org: ""
 
 openstack:
