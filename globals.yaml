@@ -4,23 +4,23 @@ global:
     debug: False
     cloud: gcr
     num_users: 3
+    username_prefix: test_user
 
 guacamole:
     guac_host: https://guac.gacyberrange.org/guacamole
-    action: delete
-    conn_group_action: delete
+    action: create
+    conn_group_action: create
     conn_group_name: test_group
-    username_prefix: test_user
     user_org: ""
 
 openstack:
-    main_action: delete
-    sec_action: delete
+    main_action: create
+    sec_action:
     template_dir: templates
 
 
 swift:
-    action: delete
+    action: create
     asset_dir: assets
 
 ## Variables that are stored privately (never store these in this yaml):
