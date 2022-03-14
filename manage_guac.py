@@ -8,17 +8,6 @@ import time
 guac_admin = constants.GUAC_ADMIN
 guac_password = constants.GUAC_ADMIN_PASS
 
-guac_user_password = constants.GUAC_USER_PASSWORD
-
-guac_connection_group = constants.GUAC_CONN_GROUP
-
-guac_event_prefix = constants.GUAC_EVENT_PREFIX
-
-ostack_instance_id = constants.OSTACK_INSTANCE_ID
-ostack_instance_username = constants.OSTACK_INSTANCE_USERNAME
-ostack_instance_pw = constants.OSTACK_INSTANCE_PW
-
-
 def load_template(template):
     """Load templates"""
     with open(template, 'r') as file:
