@@ -193,8 +193,9 @@ def main():
                      global_params['guacamole']['conn_group_name']})
     guac_dict.update({'conn_proto':
                      heat_params['parameters']['guac_conns']['default']})
-    guac_dict.update({'conn_name':
-                     heat_params['parameters']['name']['default']})
+    ## TODO
+    # guac_dict.update({'conn_name':
+    #                  heat_params['parameters']['name']['default']})
     guac_dict.update({'ostack_instance_username':
                      heat_params['parameters']['username']['default']})
     guac_dict.update({'ostack_instance_password':
