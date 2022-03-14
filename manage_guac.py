@@ -7,6 +7,7 @@ import time
 
 guac_admin = constants.GUAC_ADMIN
 guac_password = constants.GUAC_ADMIN_PASS
+guac_user_password = constants.GUAC_USER_PASSWORD
 
 def load_template(template):
     """Load templates"""
@@ -19,15 +20,6 @@ def create_usernames(num_users, username):
     """Create username list"""
     new_usernames = [f'{username}.{num}' for num in range(1, num_users+1)]
     return new_usernames
-
-
-def create_instance_dict(instances, usernames):
-    """Create instance dictionary"""
-    instance_dict = {}
-    for user in usernames:
-        user_num = user[user.find('.')+1:]
-        instance_dict[user] = [instance for instance in instances if instance['name'].endswith(f'{ostack_instance_id}.{user_num}')]
-    return instance_dict
 
 
 def get_ostack_instances():
@@ -70,7 +62,7 @@ def create_conn_group(conn_group_name):
                                          {'max-connections': '50',
                                          'max-connections-per-user' : '10',
                                          'enable-session-affinity' : ''})
-    time.sleep(3)
+    time.sleep(2)
     print(f"Guacamole:  The connection group {conn_group_name} was created")
 
 
@@ -112,7 +104,7 @@ def create_user_conns(conn_action, user, instances, conn_proto, conn_group_id, o
 
 def associate_user_conns(user, conn_name, conn_group_id):
     """Associate user accounts with group_id and connections"""
-    time.sleep(3)
+    time.sleep(2)
     conn = get_conn_id(conn_name, conn_group_id)
     guac_session.update_user_connection(user, conn_group_id, "add", True)
     guac_session.update_user_connection(user, conn, "add", False)
@@ -173,13 +165,13 @@ def main():
     # Create user accounts as specified in globals template
     usernames = create_usernames(guac_dict['num_users'], guac_dict['username'])
     for user in usernames:
+        user_num = f"{user}".rsplit('.', 1)[1]
         if guac_dict['guac_action'] == 'create':
             if user in get_existing_accounts():
                 print(f"Guacamole ERROR:  Can't create user account, {user} already exists")
             else:
                 create_user_acct(user, guac_user_password, guac_dict['user_org'])
                 # Create instance connections
-                user_num = f"{user}".rsplit('.', 1)[1]
                 instances = [ {'name': instance.name, 'address': instance.public_v4} for instance in instance_list if instance['name'].endswith(f"{guac_dict['conn_name']}.{user_num}") ]
                 create_user_conns(guac_dict['guac_action'], user, instances, guac_dict['conn_proto'], conn_group_id, guac_dict['ostack_instance_username'], guac_dict['ostack_instance_password'])
 
@@ -190,7 +182,6 @@ def main():
             else:
                 delete_user_acct(user)
                 # Delete instance connections
-                user_num = f"{user}".rsplit('.', 1)[1]
                 instances = [ {'name': instance.name, 'address': instance.public_v4} for instance in instance_list if instance['name'].endswith(f"{guac_dict['conn_name']}.{user_num}") ]
                 create_user_conns(guac_dict['guac_action'], user, instances, guac_dict['conn_proto'], conn_group_id, guac_dict['ostack_instance_username'], guac_dict['ostack_instance_password'])
 
