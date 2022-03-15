@@ -93,27 +93,43 @@ def search_containers(container_name):
 
 
 def main():
-    # Create main dictionary and load templates
-    swift_dict = {}
+    # Load templates
     heat_params = load_template(main_template)
     global_params = load_template(globals_template)
 
+    # Create dictionaries
+    global_dict = ([v for k, v in global_params.items() if k == "global"])[0]
+    swift_dict = ([v for k, v in global_params.items() if k == "swift"])[0]
+
     # Update main dictionary and update keys and values loaded from templates
-    swift_dict.update({'swift_action':
-                      global_params['swift']['action']})
     swift_dict.update({'container_name':
                       heat_params['parameters']['container_name']['default']})
-    swift_dict.update({'assets_dir': assets_dir})
+
+    # Check global for create_all value
+    if global_dict['create_all'] is True:
+        swift_dict.update(
+            {
+                'action': 'create',
+            }
+            )
+    if global_dict['create_all'] is False:
+                swift_dict.update(
+            {
+                'action': 'delete',
+            }
+            )
+    else:
+        pass
 
     # Swift actions based on globals template data
-    if swift_dict['swift_action'] == 'create':
+    if swift_dict['action'] == 'create':
         create_container(swift_dict['container_name'])
-        upload_objs(swift_dict['container_name'], swift_dict['assets_dir'])
-    if swift_dict['swift_action'] == 'delete':
+        upload_objs(swift_dict['container_name'], swift_dict['asset_dir'])
+    if swift_dict['action'] == 'delete':
         delete_objs(swift_dict['container_name'])
         delete_container(swift_dict['container_name'])
-    if swift_dict['swift_action'] == 'update':
-        upload_objs(swift_dict['container_name'], swift_dict['assets_dir'])
+    if swift_dict['action'] == 'update':
+        upload_objs(swift_dict['container_name'], swift_dict['asset_dir'])
         print("Openstack_Swift:  Updated"
               f" {swift_dict['container_name']} container objects")
 
@@ -121,9 +137,8 @@ def main():
 if __name__ == '__main__':
     print("***  Begin Swift object storage script  ***\n")
     globals_template = 'globals.yaml'
-    template_dir = load_template(globals_template)['openstack']['template_dir']
+    template_dir = load_template(globals_template)['heat']['template_dir']
     main_template = f'{template_dir}/main.yaml'
-    assets_dir = load_template(globals_template)['swift']['asset_dir']
     config = config.loader.OpenStackConfig()
     conn = connect(cloud=load_template
                    (globals_template)['global']['cloud'])

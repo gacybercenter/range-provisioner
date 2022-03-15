@@ -173,33 +173,35 @@ def delete_user_conns(user, conn_names, conn_group_id):
 
 
 def main():
-    # Create main dictionary and load templates
-    guac_dict = {}
+    # Load templates
     heat_params = load_template(main_template)
     global_params = load_template(globals_template)
 
-    # Update main dictionary and update keys and values loaded from templates
-    guac_dict.update({'num_users':
-                     global_params['global']['num_users']})
-    guac_dict.update({'guac_action':
-                     global_params['guacamole']['action']})
-    guac_dict.update({'username':
-                     global_params['global']['username_prefix']})
-    guac_dict.update({'user_org':
-                     global_params['guacamole']['user_org']})
-    guac_dict.update({'conn_group_action':
-                     global_params['guacamole']['conn_group_action']})
-    guac_dict.update({'conn_group_name':
-                     global_params['guacamole']['conn_group_name']})
-    guac_dict.update({'conn_proto':
-                     heat_params['parameters']['guac_conns']['default']})
-    ## TODO
-    # guac_dict.update({'conn_name':
-    #                  heat_params['parameters']['name']['default']})
-    guac_dict.update({'ostack_instance_username':
-                     heat_params['parameters']['username']['default']})
-    guac_dict.update({'ostack_instance_password':
-                     heat_params['parameters']['password']['default']})
+    # Create dictionaries
+    global_dict = ([v for k, v in global_params.items() if k == "global"])[0]
+    guac_dict = ([v for k, v in global_params.items() if k == "guacamole"])[0]
+    heat_dict = ([v for k, v in heat_params.items() if k == "parameters"])[0]
+    guac_dict.update({'conn_name':
+                     f"{heat_dict['instance_id']['default']}"
+                     f".{global_dict['username_prefix']}"})
+    
+    # Check global for create_all value
+    if global_dict['create_all'] is True:
+        guac_dict.update(
+            {
+                'action': 'create',
+                'conn_group_action': 'create',
+            }
+            )
+    if global_dict['create_all'] is False:
+                guac_dict.update(
+            {
+                'action': 'delete',
+                'conn_group_action': 'delete',
+            }
+            )
+    else:
+        pass
 
     instance_list = conn.list_servers()
 
@@ -221,17 +223,17 @@ def main():
                 guac_dict['conn_group_name']))[0]
 
     # Create user accounts as specified in globals template
-    usernames = create_usernames(guac_dict['num_users'], guac_dict['username'])
-    print(usernames)
+    usernames = create_usernames(global_dict['num_users'], global_dict['username_prefix'])
     for user in usernames:
-        # user_num = f"{user}".rsplit('.', 1)[1]
-        if guac_dict['guac_action'] == 'create':
+        user_num = f"{user}".rsplit('.', 1)[1]
+        if guac_dict['action'] == 'create':
+
             if user in get_existing_accounts():
-                print("Guacamole ERROR:  Can't create user account, {user} already exists")
+                print("Guacamole ERROR:  Can't create user account,"
+                      f"{user} already exists")
             else:
-                print(user)
                 create_user_acct(
-                    user, 
+                    user,
                     guac_user_password,
                     guac_dict['user_org']
                     )
@@ -243,21 +245,19 @@ def main():
                     }
                     for instance in instance_list
                     if instance['name'].endswith(
-                        f"{guac_dict['conn_name']}.{user}"
+                        f"{guac_dict['conn_name']}.{user_num}"
                         )
                             ]
-                print(f"{guac_dict['conn_name']}.{user}")
-                print(instances)
 
                 create_user_conns(
-                    guac_dict['guac_action'],
-                    user, instances, guac_dict['conn_proto'],
-                    conn_group_id, guac_dict['ostack_instance_username'],
-                    guac_dict['ostack_instance_password']
+                    guac_dict['action'],
+                    user, instances, heat_dict['conn_proto']['default'],
+                    conn_group_id, heat_dict['username']['default'],
+                    heat_dict['password']['default']
                     )
 
         # Delete user accounts as specified in globals template
-        if guac_dict['guac_action'] == 'delete':
+        if guac_dict['action'] == 'delete':
             if user not in get_existing_accounts():
                 print("Guacamole ERROR:  Can't delete user account,"
                       f"{user} doesn't exist")
@@ -271,16 +271,16 @@ def main():
                     }
                     for instance in instance_list
                     if instance['name'].endswith(
-                        f"{guac_dict['conn_name']}.{user}"
+                        f"{guac_dict['conn_name']}.{user_num}"
                         )
                             ]
                 create_user_conns(
-                    guac_dict['guac_action'],
+                    guac_dict['action'],
                     user,
                     instances,
-                    guac_dict['conn_proto'],
-                    conn_group_id, guac_dict['ostack_instance_username'],
-                    guac_dict['ostack_instance_password']
+                    heat_dict['conn_proto']['default'],
+                    conn_group_id, heat_dict['username']['default'],
+                    heat_dict['password']['default']
                     )
 
     # Delete connection groups if specified in globals template
@@ -295,7 +295,7 @@ def main():
 if __name__ == '__main__':
     print("***  Begin Guacamole script  ***\n")
     globals_template = 'globals.yaml'
-    template_dir = load_template(globals_template)['openstack']['template_dir']
+    template_dir = load_template(globals_template)['heat']['template_dir']
     main_template = f'{template_dir}/main.yaml'
     config = config.loader.OpenStackConfig()
     conn = connect(cloud=load_template(

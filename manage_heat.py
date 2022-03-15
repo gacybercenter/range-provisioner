@@ -64,67 +64,75 @@ def search_stack(stack_name):
 
 
 def main():
-    # Create main dictionary and load templates
-    heat_dict = {}
+    # Load templates
     extra_params = {}
     heat_params = load_template(main_template)
     global_params = load_template(globals_template)
     sec_params = load_template(secgroup_template)
 
-    # Update main dictionary and update keys and values loaded from templates
-    heat_dict.update({'num_stacks':
-                     global_params['global']['num_users']})
-    heat_dict.update({'main_action':
-                     global_params['openstack']['main_action']})
-    heat_dict.update({'main_stack_name':
-                     f"{heat_params['parameters']['instance_id']['default']}.{global_params['global']['username_prefix']}"})
-    heat_dict.update({'sec_action':
-                     global_params['openstack']['sec_action']})
-    heat_dict.update({'sec_stack_name':
-                     sec_params['parameters']['name']['default']})
-    heat_dict.update({'username':
-                     heat_params['parameters']['username']['default']})
-    heat_dict.update({'password':
-                     heat_params['parameters']['password']['default']})
+    # Create dictionaries
+    extra_params_dict = {}
+    global_dict = ([v for k, v in global_params.items() if k == "global"])[0]
+    heat_global_dict = ([v for k, v in global_params.items() if k == "heat"])[0]
+    heat_params_items = ([v for k, v in heat_params.items() if k == "parameters"])[0]
+    heat_params_keys = ([k for k in heat_params_items])
+    heat_params_values = ([v['default'] for k, v in heat_params_items.items()])
+    heat_param_dict = dict(zip(heat_params_keys, heat_params_values))
 
-    # Create dynamic parameters dictionary
-    for k, v in heat_params['parameters'].items():
-        extra_params.update({f"{k}": v['default']})
-    
-    print(heat_dict['main_stack_name'])
+    # Update params dictionary
+    heat_param_dict.update({'tenant_id': load_template('clouds.yaml')['clouds']['gcr']['auth']['project_id']})
+    heat_params_items.update({'instance_id':
+                     f"{heat_params_items['instance_id']['default']}"
+                     f".{global_dict['username_prefix']}"})
 
-    extra_params.update({'tenant_id': load_template('clouds.yaml')['clouds']['gcr']['auth']['project_id']})
-    extra_params.update({'instance_id': heat_dict['main_stack_name']})
+    # Check global for create_all value
+    if global_dict['create_all'] is True:
+        heat_global_dict.update(
+            {
+                'main_action': 'create',
+                'sec_action': 'create',
+            }
+            )
+    if global_dict['create_all'] is False:
+                heat_global_dict.update(
+            {
+                'main_action': 'delete',
+                'sec_action': 'delete',
+            }
+            )
+    else:
+        pass
+
+        
 
     # Security group template actions
-    if heat_dict['sec_action'] == 'delete':
-        delete_stack(heat_dict['sec_stack_name'])
-    if heat_dict['sec_action'] == 'update':
-        update_stack(heat_dict['sec_stack_name'], secgroup_template, None)
-    if heat_dict['sec_action'] == 'create':
-        create_stack(heat_dict['sec_stack_name'], secgroup_template, None)
+    if heat_global_dict['sec_action'] == 'delete':
+        delete_stack(sec_params['parameters']['name']['default'])
+    if heat_global_dict['sec_action'] == 'update':
+        update_stack(sec_params['parameters']['name']['default'], secgroup_template, None)
+    if heat_global_dict['sec_action'] == 'create':
+        create_stack(sec_params['parameters']['name']['default'], secgroup_template, None)
+    else:
+        pass
 
     # Main template action for a given number of stacks based on globals
-    #  template data
-    for num in range(1, heat_dict['num_stacks']+1):
-        heat_dict.update({'stack_num': num})
-        extra_params.update({"instance_id": f'{heat_dict["main_stack_name"]}.{num}'})
-        parameters = extra_params
-        print(parameters)
-        if heat_dict['main_action'] == 'delete':
-            delete_stack(f'{heat_dict["main_stack_name"]}.{num}')
-        if heat_dict['main_action'] == 'update':
-            update_stack(f'{heat_dict["main_stack_name"]}.{num}',
-                         main_template, parameters)
-        if heat_dict['main_action'] == 'create':
-            create_stack(f'{heat_dict["main_stack_name"]}.{num}',
-                         main_template, parameters)
+    # template data
+    for num in range(1, global_dict['num_users']+1):
+        heat_param_dict.update({'instance_id': f"{heat_params_items['instance_id']}.{num}"})
+        if heat_global_dict['main_action'] == 'delete':
+            delete_stack(f'{heat_param_dict["instance_id"]}')
+        if heat_global_dict['main_action'] == 'update':
+            update_stack(f'{heat_param_dict["instance_id"]}',
+                         main_template, heat_param_dict)
+        if heat_global_dict['main_action'] == 'create':
+            create_stack(f'{heat_param_dict["instance_id"]}',
+                         main_template, heat_param_dict)
 
 
 if __name__ == '__main__':
     print("***  Begin Heat management script  ***\n")
     globals_template = 'globals.yaml'
-    template_dir = load_template(globals_template)['openstack']['template_dir']
+    template_dir = load_template(globals_template)['heat']['template_dir']
     main_template = f'{template_dir}/main.yaml'
     secgroup_template = f'{template_dir}/sec.yaml'
     config = config.loader.OpenStackConfig()

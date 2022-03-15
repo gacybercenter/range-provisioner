@@ -24,8 +24,8 @@ parameters:
   apt_cache_proxy:
     type: string
     label: IP
-    description: Sets the apt-cache proxy server for prod/dev deployment (10.200.1.207 dev/ 10.100.1.118 prod) 
-    default: 10.200.1.207
+    description: Sets the apt-cache proxy server for prod/dev deployment (10.200.1.118 dev/ 10.100.1.118 prod) 
+    default: 10.100.1.118
 
   tenant_id:
     type: string
@@ -48,7 +48,7 @@ parameters:
     description: dashboard record for dns (10.200.1.204 dev/ 10.100.1.235 prod)
     default: 10.100.1.235
 
-  guac_conns:
+  conn_proto:
     type: comma_delimited_list
     default: "rdp,ssh"
 
@@ -199,7 +199,7 @@ resources:
             ## OBJECT STORE DATA ##
             commands=("BEGIN OBJECT STORE PULL")
             commands+=("**** Changing Background ****")
-            commands+=("wget -O /etc/alternatives/desktop-background https://gitlab.com/gacybercenter/branding/backgrounds/-/raw/main/gcr_bckgrnd_drk.jpg?inline=false")
+            commands+=("wget -O /etc/alternatives/desktop-background https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/misc/gcr_wallpaper.png")
             commands+=("Pulling assets from Object Store")
             commands+=("wget -O /home/user/demo_assets/elon.jpg https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/elon.jpg")
             commands+=("wget -O /home/user/demo_assets/steg.py https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/steg.py")
@@ -578,7 +578,7 @@ resources:
             ## OBJECT STORE DATA ##
             commands=("BEGIN OBJECT STORE PULL")
             commands+=("**** Changing Background ****")
-            commands+=("wget -O /etc/alternatives/desktop-background https://gitlab.com/gacybercenter/branding/backgrounds/-/raw/main/gcr_bckgrnd_drk.jpg?inline=false")
+            commands+=("wget -O /etc/alternatives/desktop-background https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/misc/gcr_wallpaper.png")
             commands+=("Pulling assets from Object Store")
             commands+=("wget -O /home/user/demo_assets/elon.jpg https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/elon.jpg")
             commands+=("wget -O /home/user/demo_assets/steg.py https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/steg.py")
