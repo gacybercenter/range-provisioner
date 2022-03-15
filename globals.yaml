@@ -5,6 +5,10 @@ global:
     cloud: gcr
     num_users: 3
     username_prefix: test_user
+    create_all: True
+    # set create_all True to create all resources
+    # set create_all False to delete all resources
+    # unset to use specific creation parameters per service
 
 guacamole:
     guac_host: https://guac.gacyberrange.org/guacamole
@@ -13,11 +17,10 @@ guacamole:
     conn_group_name: test_group
     user_org: ""
 
-openstack:
+heat:
     main_action: create
-    sec_action:
+    sec_action: create
     template_dir: templates
-
 
 swift:
     action: create
