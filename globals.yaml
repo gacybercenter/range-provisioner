@@ -5,7 +5,7 @@ global:
     cloud: gcr
     num_users: 3
     username_prefix: test_user
-    create_all: True
+    create_all:
     # set create_all True to create all resources
     # set create_all False to delete all resources
     # unset to use specific creation parameters per service
@@ -18,7 +18,7 @@ guacamole:
     user_org: ""
 
 heat:
-    main_action: create
+    main_action: update
     sec_action: create
     template_dir: templates
 

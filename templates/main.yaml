@@ -127,7 +127,7 @@ resources:
             declare -a commands
 
             ## DISABLE DAILY UPDATE SERVICE / APPARMOR ##
-            commands=("BEGIN USER DATA SCRIPT START")
+            commands=("echo 'BEGIN USER DATA SCRIPT START'")
             commands+=("systemctl stop apt-daily.service")
             commands+=("systemctl stop apt-daily.timer")
             commands+=("systemctl stop apt-daily-upgrade.timer")
@@ -143,7 +143,7 @@ resources:
             done
 
             ## USER/GROUP CREATION ##
-            commands=("BEGIN USER/GROUP CREATION")
+            commands=("echo 'BEGIN USER/GROUP CREATION'")
             commands+=("echo 'root:$pass' | chpasswd")
             commands+=("useradd -m -U -s /bin/bash user")
             commands+=("echo '$user:$pass' | chpasswd")
@@ -157,7 +157,7 @@ resources:
             done
 
             ## ENABLES SSH ##
-            commands=("BEGIN SSH SETUP")
+            commands=("echo 'BEGIN SSH SETUP'")
             commands+=("sed -i 's/ssh_pwaut h:   0/ssh_pwauth:   1/g' /etc/cloud/cloud.cfg")
             commands+=("sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config")
             commands+=("sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config")
@@ -174,7 +174,7 @@ resources:
 
             ## PACKAGE INSTALLS ##
             echo 'Acquire::http::proxy "http://$cache_proxy:3142";' > /etc/apt/apt.conf.d/02proxy
-            commands=("BEGIN PACKAGE INSTALLS")
+            commands=("echo 'BEGIN PACKAGE INSTALLS'")
             commands+=("export DEBIAN_FRONTEND=noninteractive")
             commands+=("apt-get update")
             commands+=("apt-get upgrade -y")
@@ -186,7 +186,7 @@ resources:
             done
 
             ## RDP INSTALL ##
-            commands=("BEGIN RDP SETUP")
+            commands=("echo 'BEGIN RDP SETUP'")
             commands+=("UCF_FORCE_CONFOLD=1 DEBIAN_FRONTEND=noninteractive apt -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' -y install xrdp xorgxrdp curl")
             commands+=("adduser xrdp ssl-cert")
             commands+=("systemctl start xrdp")
@@ -197,10 +197,9 @@ resources:
             done
 
             ## OBJECT STORE DATA ##
-            commands=("BEGIN OBJECT STORE PULL")
-            commands+=("**** Changing Background ****")
+            commands=("echo 'BEGIN OBJECT STORE PULL'")
+            commands+=("unlink /etc/alternatives/desktop-background")
             commands+=("wget -O /etc/alternatives/desktop-background https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/misc/gcr_wallpaper.png")
-            commands+=("Pulling assets from Object Store")
             commands+=("wget -O /home/user/demo_assets/elon.jpg https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/elon.jpg")
             commands+=("wget -O /home/user/demo_assets/steg.py https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/steg.py")
             commands+=("wget -O /home/user/demo_assets/openssh.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson10/openssh.log")
@@ -240,7 +239,7 @@ resources:
 
             commands=("chmod 755 /etc/init.d/secplus_startup.sh")
             commands+=("update-rc.d secplus_startup.sh defaults")
-            commands+=("*** USER DATA SCRIPT FINISHED - REBOOTING ***")
+            commands+=("echo '*** USER DATA SCRIPT FINISHED - REBOOTING ***'")
             for cmd in "${commands[@]}"; do
               printf "\n**** Running: $cmd *****\n\n"
               eval $cmd
@@ -314,7 +313,7 @@ resources:
             declare -a commands
 
             ## DISABLE DAILY UPDATE SERVICE / APPARMOR ##
-            commands=("BEGIN USER DATA SCRIPT START")
+            commands=("echo 'BEGIN USER DATA SCRIPT START'")
             commands+=("systemctl stop apt-daily.service")
             commands+=("systemctl stop apt-daily.timer")
             commands+=("systemctl stop apt-daily-upgrade.timer")
@@ -330,7 +329,7 @@ resources:
             done
 
             ## USER/GROUP CREATION ##
-            commands=("BEGIN USER/GROUP CREATION")
+            commands=("echo 'BEGIN USER/GROUP CREATION'")
             commands+=("echo 'root:$pass' | chpasswd")
             commands+=("useradd -m -U -s /bin/bash user")
             commands+=("echo '$user:$pass' | chpasswd")
@@ -344,7 +343,7 @@ resources:
             done
 
             ## ENABLES SSH ##
-            commands=("BEGIN SSH SETUP")
+            commands=("echo 'BEGIN SSH SETUP'")
             commands+=("sed -i 's/ssh_pwaut h:   0/ssh_pwauth:   1/g' /etc/cloud/cloud.cfg")
             commands+=("sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config")
             commands+=("sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config")
@@ -361,7 +360,7 @@ resources:
 
             ## PACKAGE INSTALLS ##
             echo 'Acquire::http::proxy "http://$cache_proxy:3142";' > /etc/apt/apt.conf.d/02proxy
-            commands=("BEGIN PACKAGE INSTALLS")
+            commands=("echo 'BEGIN PACKAGE INSTALLS'")
             commands+=("export DEBIAN_FRONTEND=noninteractive")
             commands+=("apt-get update")
             commands+=("apt-get upgrade -y")
@@ -373,7 +372,7 @@ resources:
             done
 
             ## RDP INSTALL ##
-            commands=("BEGIN RDP SETUP")
+            commands=("echo 'BEGIN RDP SETUP'")
             commands+=("UCF_FORCE_CONFOLD=1 DEBIAN_FRONTEND=noninteractive apt -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' -y install xrdp xorgxrdp curl")
             commands+=("adduser xrdp ssl-cert")
             commands+=("systemctl start xrdp")
@@ -576,10 +575,9 @@ resources:
             __EOF__
 
             ## OBJECT STORE DATA ##
-            commands=("BEGIN OBJECT STORE PULL")
-            commands+=("**** Changing Background ****")
+            commands=("echo 'BEGIN OBJECT STORE PULL'")
+            commands+=("unlink /etc/alternatives/desktop-background")
             commands+=("wget -O /etc/alternatives/desktop-background https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/misc/gcr_wallpaper.png")
-            commands+=("Pulling assets from Object Store")
             commands+=("wget -O /home/user/demo_assets/elon.jpg https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/elon.jpg")
             commands+=("wget -O /home/user/demo_assets/steg.py https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson5/steg.py")
             commands+=("wget -O /home/user/demo_assets/openssh.log https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenantID/$container_name/assets/lesson10/openssh.log")
@@ -618,7 +616,7 @@ resources:
 
             commands=("chmod 755 /etc/init.d/secplus_startup.sh")
             commands+=("update-rc.d secplus_startup.sh defaults")
-            commands+=("*** USER DATA SCRIPT FINISHED - REBOOTING ***")
+            commands+=("echo '*** USER DATA SCRIPT FINISHED - REBOOTING ***'")
             for cmd in "${commands[@]}"; do
               printf "\n**** Running: $cmd *****\n\n"
               eval $cmd

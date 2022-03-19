@@ -107,8 +107,10 @@ def create_user_conns(conn_action, user, instances, conn_proto,
                       conn_group_id, ostack_username, ostack_pass):
     """Create/Delete user connections"""
     for instance in instances:
-        conn_name_ssh = f"{instance['name']}.ssh"
-        conn_name_rdp = f"{instance['name']}.rdp"
+        if "ssh" in conn_proto:
+            conn_name_ssh = f"{instance['name']}.ssh"
+        if "rdp" in conn_proto:
+            conn_name_rdp = f"{instance['name']}.rdp"
         if conn_action == "delete":
             conn_names = [conn_name_ssh, conn_name_rdp]
             delete_user_conns(user, conn_names, conn_group_id)
