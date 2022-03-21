@@ -21,6 +21,10 @@ heat:
     main_action: update
     sec_action: create
     template_dir: templates
+    # remove_sec: True
+    # sec_group_name: student.web.security.group
+    # set remove_sec True to remove a sec group after environment creation (typically to remove web access after build)
+    # set sec_group_name for secgroup to remove from all instances
 
 swift:
     action: create
