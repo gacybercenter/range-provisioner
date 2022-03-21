@@ -93,24 +93,18 @@ def main():
                 'sec_action': 'create',
             }
             )
-    if global_dict['create_all'] is False:
+    elif global_dict['create_all'] is False:
                 heat_global_dict.update(
             {
                 'main_action': 'delete',
                 'sec_action': 'delete',
             }
             )
-    else:
-        pass
-
-        
-
-    # Security group template actions
-    if heat_global_dict['sec_action'] == 'delete':
+    elif heat_global_dict['sec_action'] == 'delete':
         delete_stack(sec_params['parameters']['name']['default'])
-    if heat_global_dict['sec_action'] == 'update':
+    elif heat_global_dict['sec_action'] == 'update':
         update_stack(sec_params['parameters']['name']['default'], secgroup_template, None)
-    if heat_global_dict['sec_action'] == 'create':
+    elif heat_global_dict['sec_action'] == 'create':
         create_stack(sec_params['parameters']['name']['default'], secgroup_template, None)
     else:
         pass

@@ -60,7 +60,7 @@ def get_conn_id(conn_name, conn_group_id):
     try:
         conn_id = ([k for k, v in list_conns.items()
                    if v.get('parentIdentifier') == conn_group_id
-                   and v.get('name') == conn_name])[0]
+                   and v.get('name') == conn_name])
     except Exception as e:
         print(f"Guacamole ERROR:  {conn_name}"
               f" is missing from connection list \n {e}")
@@ -108,16 +108,12 @@ def create_user_conns(conn_action, user, instances, conn_proto,
     """Create/Delete user connections"""
     for instance in instances:
         if "ssh" in conn_proto:
-            conn_name_ssh = f"{instance['name']}.ssh"
-        if "rdp" in conn_proto:
-            conn_name_rdp = f"{instance['name']}.rdp"
-        if conn_action == "delete":
-            conn_names = [conn_name_ssh, conn_name_rdp]
-            delete_user_conns(user, conn_names, conn_group_id)
-        else:
-            if "ssh" in conn_proto:
+            conn_name = f"{instance['name']}.ssh"
+            if conn_action == "delete":
+                delete_user_conns(user, conn_name, conn_group_id)
+            else:
                 guac_session.manage_connection(
-                    "post", "ssh", conn_name_ssh,
+                    "post", "ssh", conn_name,
                     conn_group_id, None,
                     {
                         "hostname":
@@ -132,11 +128,15 @@ def create_user_conns(conn_action, user, instances, conn_proto,
                     }
                     )
                 print(f"Guacamole:  Created connection for {instance['name']}"
-                      f" ssh connection with address: {instance['address']}")
-                associate_user_conns(user, conn_name_ssh, conn_group_id)
-            if "rdp" in conn_proto:
+                        f" ssh connection with address: {instance['address']}")
+                associate_user_conns(user, conn_name, conn_group_id)
+        if "rdp" in conn_proto:
+            conn_name = f"{instance['name']}.rdp"
+            if conn_action == "delete":
+                delete_user_conns(user, conn_name, conn_group_id)
+            else:
                 guac_session.manage_connection(
-                    "post", "rdp", conn_name_rdp,
+                    "post", "rdp", conn_name,
                     conn_group_id, None,
                     {
                         "hostname": instance['address'],
@@ -152,26 +152,25 @@ def create_user_conns(conn_action, user, instances, conn_proto,
                     }
                     )
                 print(f"Guacamole:  Created connection for {instance['name']}"
-                      f" rdp connection with address: {instance['address']}")
-                associate_user_conns(user, conn_name_rdp, conn_group_id)
+                        f" rdp connection with address: {instance['address']}")
+                associate_user_conns(user, conn_name, conn_group_id)
 
 
 def associate_user_conns(user, conn_name, conn_group_id):
     """Associate user accounts with group_id and connections"""
     time.sleep(2)
-    conn = get_conn_id(conn_name, conn_group_id)
+    conn = get_conn_id(conn_name, conn_group_id)[0]
     guac_session.update_user_connection(user, conn_group_id, "add", True)
     guac_session.update_user_connection(user, conn, "add", False)
     print(f"Guacamole:  Associated {conn_name} connection for {user}")
 
 
-def delete_user_conns(user, conn_names, conn_group_id):
+def delete_user_conns(user, conn_name, conn_group_id):
     """Delete user connections"""
-    for connection in conn_names:
-        conn_id = get_conn_id(connection, conn_group_id)
-        guac_session.delete_connection(conn_id)
-        print(f"Guacamole:  Deleted associated {connection}"
-              f" connection for {user}")
+    conn_id = get_conn_id(conn_name, conn_group_id)[0]
+    guac_session.delete_connection(conn_id)
+    print(f"Guacamole:  Deleted associated {conn_name}"
+            f" connection for {user}")
 
 
 def main():
@@ -262,7 +261,7 @@ def main():
         if guac_dict['action'] == 'delete':
             if user not in get_existing_accounts():
                 print("Guacamole ERROR:  Can't delete user account,"
-                      f"{user} doesn't exist")
+                      f" {user} doesn't exist")
             else:
                 delete_user_acct(user)
                 # Delete instance connections

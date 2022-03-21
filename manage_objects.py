@@ -48,19 +48,14 @@ def upload_objs(container_name, dir):
     # Create directory markers for folder structure
     dir_markers = [
         conn.create_directory_marker_object(
-            container_name,
-            d,
-            ) for d in dir_markers
-    ]
+            container_name,d,) for d in dir_markers
+        ]
 
     # Create objects
     objs = [
         conn.create_object(
-            container_name,
-            o,
-            data=o
-            ) for o in objs
-    ]
+        container_name, o,) for o in objs
+        ]
 
     objects = conn.list_objects(container_name)
 
