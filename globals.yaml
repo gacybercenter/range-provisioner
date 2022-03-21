@@ -1,0 +1,39 @@
+---
+#YAML for storing range provisioning parameters
+global:
+    debug: False
+    cloud: gcr
+    num_users: 3
+    username_prefix: test_user
+    create_all:
+    # set create_all True to create all resources
+    # set create_all False to delete all resources
+    # unset to use specific creation parameters per service
+
+guacamole:
+    guac_host: https://guac.gacyberrange.org/guacamole
+    action: create
+    conn_group_action: create
+    conn_group_name: test_group
+    user_org: ""
+
+heat:
+    main_action: update
+    sec_action: create
+    template_dir: templates
+    # remove_sec: True
+    # sec_group_name: student.web.security.group
+    # set remove_sec True to remove a sec group after environment creation (typically to remove web access after build)
+    # set sec_group_name for secgroup to remove from all instances
+
+swift:
+    action: create
+    asset_dir: assets
+
+## Variables that are stored privately (never store these in this yaml):
+##     - clouds.yaml file (referenced via the cloud parameter)
+##        
+##     - tenant id
+##     - guac admin user
+##     - guac admin password
+##     - guac user password
