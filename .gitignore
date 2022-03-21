@@ -1,5 +1,6 @@
 constants.py
 clouds.yaml
+templates
 __pycache__/
 assets/
 *.gz
