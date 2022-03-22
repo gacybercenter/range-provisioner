@@ -145,7 +145,7 @@ def main():
                 create_stack_wait(f'{heat_param_dict["instance_id"]}',
                          main_template, heat_param_dict)
                 print("Waiting for stack resource allocation to finish")
-                time.sleep(30s)
+                time.sleep(30)
                 print("Stack Deployment Complete")
             else:
                 create_stack(f'{heat_param_dict["instance_id"]}',
