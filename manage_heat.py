@@ -55,6 +55,27 @@ def create_stack(stack_name, template, parameters):
     except Exception as e:
         print(f"Openstack_Heat ERROR:  {e}")
 
+def create_stack_wait(stack_name, template, parameters):
+    try:
+        if parameters is None:
+            conn.create_stack(
+                name=stack_name,
+                template_file=template,
+                wait=True,
+                rollback=False,
+            )
+        else:
+            conn.create_stack(
+                name=stack_name,
+                template_file=template,
+                rollback=False,
+                wait=True,
+                **parameters,
+            )
+        print(f"Openstack_Heat:  The stack {stack_name} has been created")
+    except Exception as e:
+        print(f"Openstack_Heat ERROR:  {e}")               
+
 
 def search_stack(stack_name):
     """Search if stack exists"""
@@ -119,9 +140,12 @@ def main():
             update_stack(f'{heat_param_dict["instance_id"]}',
                          main_template, heat_param_dict)
         if heat_global_dict['main_action'] == 'create':
-            create_stack(f'{heat_param_dict["instance_id"]}',
+            if num == (global_dict['num_users']+1):
+                create_stack_wait(f'{heat_param_dict["instance_id"]}',
                          main_template, heat_param_dict)
-
+            else:
+                create_stack(f'{heat_param_dict["instance_id"]}',
+                            main_template, heat_param_dict)
 
 if __name__ == '__main__':
     print("***  Begin Heat management script  ***\n")
