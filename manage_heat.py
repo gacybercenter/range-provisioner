@@ -112,14 +112,14 @@ def main():
         heat_global_dict.update(
             {
                 'main_action': 'create',
-                'sec_action': 'create',
+                # 'sec_action': 'create',
             }
             )
     elif global_dict['create_all'] is False:
                 heat_global_dict.update(
             {
                 'main_action': 'delete',
-                'sec_action': 'delete',
+                # 'sec_action': 'delete',
             }
             )
     elif heat_global_dict['sec_action'] == 'delete':
