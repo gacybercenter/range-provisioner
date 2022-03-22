@@ -1,11 +1,6 @@
-import constants
 from json import loads
 from yaml import safe_load
 from openstack import config, connect, enable_logging
-
-guac_admin = constants.GUAC_ADMIN
-guac_password = constants.GUAC_ADMIN_PASS
-guac_user_password = constants.GUAC_USER_PASSWORD
 
 def load_template(template):
     """Load templates"""
