@@ -1,5 +1,6 @@
 from yaml import safe_load
 from openstack import config, connect, enable_logging
+import time
 
 
 def load_template(template):
@@ -144,7 +145,7 @@ def main():
                 create_stack_wait(f'{heat_param_dict["instance_id"]}',
                          main_template, heat_param_dict)
                 print("Waiting for stack resource allocation to finish")
-                sleep(30s)
+                time.sleep(30s)
                 print("Stack Deployment Complete")
             else:
                 create_stack(f'{heat_param_dict["instance_id"]}',
