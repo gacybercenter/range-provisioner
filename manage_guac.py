@@ -303,7 +303,11 @@ if __name__ == '__main__':
         globals_template)['global']['cloud'])
     enable_logging(debug=load_template(
         globals_template)['global']['debug'])
+    guac_vars = load_template('clouds.yaml')['clouds']['guac']
     guac_host = load_template(globals_template)['guacamole']['guac_host']
+    guac_admin = guac_vars['guac_admin']
+    guac_password = guac_vars['guac_password']
+    guac_user_password = guac_vars['guac_user_password']
     guac_session = guacamole.session(
                                     guac_host,
                                     "mysql",
