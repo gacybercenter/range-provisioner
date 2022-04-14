@@ -101,53 +101,54 @@ def create_user_conns(conn_action, user, instances, conn_proto,
                       conn_group_id, ostack_username, ostack_pass):
     """Create/Delete user connections"""
     for instance in instances:
-        if "ssh" in conn_proto:
-            conn_name = f"{instance['name']}.ssh"
-            if conn_action == "delete":
-                delete_user_conns(user, conn_name, conn_group_id)
-            else:
-                guac_session.manage_connection(
-                    "post", "ssh", conn_name,
-                    conn_group_id, None,
-                    {
-                        "hostname":
-                        instance['address'],
-                        "port": "22",
-                        "username": ostack_username,
-                        "password": ostack_pass
-                    },
-                    {
-                        "max-connections": "",
-                        "max-connections-per-user": "2"
-                    }
-                    )
-                print(f"Guacamole:  Created connection for {instance['name']}"
-                        f" ssh connection with address: {instance['address']}")
-                associate_user_conns(user, conn_name, conn_group_id)
-        if "rdp" in conn_proto:
-            conn_name = f"{instance['name']}.rdp"
-            if conn_action == "delete":
-                delete_user_conns(user, conn_name, conn_group_id)
-            else:
-                guac_session.manage_connection(
-                    "post", "rdp", conn_name,
-                    conn_group_id, None,
-                    {
-                        "hostname": instance['address'],
-                        "port": "3389",
-                        "username": ostack_username,
-                        "password": ostack_pass,
-                        "security": "any",
-                        "ignore-cert": "true"
-                    },
-                    {
-                        "max-connections": "",
-                        "max-connections-per-user": "2"
-                    }
-                    )
-                print(f"Guacamole:  Created connection for {instance['name']}"
-                        f" rdp connection with address: {instance['address']}")
-                associate_user_conns(user, conn_name, conn_group_id)
+        if instance['address']:
+            if "ssh" in conn_proto:
+                conn_name = f"{instance['name']}.ssh"
+                if conn_action == "delete":
+                    delete_user_conns(user, conn_name, conn_group_id)
+                else:
+                    guac_session.manage_connection(
+                        "post", "ssh", conn_name,
+                        conn_group_id, None,
+                        {
+                            "hostname":
+                            instance['address'],
+                            "port": "22",
+                            "username": ostack_username,
+                            "password": ostack_pass
+                        },
+                        {
+                            "max-connections": "",
+                            "max-connections-per-user": "2"
+                        }
+                        )
+                    print(f"Guacamole:  Created connection for {instance['name']}"
+                            f" ssh connection with address: {instance['address']}")
+                    associate_user_conns(user, conn_name, conn_group_id)
+            if "rdp" in conn_proto:
+                conn_name = f"{instance['name']}.rdp"
+                if conn_action == "delete":
+                    delete_user_conns(user, conn_name, conn_group_id)
+                else:
+                    guac_session.manage_connection(
+                        "post", "rdp", conn_name,
+                        conn_group_id, None,
+                        {
+                            "hostname": instance['address'],
+                            "port": "3389",
+                            "username": ostack_username,
+                            "password": ostack_pass,
+                            "security": "any",
+                            "ignore-cert": "true"
+                        },
+                        {
+                            "max-connections": "",
+                            "max-connections-per-user": "2"
+                        }
+                        )
+                    print(f"Guacamole:  Created connection for {instance['name']}"
+                            f" rdp connection with address: {instance['address']}")
+                    associate_user_conns(user, conn_name, conn_group_id)
 
 
 def associate_user_conns(user, conn_name, conn_group_id):
