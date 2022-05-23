@@ -102,7 +102,7 @@ def main():
     heat_param_dict = dict(zip(heat_params_keys, heat_params_values))
 
     # Update params dictionary
-    heat_param_dict.update({'tenant_id': load_template('clouds.yaml')['clouds']['" + global_dict['cloud'] + "']['auth']['project_id']})
+    heat_param_dict.update({'tenant_id': load_template('clouds.yaml')['clouds'][global_dict['cloud']]['auth']['project_id']})
     heat_params_items.update({'instance_id':
                      f"{heat_params_items['instance_id']['default']}"
                      f".{global_dict['username_prefix']}"})
