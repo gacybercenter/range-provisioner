@@ -133,7 +133,7 @@ def main():
 
     # Main template action for a given number of stacks based on globals
     # template data
-    for num in range(1, global_dict['num_users']+1):
+    for num in range(1, global_dict['num_ranges']+1):
         heat_param_dict.update({'instance_id': f"{heat_params_items['instance_id']}.{num}"})
         if heat_global_dict['main_action'] == 'delete':
             delete_stack(f'{heat_param_dict["instance_id"]}')
@@ -141,7 +141,7 @@ def main():
             update_stack(f'{heat_param_dict["instance_id"]}',
                          main_template, heat_param_dict)
         if heat_global_dict['main_action'] == 'create':
-            if num == global_dict['num_users']:
+            if num == global_dict['num_ranges']:
                 create_stack_wait(f'{heat_param_dict["instance_id"]}',
                          main_template, heat_param_dict)
             else:
