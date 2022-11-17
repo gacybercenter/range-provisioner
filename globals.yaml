@@ -1,0 +1,45 @@
+---
+#YAML for storing range provisioning parameters
+globals:
+    debug: False
+    cloud: gcr
+    num_users: 1
+    username_prefix: range_team
+    create_all: False
+    # range_name: alphanox
+    # set create_all True to create all resources
+    # set create_all False to delete all resources
+    # unset to use specific creation parameters per service
+
+guacamole:
+    provision: True
+    guac_host: https://guac.gacyberrange.org
+    action: create
+    conn_group_action: create
+    conn_group_name: range_team
+    user_org: ""
+    instance_mapping: powerplant.kali
+
+heat:
+    provision: True
+    main_action: create
+    sec_action:
+    template_dir: templates
+    remove_sec:
+    sec_group_name:
+    wait_timer: 120
+    wait: False
+    # set remove_sec True to remove a sec group after environment creation (typically to remove web access after build)
+    # set sec_group_name for secgroup to remove from all instances
+
+swift:
+    action: delete
+    asset_dir: assets
+
+## Variables that are stored privately (never store these in this yaml):
+##     - clouds.yaml file (referenced via the cloud parameter)
+##        
+##     - tenant id
+##     - guac admin user
+##     - guac admin password
+##     - guac user password
