@@ -1,6 +1,5 @@
 from yaml import safe_load
 from openstack import config, connect, enable_logging
-import time
 
 
 def load_template(template):

@@ -33,7 +33,7 @@ heat:
     # set sec_group_name for secgroup to remove from all instances
 
 swift:
-    action: delete
+    action: create
     asset_dir: assets
 
 ## Variables that are stored privately (never store these in this yaml):

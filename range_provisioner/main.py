@@ -1,4 +1,4 @@
-from os import walk, path
+import os
 from yaml import safe_load
 from openstack import config, connect, enable_logging
 from munch import Munch
@@ -34,62 +34,58 @@ def create_container(container_name):
               " in the object store")
         conn.set_container_access(name=container_name, access="public")
     except Exception as e:
-        print(Fore.RED + "Openstack_Swift ERROR:  Cannot create container"
-              f" {container_name} it already exists")
-        print(Fore.RED +f"Openstack_Swift ERROR:  {e}")
+        error_msg(f"Cannot create container, {container_name} it already exists\n ({e})")
 
 
 def delete_container(container_name):
     """Delete container from object store"""
-    if search_containers(container_name):
-        conn.delete_container(container_name)
-        success_msg(f"{container_name} container has been deleted from the object store")
-    else:
-        error_msg(f"Cannot delete container {container_name}, it doesn't exist")
-
-
-def upload_objs(container_name, dir):
-    """Create directory markers and upload objects"""
-    # Collect all the files and folders in the given directory
-    objs = []
-    dir_markers = []
-    for (_dir, _ds, _fs) in walk(dir):
-        if not (_ds + _fs):
-            dir_markers.append(_dir)
-        else:
-            objs.extend([path.join(_dir, _f) for _f in _fs])
-
-    # Create directory markers for folder structure
-    dir_markers = [
-        conn.create_directory_marker_object(
-            container_name,d,) for d in dir_markers
-        ]
-
-    # Create objects
-    objs = [
-        conn.create_object(
-        container_name, o,) for o in objs
-        ]
-
-    objects = conn.list_objects(container_name)
-
-    success_msg(f"The following objects have been uploaded to the {container_name} container :")
-    for obj in objects:
-        print(f"  - {obj.name}")
-
-
-def delete_objs(container_name):
-    """Delete container objects"""
     try:
-        objects = conn.list_objects(container_name)
-        success_msg(f"The following objects were deleted from the"
-              f" {container_name} container:")
-        for obj in objects:
-            conn.delete_object(container_name, str(obj.name))
-            print(f"  - {obj.name}")
+        if search_containers(container_name):
+            conn.delete_container(container_name)
+            success_msg(f"{container_name} container has been deleted from the object store")
+        else:
+            error_msg(f"Cannot delete container {container_name}, it doesn't exist")
+    except:
+        error_msg(f"An error occurred while deleting the {container_name} container")
+
+
+def upload_objs(conn, container_name, dir):
+    """Upload files and folders from a given directory to a cloud storage container"""
+    try:
+        for root, dirs, files in os.walk(dir):          
+
+            # Create directory markers for all sub-directories
+            [conn.create_directory_marker_object(container_name, d) for d in dirs]
+
+            # Create objects for all files
+            for file in files:
+                file_path = os.path.join(root, file)
+                conn.create_object(container_name, file_path)
+                success_msg(f"{file_path} has been uploaded to the {container_name} container.")
+
+        # Print a success message for the overall operation
+        success_msg(f"All objects in the {dir} directory have been uploaded to the {container_name} container.")
     except Exception as e:
-        error_msg(f"Cannot delete container objects in {container_name}, the container doesn't exist")
-        error_msg(e)
+        error_msg(f"Failed to upload objects. {e}")
+
+
+def delete_objs(conn, container_name):
+    """Delete objects from a cloud storage container"""
+    try:
+        # List the objects in the container
+        objects = conn.list_objects(container_name)
+
+        # Delete each object
+        for obj in objects:
+            conn.delete_object(container_name, obj.name)
+            success_msg(f"{obj.name} has been deleted from the {container_name} container.")
+
+        # Print a success message for the overall operation
+        success_msg(f"All objects in the {container_name} container have been deleted.")
+
+    except Exception as e:
+        error_msg(f"Failed to delete objects from the {container_name} container. {e}")
+
 
 @Halo(text='Searching for container', spinner='bouncingBall')
 def search_containers(container_name):
@@ -114,7 +110,9 @@ def main():
         # Check swift specific parameters in globals
         if global_params.swift['action'] == "create":
             create_container(orch_params.container_name['default'])
+            upload_objs(conn, orch_params.container_name['default'], global_params.swift['asset_dir'])
         elif global_params.swift['action'] == "delete":
+            delete_objs(conn, orch_params.container_name['default'])
             delete_container(orch_params.container_name['default'])
         elif global_params.swift['action'] == "update":
             upload_objs(orch_params.container_name['default'], global_params.swift['asset_dir'])
