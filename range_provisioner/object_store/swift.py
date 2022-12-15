@@ -2,7 +2,6 @@ from os import walk, path
 from yaml import safe_load
 from openstack import config, connect, enable_logging
 
-
 def load_template(template):
     """Load templates"""
     with open(template, 'r') as file:
@@ -85,59 +84,3 @@ def search_containers(container_name):
     print(f"Openstack_Swift:  Searching for {container_name} container...")
     container_exists = conn.search_containers(name=container_name)
     return(container_exists)
-
-
-def main():
-    # Load templates
-    heat_params = load_template(main_template)
-    global_params = load_template(globals_template)
-
-    # Create dictionaries
-    global_dict = ([v for k, v in global_params.items() if k == "global"])[0]
-    swift_dict = ([v for k, v in global_params.items() if k == "swift"])[0]
-
-    # Update main dictionary and update keys and values loaded from templates
-    swift_dict.update({'container_name':
-                      heat_params['parameters']['container_name']['default']})
-
-    # Check global for create_all value
-    if global_dict['create_all'] is True:
-        swift_dict.update(
-            {
-                'action': 'create',
-            }
-            )
-    if global_dict['create_all'] is False:
-                swift_dict.update(
-            {
-                'action': 'delete',
-            }
-            )
-    else:
-        pass
-
-    # Swift actions based on globals template data
-    if swift_dict['action'] == 'create':
-        create_container(swift_dict['container_name'])
-        upload_objs(swift_dict['container_name'], swift_dict['asset_dir'])
-    if swift_dict['action'] == 'delete':
-        delete_objs(swift_dict['container_name'])
-        delete_container(swift_dict['container_name'])
-    if swift_dict['action'] == 'update':
-        upload_objs(swift_dict['container_name'], swift_dict['asset_dir'])
-        print("Openstack_Swift:  Updated"
-              f" {swift_dict['container_name']} container objects")
-
-
-if __name__ == '__main__':
-    print("***  Begin Swift object storage script  ***\n")
-    globals_template = 'globals.yaml'
-    template_dir = load_template(globals_template)['heat']['template_dir']
-    main_template = f'{template_dir}/main.yaml'
-    config = config.loader.OpenStackConfig()
-    conn = connect(cloud=load_template
-                   (globals_template)['global']['cloud'])
-    enable_logging(debug=load_template
-                   (globals_template)['global']['debug'])
-    main()
-    print("\n*** End Swift object storage script  ***")
