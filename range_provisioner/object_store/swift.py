@@ -1,55 +1,66 @@
-from openstack import config, connect
+from openstack import connect
 from utils.msg_format import error_msg, info_msg, success_msg
 from utils.load_template import load_template, load_global, load_heat
 
+
 global_dict = load_global()
-heat_params = load_heat().parameters
-swift_params = global_dict.swift
-swift_params.update({'container_name': heat_params['container_name']['default']})
-container_name = swift_params['container_name']
+global_swift_dict = global_dict.swift
+global_heat_dict = global_dict.heat
+global_guac_dict = global_dict.guacamole
+heat_dict = load_heat()
 conn = connect(cloud=global_dict.globals['cloud'])
 
 
-def search_containers():
-    """Search if container exists"""
-    print(f"Openstack_Swift:  Searching for {container_name} container...")
-    container_exists = conn.search_containers(name=container_name)
-    return(container_exists)
+class SwiftProvision:
+    def __init__(self, parsed_args):
+        if parsed_args.pipeline:
+            self.container_name = global_swift_dict['container_name']
+        if parsed_args.pipeline is False:
+            self.container_name = parsed_args.container_name
+        
+        print(self.container_name)
 
-def create_container():
-    """Create new object store container"""
-    try:
-        container_created = conn.object_store.create_container(name=container_name)
-        success_msg(f"Container {container_name} has been created"
-              " in the object store")
-        conn.set_container_access(name=container_name, access="public")
-    except Exception as e:
-        error_msg(f"Cannot create container, {container_name} it already exists \n ({e})")
-        container_created = None
-    return container_created
-
-def delete_container(container_name):
-    """Delete container from object store"""
-    if search_containers(container_name):
-        conn.delete_container(container_name)
-        print(f"Openstack_Swift:  {container_name} container has been deleted"
-              " from the object store")
-    else:
-        print("Openstack_Swift ERROR:  Cannot delete container"
-              f" {container_name} it doesn't exist")
+    def search_containers(self):
+        """Search if container exists"""
+        info_msg(f"Searching for {self.container_name} container...")
+        container_exists = conn.search_containers(name=self.container_name)
+        return(container_exists)
 
 
-# def create_container(container_name):
-#     """Create new object store container"""
-#     try:
-#         conn.object_store.create_container(name=container_name)
-#         print(f"Openstack_Swift:  Container {container_name} has been created"
-#               " in the object store")
-#         conn.set_container_access(name=container_name, access="public")
-#     except Exception as e:
-#         print("Openstack_Swift ERROR:  Cannot create container"
-#               f" {container_name} it already exists")
-#         print(f"Openstack_Swift ERROR:  {e}")
+    def create_container(self):
+        """Create new object store container"""
+        try:
+            container_created = conn.object_store.create_container(name=self.container_name)
+            success_msg(f"Container {self.container_name} has been created"
+                " in the object store")
+            conn.set_container_access(name=self.container_name, access="public")
+        except Exception as e:
+            error_msg(f"Cannot create container, {self.container_name} it already exists \n ({e})")
+            container_created = None
+        return container_created
+
+
+    def delete_container(self):
+        """Delete container from object store"""
+        container = SwiftProvision.search_containers(self)
+        if container:
+            conn.delete_container(self.container_name)
+            success_msg(f"{self.container_name} container has been deleted from the object store")
+        else:
+            error_msg(f"Cannot delete container {self.container_name}, doesn't exist")
+
+
+def swift_provision(parsed_args):
+        if parsed_args.pipeline:
+            global_swift_dict.update({'container_name': heat_dict.parameters['container_name']['default']})
+            SwiftProvision(global_swift_dict['container_name'], parsed_args).create_container()
+        if parsed_args.pipeline is False:
+            SwiftProvision(global_swift_dict['container_name'], parsed_args).create_container()
+
+
+
+
+
 
 
 

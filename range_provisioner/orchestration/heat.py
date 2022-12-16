@@ -1,8 +1,7 @@
 from openstack import config, connect
 from utils.load_template import load_template, load_global
 
-global_dict = load_global()
-conn = connect(cloud=global_dict.globals['cloud'])
+
 # stack_name = "dev_system"
 
 
@@ -17,7 +16,7 @@ def search_stack():
     return(stack_exists)
 
 
-def create_stack(stack_name, template, parameters):
+def create_stack(conn, stack_name, template, parameters):
     """Create a new stack"""
     try:
         if parameters is None:
@@ -37,7 +36,7 @@ def create_stack(stack_name, template, parameters):
     except Exception as e:
         print(f"Openstack_Heat ERROR:  {e}")
 
-def create_stack_wait(stack_name, template, parameters):
+def create_stack_wait(conn, stack_name, template, parameters):
     try:
         if parameters is None:
             conn.create_stack(
@@ -67,7 +66,7 @@ def delete_stack(stack_name):
         print(f"Openstack_Heat ERROR:  The stack {stack_name} cannot be"
               " deleted, it doesn't exist")
 
-def update_stack(stack_name, template, parameters):
+def update_stack(conn, stack_name, template, parameters):
     """Update a deployed stack"""
     if search_stack(stack_name):
         print(f"Openstack_Heat:  The stack {stack_name} exists... updating")

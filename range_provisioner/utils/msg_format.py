@@ -1,5 +1,6 @@
 from colorama import Fore
 
+
 def error_msg(error):
     print(Fore.RED + "ERROR:  " + Fore.RESET + error)
 
