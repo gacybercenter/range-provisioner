@@ -5,7 +5,7 @@ globals:
     cloud: gcr
     num_users: 1
     username_prefix: range_team
-    create_all: False
+    create_all:
     # range_name: alphanox
     # set create_all True to create all resources
     # set create_all False to delete all resources
