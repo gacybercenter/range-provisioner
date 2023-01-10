@@ -5,11 +5,11 @@ from utils.msg_format import error_msg, info_msg, success_msg
 from object_store.swift import swift_provision
 
 
-global_dict = load_global()
-global_swift_dict = global_dict.swift
-global_heat_dict = global_dict.heat
-global_guac_dict = global_dict.guacamole
-heat_dict = load_heat()
+# global_dict = load_global()
+# global_swift_dict = global_dict.swift
+# global_heat_dict = global_dict.heat
+# global_guac_dict = global_dict.guacamole
+# heat_dict = load_heat()
 
 
 def provision_type():
