@@ -1,0 +1,50 @@
+#YAML for storing range provisioning parameters
+
+# Global Build Parameters
+global:
+    debug: False | True
+    cloud: < OPENSTACK_CLOUD_NAME >
+    num_users: < NUMBER_OF_USERS >
+    num_ranges: < NUMBER_OF_RANGES >
+    username_prefix: < USERNAME_PREFIX >
+    range_name: < RANGE_NAME >
+    create_all: True | False
+    guacd: True | False
+#   set create_all True to create all resources  
+#   set create_all False to delete all resources
+#   unset to use specific creation parameters per service
+
+# Guacamole Parameters
+guacamole:
+    provision: True
+    guac_host: https://< GUACAMOLE_ENDPOINT_URL >
+    action: create | delete
+    conn_group_action: create | delete
+    conn_group_name: < GUACAMOLE_CONNECTION_GROUP_NAME >
+    user_org: < GUACAMOLE_USER_ORGANIZATION >
+
+# Heat Template Parameters
+heat:
+    provision: True
+    main_action: create | update | delete
+    sec_action: create | update | delete
+    template_dir: < TEMPLATE_DIRECTORY >
+    remove_sec: True | False
+    sec_group_name: < SECURITY_GROUP_NAME >
+    wait_timer: 120
+    wait: False | True
+    # set remove_sec True to remove a sec group after environment creation (typically to remove web access after build)
+    # set sec_group_name for secgroup to remove from all instances
+
+# Object Storage Parameters
+swift:
+    action: create | delete
+    asset_dir: < ASSET_DIRECTORY >
+
+## Variables that are stored privately (never store these in this yaml):
+##     - clouds.yaml file (referenced via the cloud parameter)
+##        
+##     - tenant id
+##     - guac admin user
+##     - guac admin password
+##     - guac user password
