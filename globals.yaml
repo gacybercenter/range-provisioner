@@ -4,12 +4,14 @@ globals:
     debug: False
     cloud: gcr
     num_users: 1
+    num_ranges: 1
     username_prefix: range_team
+    range_name: alphanox
+    guacd: True | False
     create_all:
-    # range_name: alphanox
-    # set create_all True to create all resources
-    # set create_all False to delete all resources
-    # unset to use specific creation parameters per service
+        # set create_all True to create all resources
+        # set create_all False to delete all resources
+        # unset to use specific creation parameters per service
 
 guacamole:
     provision: True
@@ -29,8 +31,8 @@ heat:
     sec_group_name:
     wait_timer: 120
     wait: False
-    # set remove_sec True to remove a sec group after environment creation (typically to remove web access after build)
-    # set sec_group_name for secgroup to remove from all instances
+        # set remove_sec True to remove a sec group after environment creation (typically to remove web access after build)
+        # set sec_group_name for secgroup to remove from all instances
 
 swift:
     action: create
