@@ -3,13 +3,6 @@ from utils.msg_format import error_msg, info_msg, success_msg
 from utils.load_template import load_template, load_global, load_heat
 
 
-global_dict = load_global()
-global_swift_dict = global_dict.swift
-global_heat_dict = global_dict.heat
-global_guac_dict = global_dict.guacamole
-heat_dict = load_heat()
-conn = connect(cloud=global_dict.globals['cloud'])
-
 
 class SwiftProvision:
     def __init__(self, parsed_args):
