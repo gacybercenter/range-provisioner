@@ -2,7 +2,7 @@ from openstack import connect
 from utils.load_template import load_template, load_global, load_heat, load_sec
 from utils.cli_parser import parser
 from utils.msg_format import error_msg, info_msg, success_msg
-from object_store.swift import swift_provision
+import orchestration.swift as swift
 
 
 # global_dict = load_global()
@@ -28,7 +28,7 @@ class Provision:
         
 
     def pipeline(self):
-        swift_provision(parsed_args=self.parsed_args)
+        swift(parsed_args=self.parsed_args)
         # heat_provision()
         # guac_provision()
 
@@ -36,7 +36,7 @@ class Provision:
 
 
     def cli(self):
-        swift_provision(parsed_args=self.parsed_args)
+        swift(parsed_args=self.parsed_args)
 
 
 
