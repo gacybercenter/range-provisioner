@@ -5,37 +5,47 @@ from utils.msg_format import error_msg, info_msg, success_msg
 
 
 def load_template(template):
-    """Load Template"""
-    with open(template, 'r') as file:
-        params_template = Munch(safe_load(file))    
-    return params_template
-
+    """ 
+    Load a template file and return a dictionary
+    
+    Args:
+        template (str): The path to the template file.
+    Returns:
+        dict: A dictionary containing the template parameters.
+    """
+    try:
+        info_msg(f"Loading {template}")
+        with open(template, 'r') as file:
+            parameters = Munch(safe_load(file))  
+    except Exception as e:
+        error_msg(f"Cannot load template \n  ({e})")
+        return None
+    return parameters
 
 def load_global():
     try:
-        global_dict = load_template("globals.yaml")
+        globals_dict = load_template("globals.yaml")
+        success_msg("Globals loaded")
     except Exception as e:
-        error_msg(f"Cannot load global template \n  ({e})")
-        global_dict = None        
-    return global_dict
+        error_msg(e)
+        return None        
+    return globals_dict
 
-def load_heat():
+def load_heat(heat_template_dir):
     try:
-        
         heat_dict = load_template(f"{heat_template_dir}/main.yaml")
+        success_msg(f"{heat_template_dir}/main.yaml loaded")
     except Exception as e:
-        error_msg(f"Cannot load main template \n  ({e})")
-        heat_dict = None
+        error_msg(e)
+        return None 
     return heat_dict
 
 
-def load_sec():
+def load_sec(heat_template_dir):
     try:
-        secgroup_dict = load_template(f"{heat_template_dir}/sec.yaml")
+        security_dict = load_template(f"{heat_template_dir}/sec.yaml")
+        success_msg(f"{heat_template_dir}/sec.yam loaded")
     except Exception as e:
-        error_msg(f"Cannot load secgroup template \n  ({e})")
-        secgroup_dict = None
-    return secgroup_dict
-
-global_dict = load_global()
-heat_template_dir = global_dict.heat['template_dir']
+        error_msg(e)
+        return None 
+    return security_dict
