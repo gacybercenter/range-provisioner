@@ -1,80 +1,62 @@
 import json
-import orchestration.heat as heat
-import orchestration.guacamole as guac
-import orchestration.swift as swift
+import logging
+import orchestration.provision as provision
+import sys
 import time
-from openstack import config, connect, enable_logging
-from utils.msg_format import error_msg, info_msg, success_msg
-from utils.load_template import load_template, load_global, load_heat, load_sec
-from utils.cli_parser import parser
-from utils.build_type import provision_type
+from openstack import connect, enable_logging
+from utils.msg_format import error_msg, info_msg, success_msg, general_msg
+from utils.load_template import load_global, load_heat, load_sec
 
 def main():
-    start = time.time()
+    try:
+        start = time.time()
 
-    # Create dictionaries for parsing
-    global_dict = load_global()
-    heat_params = load_heat(global_dict.heat['template_dir']).parameters
-    sec_params = load_sec(global_dict.heat['template_dir']).parameters
+        # Create dictionaries for parsing
+        global_dict = load_global()
+        globals = global_dict.globals
+        guacamole_globals = global_dict.guacamole
+        heat_globals = global_dict.heat
+        swift_globals = global_dict.swift
+        heat_params = load_heat(global_dict.heat['template_dir']).parameters
+        sec_params = load_sec(global_dict.heat['template_dir']).parameters
 
-    debug = global_dict.globals['debug']
+        debug = globals['debug']
 
-    # Enable debug logging if specified within the globals file
-    if debug:
-        enable_logging(global_dict.globals['debug'])
-        info_msg(json.dumps(global_dict, indent=4))
-        info_msg(json.dumps(heat_params, indent=4))
-        info_msg(json.dumps(sec_params, indent=4))
+        # Enable debug logging if specified within the globals file
+        if debug:
+            enable_logging(global_dict.globals['debug'])
+            logging.getLogger("openstack").setLevel(logging.INFO)
+            logging.getLogger("keystoneauth").setLevel(logging.INFO)
+        else:
+            logging.getLogger("openstack").setLevel(logging.CRITICAL)
+            logging.getLogger("keystoneauth").setLevel(logging.CRITICAL)
 
-
-    #Establish Connection
-    conn = connect(cloud=global_dict.globals['cloud'])
-    heat.search_stack(conn, global_dict.globals['range_name'])
-
-    # Establish cloud connection
-    # provision_type()
-
-    # elif args.default == True:
-    #     cli_provision(args)
-
-
+        info_msg(json.dumps(global_dict, indent=4), debug)
+        info_msg(json.dumps(heat_params, indent=4), debug)
+        info_msg(json.dumps(sec_params, indent=4), debug)
 
 
+        #Establish Connection
+        conn = connect(cloud=globals['cloud'])
 
-        
-    # Check create_all boolean logic in globals
-    # try:
-        # Check create_all boolean logic in clobals
-        # try:
-        #     if 
+        arg = sys.argv[1:]
 
+        if len(arg) == 0:
+            info_msg("No arguments provided, please provide 'swift', 'heat' or 'guacamole' as an argument.")
+        elif arg[0] == "swift":
+            provision.object_store(conn, globals, swift_globals, debug)
+        elif arg[0] == "heat":
+            provision.range(conn, globals, heat_globals, heat_params, sec_params, debug)
+        elif arg[0] == "guacamole":
+            provision.guacamole(conn, globals, guacamole_globals, heat_params, sec_params, debug)
+        elif arg[0] == "full":
+            provision.object_store(conn, globals, swift_globals, debug)
+            provision.range(conn, globals, heat_globals, heat_params, sec_params, debug)
+            provision.guacamole(conn, globals, guacamole_globals, heat_params, sec_params, debug)
 
-        # if global_params.globals['create_all']:
-        #     global_params.swift.update({"action": "create"})
-        #     print("create")
-        # if global_params.globals['create_all'] == "False":
-        #     global_params.swift.update({"action": "delete"})
-        #     print("delete")
-        # else:
-        #     info_msg("Global create_all parameter not set. Moving on to Swift specific params... \n")
-
-        # # Check swift specific parameters in globals
-        # if global_params.swift['action'] == "create":
-        #     create_container(container_name)
-        #     upload_objs(conn, container_name, asset_dir)
-        # elif global_params.swift['action'] == "delete":
-        #     delete_objs(conn, container_name)
-        #     delete_container(container_name)
-        # elif global_params.swift['action'] == "update":
-        #     upload_objs(container_name, asset_dir)
-        # else:
-        #     info_msg("Parameters were not set for Swift container creation \n")
-
-    # except Exception as e:
-    #     error_msg(e)
-
-    end = time.time()
-    info_msg("Total time: {:.2f} seconds".format(end - start))
-
+        end = time.time()
+        general_msg("Total time: {:.2f} seconds".format(end - start))
+    except Exception as e:
+        error_msg(e)
 if __name__ == '__main__':
     main()
