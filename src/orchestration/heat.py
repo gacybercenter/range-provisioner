@@ -1,101 +1,102 @@
 
-from utils.load_template import load_template, load_global
-from utils.msg_format import error_msg, info_msg, success_msg
+from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
 
-# stack = "dev_system"
-
-def search_stack(conn, stack):
-    """
-    Search for a stack and return the stack if it exists.
-
-    Args:
-        stack (str): The name or ID of the stack to search.
-
-    Returns:
-        list: A list containing the stack(s) matching the given name or ID, or an empty list if no stack is found.
-    """
-
-    info_msg(f"Searching for stack:  {stack}")
-    exists = conn.search_stacks(name_or_id=stack)
+def provision(conn, stack, template, parameters, last_stack=False, update_stack=False, debug=False):
+    """Provision container and upload assets"""
     try:
-        if exists:
-            success_msg(stack)
+        if update_stack:
+            update(conn, stack, template, parameters, last_stack, debug)
         else:
-            error_msg(f"Stack not found:  {stack}")
-    except Exception as e:
-        error_msg(e) 
-    return(exists)
+            create(conn, stack, template, parameters, last_stack, debug)
 
-
-def create_stack(conn, stack, template, parameters):
-    """
-    Create a new stack with the provided parameters.
-
-    Args:
-        stack (str): The name of the new stack to create.
-        template (str): The path to the YAML template file.
-        parameters (dict): A dictionary containing the parameters for the stack creation.
-    """
-    try:
-        if parameters is None:
-            conn.create_stack(
-                name=stack,
-                template_file=template,
-                rollback=False,
-            )
-        else:
-            conn.create_stack(
-                name=stack,
-                template_file=template,
-                rollback=False,
-                **parameters,
-            )
-        success_msg(f"The stack has been created:  {stack}")
     except Exception as e:
         error_msg(e)
 
-def create_stack_wait(conn, stack, template, parameters):
+
+def deprovision(conn, stack, wait, debug=False):
+    """Deprovision container and delete assets"""
     try:
-        if parameters is None:
-            conn.create_stack(
-                name=stack,
-                template_file=template,
-                wait=True,
-                rollback=False,
-            )
+        delete(conn, stack, wait, debug)
+    except Exception as e:
+        error_msg(e)
+
+
+def search(conn, stack_name, debug=False):
+    """Search for a stack and return the stack if it exists."""
+    try:
+        general_msg(f"Searching for stack... {stack_name}")
+        result = conn.search_stacks(name_or_id=stack_name)
+        if result:
+            success_msg(f"{stack_name} stack exists")
+            return result
+        general_msg(f"{stack_name} stack doesn't exist")
+        return None
+    except Exception as e:
+        error_msg(e)
+
+
+def create(conn, stack, template, parameters, last_stack=False, debug=False):
+    """Create a new stack with the provided parameters."""
+    try:
+        exists = search(conn, stack, debug)
+        if exists:
+            error_msg(f"The stack {stack} already exists")
+            return None
         else:
-            conn.create_stack(
-                name=stack,
+            general_msg(f"Creating stack {stack}")
+            if parameters is None:
+                conn.create_stack(
+                    name=stack,
+                    template_file=template,
+                    wait=last_stack,
+                    rollback=False,
+                )
+            else:
+                conn.create_stack(
+                    name=stack,
+                    template_file=template,
+                    rollback=False,
+                    wait=last_stack,
+                    **parameters,
+                )
+            success_msg(f"The stack has been created:  {stack}")
+    except Exception as e:
+        error_msg(e)
+
+def update(conn, stack, template, parameters, last_stack=False, debug=False):
+    """Update a deployed stack"""
+    try:
+        exists = search(conn, stack, debug)
+        if exists:
+            general_msg(f"Updating stack {stack}")
+            stack_update = conn.update_stack(
+                name_or_id=stack,
                 template_file=template,
                 rollback=False,
-                wait=True,
+                wait=last_stack,
                 **parameters,
             )
-        print(f"Openstack_Heat:  The stack {stack} has been created")
+            if stack_update:
+                success_msg(f"The stack {stack} has been updated")
+                return stack_update
+            else:
+                error_msg(f"The stack {stack} does not exists")
+                return None
+        else:
+            error_msg(f"The stack {stack} cannot be updated, it doesn't exist")
     except Exception as e:
-        print(f"Openstack_Heat ERROR:  {e}") 
+        error_msg(e)
 
-def delete_stack(stack):
+def delete(conn, stack, wait, debug=False):
     """Delete a deployed stack"""
-    if search_stack(stack):
-        conn.delete_stack(name_or_id=stack)
-        print(f"Openstack_Heat:  The stack {stack} exists... deleting")
-    else:
-        print(f"Openstack_Heat ERROR:  The stack {stack} cannot be"
-              " deleted, it doesn't exist")
-
-def update_stack(conn, stack, template, parameters):
-    """Update a deployed stack"""
-    if search_stack(stack):
-        print(f"Openstack_Heat:  The stack {stack} exists... updating")
-        conn.update_stack(
-            name_or_id=stack,
-            template_file=template,
-            rollback=False,
-            wait=True,
-            **parameters,
-        )
-    else:
-        print(f"Openstack_Heat:  The stack {stack} cannot be updated,"
-              " it doesn't exist")
+    try:
+        exists = search(conn, stack, debug)
+        if exists:
+            general_msg(f"Deleting stack {stack}")
+            conn.delete_stack(name_or_id=stack, wait=wait)
+            success_msg(f"The stack {stack} has been deleted")
+        else:
+            error_msg(f"The stack {stack} cannot be deleted, it doesn't exist")
+    except Exception as e:
+        error_msg(e)

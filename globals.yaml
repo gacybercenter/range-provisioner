@@ -4,38 +4,32 @@ globals:
     debug: False
     cloud: gcr
     num_users: 1
-    num_ranges: 1
+    num_ranges: 2
     username_prefix: range_team
     range_name: alphanox
-    guacd: True | False
-    create_all:
-        # set create_all True to create all resources
-        # set create_all False to delete all resources
-        # unset to use specific creation parameters per service
+    guacd: True
+    provision: True
 
 guacamole:
     provision: True
+    update: False
     guac_host: https://guac.gacyberrange.org
-    action: create
-    conn_group_action: create
     conn_group_name: range_team
     user_org: ""
     instance_mapping: powerplant.kali
 
 heat:
     provision: True
-    main_action: create
-    sec_action:
+    main: True
+    sec: True
+    update: False
     template_dir: templates
-    remove_sec:
-    sec_group_name:
-    wait_timer: 120
     wait: False
-        # set remove_sec True to remove a sec group after environment creation (typically to remove web access after build)
-        # set sec_group_name for secgroup to remove from all instances
+    pause: 2
 
 swift:
-    action: create
+    provision: True
+    update: True
     asset_dir: assets
 
 ## Variables that are stored privately (never store these in this yaml):
