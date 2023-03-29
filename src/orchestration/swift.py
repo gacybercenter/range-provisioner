@@ -1,6 +1,6 @@
 import json
 from os import path, walk
-from utils.msg_format import error_msg, info_msg, success_msg
+from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
 
 def provision(conn, container_name, asset_dir, debug=False):
@@ -26,13 +26,13 @@ def deprovision(conn, container_name, debug=False):
 def search(conn, container_name, debug=False):
     """Search if container exists"""
     try:
-        info_msg(f"Searching for {container_name} container...")
+        general_msg(f"Searching for {container_name} container...")
         result = conn.search_containers(name=container_name)
 
         if result:
             success_msg(f"{container_name} container exists")
             return result
-        info_msg(f"{container_name} container doesn't exist")
+        general_msg(f"{container_name} container doesn't exist")
         return None
     except Exception as e:
         error_msg(e)
@@ -47,8 +47,7 @@ def create(conn, container_name, debug=False):
                 f"Cannot create container, {container_name} it already exists")
             return None
         else:
-            info_msg(
-                f"Creating container {container_name} in the object store", debug)
+            general_msg(f"Creating container {container_name} in the object store")
             container = conn.object_store.create_container(name=container_name)
             if container:
                 success_msg(f"Container {container_name} has been created")
@@ -65,7 +64,7 @@ def delete(conn, container_name, debug=False):
 
             delete_objs(conn, container_name, debug)
 
-            info_msg(f"Deleting container... {container_name}", debug)
+            general_msg(f"Deleting container... {container_name}")
             conn.object_store.delete_container(container_name, debug)
             success_msg(f"{container_name} container has been deleted")
         else:
@@ -81,7 +80,7 @@ def access(conn, container_name, debug=False):
     try:
         container = search(conn, container_name, debug)
         if container:
-            info_msg(f"Setting container {container_name} to public", debug)
+            general_msg(f"Setting container {container_name} to public")
             access = conn.set_container_access(
                 name=container_name, access="public")
             if access:
@@ -124,7 +123,7 @@ def upload_objs(conn, container_name, dir, debug=False):
             info_msg(f"Listing objects from {container_name}", debug)
             info_msg(json.dumps(objects, indent=4), debug)
             for obj in objects:
-                info_msg(f"uploaded:     {obj.name}", debug)
+                general_msg(f"uploaded:     {obj.name}")
     except Exception as e:
         error_msg(e)
 
@@ -134,11 +133,11 @@ def delete_objs(conn, container_name, debug=False):
     try:
         objects = conn.list_objects(container_name)
         info_msg(json.dumps(objects, indent=4), debug)
-        info_msg(f"Deleting objects from {container_name}", debug)
+        general_msg(f"Deleting objects from {container_name}")
         if objects:
             for obj in objects:
                 conn.delete_object(container_name, str(obj.name))
-                info_msg(f"Deleted:     {obj.name}", debug)
+                general_msg(f"Deleted:     {obj.name}")
             success_msg(f"Objects have been deleted from {container_name}")
     except Exception as e:
         error_msg(e)
