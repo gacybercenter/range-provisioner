@@ -23,8 +23,8 @@ def main():
         debug = globals['debug']
 
         # Enable debug logging if specified within the globals file
+        enable_logging(globals['debug'])
         if debug:
-            enable_logging(global_dict.globals['debug'])
             logging.getLogger("openstack").setLevel(logging.INFO)
             logging.getLogger("keystoneauth").setLevel(logging.INFO)
         else:
