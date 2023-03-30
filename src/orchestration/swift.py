@@ -13,6 +13,7 @@ def provision(conn, container_name, asset_dir, debug=False):
             return None
     except Exception as e:
         error_msg(e)
+        return None
 
 
 def deprovision(conn, container_name, debug=False):
@@ -21,6 +22,7 @@ def deprovision(conn, container_name, debug=False):
         delete(conn, container_name, debug)
     except Exception as e:
         error_msg(e)
+        return None
 
 
 def search(conn, container_name, debug=False):
@@ -36,6 +38,7 @@ def search(conn, container_name, debug=False):
         return None
     except Exception as e:
         error_msg(e)
+        return None
 
 
 def create(conn, container_name, debug=False):
@@ -54,6 +57,7 @@ def create(conn, container_name, debug=False):
                 return container
     except Exception as e:
         error_msg(e)
+        return None
 
 
 def delete(conn, container_name, debug=False):
@@ -73,6 +77,7 @@ def delete(conn, container_name, debug=False):
             return None
     except Exception as e:
         error_msg(e)
+        return None
 
 
 def access(conn, container_name, debug=False):
@@ -88,6 +93,7 @@ def access(conn, container_name, debug=False):
                 return access
     except Exception as e:
         error_msg(e)
+        return None
 
 
 def upload_objs(conn, container_name, dir, debug=False):
@@ -126,6 +132,7 @@ def upload_objs(conn, container_name, dir, debug=False):
                 general_msg(f"uploaded:     {obj.name}")
     except Exception as e:
         error_msg(e)
+        return None
 
 
 def delete_objs(conn, container_name, debug=False):
@@ -141,3 +148,4 @@ def delete_objs(conn, container_name, debug=False):
             success_msg(f"Objects have been deleted from {container_name}")
     except Exception as e:
         error_msg(e)
+        return None

@@ -8,7 +8,7 @@ globals:
     username_prefix: range_team
     range_name: alphanox
     guacd: True
-    provision: True
+    provision:
 
 guacamole:
     provision: True
@@ -28,8 +28,8 @@ heat:
     pause: 2
 
 swift:
-    provision: True
-    update: True
+    provision: False
+    update:
     asset_dir: assets
 
 ## Variables that are stored privately (never store these in this yaml):
