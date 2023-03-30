@@ -1,15 +1,7 @@
 from colorama import Fore
 
 def error_msg(error):
-    if '\n' in error:
-        # If error contains multiple lines, split it and print each line separately
-        error_lines = error.split('\n')
-        print(Fore.RED + "[ERROR]   " + Fore.RESET)
-        for line in error_lines:
-            print(line)
-    else:
-        # If error is a single line, print it as is
-        print(Fore.RED + "[ERROR]   " + Fore.RESET + error)
+    print(Fore.RED + "[ERROR]   " + Fore.RESET + error)
 
 
 def info_msg(text, debug=False):
