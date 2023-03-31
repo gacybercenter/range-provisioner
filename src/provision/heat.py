@@ -113,7 +113,7 @@ def provision(conn, globals, heat_globals, heat_params, sec_params, debug=False)
                         if heat_globals['main']:
                             dir = f"{template_dir}/main.yaml"
                             parameters = heat_params
-                            parameters['container_name'] = name
+                            parameters['container_name'] = stack_name
                             parameters['count'] = globals['num_users']
 
                             if globals['num_ranges'] > 1:
