@@ -3,9 +3,9 @@
 globals:
     debug: False
     cloud: gcr
-    num_users: 1
-    num_ranges: 2
-    username_prefix: range_team
+    num_users: 3
+    num_ranges: 3
+    user_name: analyst
     range_name: alphanox
     guacd: True
     provision:
@@ -13,22 +13,23 @@ globals:
 guacamole:
     provision: True
     update: False
-    guac_host: https://guac.gacyberrange.org
+    secure: True
+    guac_host: https://training.gacyberrange.org
     conn_group_name: range_team
     user_org: ""
-    instance_mapping: powerplant.kali
+    instance_mapping: user.instance
 
 heat:
     provision: True
     main: True
     sec: True
-    update: False
+    update: True
     template_dir: templates
     wait: False
     pause: 2
 
 swift:
-    provision: False
+    provision: True
     update:
     asset_dir: assets
 
