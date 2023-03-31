@@ -5,9 +5,10 @@ import provision.swift as swift
 import provision.guac as guac
 import sys
 import time
+from guacamole import session
 from openstack import connect, enable_logging
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
-from utils.load_template import load_global, load_heat, load_sec
+from utils.load_template import load_global, load_heat, load_sec, load_template
 
 
 def main():
@@ -22,6 +23,8 @@ def main():
         swift_globals = global_dict.swift
         heat_params = load_heat(global_dict.heat['template_dir']).parameters
         sec_params = load_sec(global_dict.heat['template_dir']).parameters
+        openstack_clouds = load_template('clouds.yaml')['clouds'][f"{globals['cloud']}"]
+        guacamole_clouds = load_template('clouds.yaml')['clouds']['guac']
 
         debug = globals['debug']
 
@@ -38,7 +41,20 @@ def main():
         info_msg(json.dumps(heat_params, indent=4), debug)
         info_msg(json.dumps(sec_params, indent=4), debug)
 
-        conn = connect(cloud=globals['cloud'])
+        general_msg("Connecting to OpenStack...")
+        general_msg(f"Endpoint: {openstack_clouds['auth']['auth_url']}")
+        general_msg(f"Project: {openstack_clouds['auth']['project_name']}")
+        openstack_connect = connect(cloud=globals['cloud'])
+        if openstack_connect:
+            success_msg("Connected to OpenStack")
+
+        general_msg("Connecting to Guacamole...")
+        general_msg(f"Endpoint: {guacamole_globals['guac_host']}")
+        guacamole_connect = session(
+            guacamole_globals['guac_host'], 'mysql',
+            guacamole_clouds['user'], guacamole_clouds['password'])
+        if guacamole_connect:
+            success_msg("Connected to Guacamole")
 
         arg = sys.argv[1:]
 
@@ -46,19 +62,19 @@ def main():
             info_msg(
                 "No arguments provided, please provide 'swift', 'heat' or 'guacamole' as an argument.")
         elif arg[0] == "swift":
-            swift.provision(conn, globals, swift_globals, debug)
+            swift.provision(openstack_connect, globals, swift_globals, debug)
         elif arg[0] == "heat":
-            heat.provision(conn, globals, heat_globals,
+            heat.provision(openstack_connect, globals, heat_globals,
                            heat_params, sec_params, debug)
         elif arg[0] == "guacamole":
-            guac.provision(conn, globals, guacamole_globals,
-                                heat_params, sec_params, debug)
+            guac.provision(openstack_connect, guacamole_connect, globals, guacamole_globals,
+                           heat_params, debug)
         elif arg[0] == "full":
-            swift.provision(conn, globals, swift_globals, debug)
-            heat.provision(conn, globals, heat_globals,
+            swift.provision(openstack_connect, globals, swift_globals, debug)
+            heat.provision(openstack_connect, globals, heat_globals,
                            heat_params, sec_params, debug)
-            guac.provision(conn, globals, guacamole_globals,
-                                heat_params, sec_params, debug)
+            guac.provision(openstack_connect, guacamole_connect, globals, guacamole_globals,
+                           heat_params, debug)
 
         end = time.time()
         general_msg("Total time: {:.2f} seconds".format(end - start))
