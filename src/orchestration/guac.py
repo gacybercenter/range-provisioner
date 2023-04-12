@@ -3,14 +3,17 @@ import orchestration.heat as heat
 from utils.generate import instances, users
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
-def provision(conn, gconn, globals, guacamole_globals, heat_params, debug=False):
-    users_list = users(globals['num_ranges'], globals['num_users'],
-                               globals['range_name'], globals['user_name'], guacamole_globals['secure'], debug)
-    info_msg(users_list, debug)
+def provision(conn, gconn, globals, guacamole_globals, heat_params, users_list, instances_list, debug=False):
+    # users_list = users(globals['num_ranges'], globals['num_users'],
+    #                            globals['range_name'], globals['user_name'], guacamole_globals['secure'], debug)
+    # info_msg(users_list, debug)
 
-    instances_list = instances(globals['num_ranges'], globals['num_users'],
-                               globals['range_name'], guacamole_globals['instance_mapping'], debug)
-    info_msg(instances_list, debug)
+    # instances_list = instances(globals['num_ranges'], globals['num_users'],
+    #                            globals['range_name'], guacamole_globals['instance_mapping'], debug)
+    # info_msg(instances_list, debug)
+    general_msg(instances_list)
+    general_msg(users_list)
+
 
 
     return
@@ -23,12 +26,6 @@ def deprovision(conn, globals, guacamole_globals, sec_params, debug=False):
 #                   and is not currently functional. It belonged to the
 #                   original guac.py file and is being moved here for
 #                   reference purposes.
-
-
-def create_usernames(num_users, username):
-    """Create username list"""
-    new_usernames = [f'{username}.{num}' for num in range(1, num_users+1)]
-    return new_usernames
 
 
 def get_ostack_instances():
