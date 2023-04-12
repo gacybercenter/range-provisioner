@@ -6,16 +6,16 @@ def generate_password():
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for i in range(16))
 
-def generate_names(ranges, prefix, suffix):
+def generate_names(ranges, prefix,):
     """Generate a list of names with a prefix and a range of numbers"""
-    return [f"{prefix}{suffix}{i}" for i in range(ranges)]
+    return [f"{prefix}{i}" for i in range(ranges)]
 
 
 def instances(ranges, users, range_name, instance_name, debug):
     """Create instance list"""
     try:
         instance_names = [f"{name}.{instance_name}.{u}" for name in generate_names(
-            ranges, range_name, '-') for u in range(users)]
+            ranges, range_name) for u in range(users)]
         general_msg(f"Generating instance list for {range_name}")
         for instance in instance_names:
             general_msg(f"Instance Generated: {instance}")
@@ -29,12 +29,14 @@ def users(ranges, users, range_name, user_name, secure, debug):
     """Create user list"""
     try:
         user_names = [f"{name}.{user_name}.{u}" for name in generate_names(
-            ranges, range_name, '-') for u in range(users)]
+            ranges, range_name) for u in range(users)]
         general_msg(f"Generating user list")
         if secure:
             users_list = {user: {'password': generate_password()} for user in user_names}
         else:
             users_list = {user: {'password': range_name} for user in user_names}
+
+        
         for u, p in users_list.items():
             if debug:
                 info_msg(f"username: {u} {p['password']}", debug)
