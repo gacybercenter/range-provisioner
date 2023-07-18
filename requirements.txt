@@ -3,3 +3,4 @@ openstacksdk
 requests
 pyyaml
 colorama
+munch
