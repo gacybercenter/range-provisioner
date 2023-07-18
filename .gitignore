@@ -1,7 +1,8 @@
 *constants.py
-*clouds.yaml
-*templates
+**/clouds.yaml
+**/clouds.yml
+#*templates
+#*assets/
 *__pycache__/
-*assets/
 *.gz
 *.tar
