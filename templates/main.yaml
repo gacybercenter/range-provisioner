@@ -1,0 +1,153 @@
+heat_template_version: 2018-03-02
+
+description: devstack deployment
+
+parameters:
+  username: 
+    type: string
+    default: deafualt_username
+
+  password:
+    type: string
+    default: default_password
+
+  instance.num:
+    type: string
+    default: 2
+
+  count:
+    type: string
+    default: default_instance_name
+
+  tenant_id: 
+    type: string
+    default: openstack_project_id_value
+
+  container_name:
+    type: string
+    default: range_provisioner
+
+  conn_proto:
+    type: comma_delimited_list
+    default: "ssh"
+  devstack.password:
+    type: string
+    default: yourpassword
+    description: Password that will be utilized for Login and Access
+  devstack.nova.branch:
+    type: string
+    default: 'master'
+    description: Branch that will be utilized for Nova
+  public.nameserver:
+    type: string
+    default: 10.100.1.58
+    description: IP Address that will be utilized for DNS and Package Cache
+
+resources:
+  devstack.router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info: {"network": public}
+
+  devstack.network.Interface:
+    type:  OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: devstack.router }
+      subnet_id: { get_resource: test.subnet }
+
+  devstack.network:
+    type: OS::Neutron::Net
+    properties:
+      admin_state_up: true
+      shared: false
+
+  test.subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      cidr: 192.168.1.0/24 
+      gateway_ip: 192.168.1.254 
+      network_id: { get_resource: devstack.network }
+      enable_dhcp: true
+      dns_nameservers: [{get_param: public.nameserver}]
+      ip_version: 4
+
+  devstack.host:
+    type: OS::Nova::Server
+    properties:
+      image: ubuntu2004
+      flavor: m1.large
+      diskConfig: AUTO
+      networks:
+        - port: { get_resource: devstack.host.port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #!/bin/bash
+            export UCF_FORCE_CONFOLD=1
+            export DEBIAN_FRONTEND=noninteractive
+
+            echo '10.100.1.235 dashboard.gacyberrange.org' >> /etc/hosts
+            echo 'Acquire::http::proxy "http://publicnameserver:3142";' > /etc/apt/apt.conf.d/02proxy
+
+            sed -i 's/ssh_pwaut h:   0/ssh_pwauth:   1/g' /etc/cloud/cloud.cfg
+            sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+            sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
+            sed -i 's/#Port 22/Port 22/g' /etc/ssh/sshd_config
+            sed -i 's/UsePAM yes/UsePAM no/g' /etc/ssh/sshd_config
+            service sshd restart
+
+            useradd -s /bin/bash -d /opt/stack -m stack
+            echo "ubuntu:devstackpassword" | chpasswd
+            echo "stack:devstackpassword" | chpasswd
+            echo "root:devstackpassword" | chpasswd
+
+            echo "stack ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/stack
+
+            apt update && apt install -yy git
+
+            cd /opt/stack/
+            git clone -b stable/yoga https://opendev.org/openstack/devstack 
+
+            cat > /opt/stack/devstack/local.conf <<"__EOF__"
+            [[local|localrc]]
+            ADMIN_PASSWORD=devstackpassword
+            DATABASE_PASSWORD=$ADMIN_PASSWORD
+            RABBIT_PASSWORD=$ADMIN_PASSWORD
+            SERVICE_PASSWORD=$ADMIN_PASSWORD
+            DOWNLOAD_DEFAULT_IMAGES=False
+            IMAGE_URLS="http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-aarch64-disk.img"
+            IMAGE_URLS+="http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-ppc64le-disk.img"
+            IMAGE_URLS+="http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-x86_64-disk.img"
+            DEFAULT_INSTANCE_TYPE=m1.tiny
+            enable_plugin skyline-apiserver https://opendev.org/openstack/skyline-apiserver master
+            __EOF__
+
+            chown -R stack:stack devstack/
+
+            sudo -H -u stack bash -c 'cd devstack && ./stack.sh' 
+          params:
+            devstackpassword: { get_param: devstack.password }
+            devstacknovabranch: { get_param: devstack.nova.branch }
+            publicnameserver: { get_param: public.nameserver }
+
+  devstack.host.port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: devstack.network }
+      fixed_ips:
+      - subnet_id: { get_resource: test.subnet }
+        ip_address: 192.168.1.150
+      port_security_enabled: true
+      security_groups:
+      - devstack.security.group
+
+  devstack.host.port.float.ip:
+    type: OS::Neutron::FloatingIP
+    properties: { floating_network: public }
+
+  devstack.host.port.float.ip.assoc:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: devstack.host.port.float.ip }
+      port_id: { get_resource: devstack.host.port }

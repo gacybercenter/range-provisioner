@@ -20,15 +20,15 @@ guacamole:
     instance_mapping: user.instance # name of instance mapping
 
 heat:
-    provision: True # provision heat (True) or not (False)
+    provision: False # provision heat (True) or not (False)
     main: True # Identify if main.yaml is being used (True) or not (False)
-    sec: True # Identify if sec.yaml is being used (True) or not (False)
-    update: True # update heat (True) or not (False)
+    sec: False # Identify if sec.yaml is being used (True) or not (False)
+    update: False # update heat (True) or not (False)
     template_dir: templates # directory containing heat templates
     wait: False # wait for heat to complete (True) or not (False)
     pause: 2 # pause between each heat stack action
 
 swift:
-    provision: True # provision swift (True) or not (False)
-    update: True # update swift (True) or not (False)
+    provision: False # provision swift (True) or not (False)
+    update: False # update swift (True) or not (False)
     asset_dir: assets # directory containing swift assets
