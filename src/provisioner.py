@@ -8,7 +8,8 @@ import time
 from guacamole import session
 from openstack import connect, enable_logging
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
-from utils.load_template import load_global, load_heat, load_sec, load_template
+from utils.load_template import load_global, load_heat, load_sec, load_env, load_template
+from utils.get_ids import replace_resource_ids
 
 
 def main():
@@ -23,7 +24,9 @@ def main():
         swift_globals = global_dict.swift
         heat_params = load_heat(global_dict.heat['template_dir']).parameters
         sec_params = load_sec(global_dict.heat['template_dir']).parameters
-        openstack_clouds = load_template('clouds.yaml')['clouds'][f"{globals['cloud']}"]
+        env_params = load_env(global_dict.heat['template_dir']).parameters
+        openstack_clouds = load_template('clouds.yaml')[
+            'clouds'][f"{globals['cloud']}"]
         guacamole_clouds = load_template('clouds.yaml')['clouds']['guac']
 
         debug = globals['debug']
@@ -40,6 +43,7 @@ def main():
         info_msg(json.dumps(global_dict, indent=4), debug)
         info_msg(json.dumps(heat_params, indent=4), debug)
         info_msg(json.dumps(sec_params, indent=4), debug)
+        info_msg(json.dumps(env_params, indent=4), debug)
 
         general_msg("Connecting to OpenStack...")
         general_msg(f"Endpoint: {openstack_clouds['auth']['auth_url']}")
@@ -57,6 +61,12 @@ def main():
             success_msg("Connected to Guacamole")
 
         arg = sys.argv[1:]
+
+        if (global_dict.heat['env']['enabled']):
+            replace_resource_ids(openstack_connect,
+                                 'templates/env.yaml',
+                                 global_dict.heat['env']['stacks'],
+                                 debug)
 
         if len(arg) == 0:
             info_msg(

@@ -1,7 +1,7 @@
 ---
 #YAML for storing range provisioning parameters
 globals:
-    debug: False # debug mode (True) or not (False)
+    debug: True # debug mode (True) or not (False)
     cloud: gcr # name of cloud to use
     num_users: 3 # number of user systems to provision
     num_ranges: 3 # number of ranges to provision
@@ -23,6 +23,10 @@ heat:
     provision: False # provision heat (True) or not (False)
     main: True # Identify if main.yaml is being used (True) or not (False)
     sec: False # Identify if sec.yaml is being used (True) or not (False)
+    env:
+        enabled: True # Identify if env.yaml is being used (True) or not (False)
+        stacks:
+            - range-prov-test
     update: False # update heat (True) or not (False)
     template_dir: templates # directory containing heat templates
     wait: False # wait for heat to complete (True) or not (False)
