@@ -44,8 +44,17 @@ def load_heat(heat_template_dir):
 def load_sec(heat_template_dir):
     try:
         security_dict = load_template(f"{heat_template_dir}/sec.yaml")
-        success_msg(f"{heat_template_dir}/sec.yam loaded")
+        success_msg(f"{heat_template_dir}/sec.yaml loaded")
     except Exception as e:
         error_msg(e)
         return None 
     return security_dict
+
+def load_env(heat_template_dir):
+    try:
+        environment_dict = load_template(f"{heat_template_dir}/env.yaml")
+        success_msg(f"{heat_template_dir}/env.yaml loaded")
+    except Exception as e:
+        error_msg(e)
+        return None 
+    return environment_dict
