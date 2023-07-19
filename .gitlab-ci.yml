@@ -17,3 +17,6 @@ pylint:
     reports:
       codequality: codeclimate.json
     when: always
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
