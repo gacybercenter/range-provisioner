@@ -1,0 +1,19 @@
+image: python:3.9.1-alpine3.12
+
+stages:
+  - lint
+
+pylint:
+  stage: lint
+  tags:
+    - docker
+  image: python:3.7-slim
+  before_script:
+    - pip install pylint_gitlab
+  script:
+    - pylint --exit-zero --output-format=text $(find ./src -type f -name "*.py") | tee /tmp/pylint.txt
+    - pylint --exit-zero --output-format=pylint_gitlab.GitlabCodeClimateReporter $(find ./src -type f -name "*.py") > codeclimate.json
+  artifacts:
+    reports:
+      codequality: codeclimate.json
+    when: always
