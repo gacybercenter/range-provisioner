@@ -23,10 +23,6 @@ heat:
     provision: False # provision heat (True) or not (False)
     main: True # Identify if main.yaml is being used (True) or not (False)
     sec: False # Identify if sec.yaml is being used (True) or not (False)
-    env:
-        enabled: True # Identify if env.yaml is being used (True) or not (False)
-        stacks:
-            - range-prov-test
     update: False # update heat (True) or not (False)
     template_dir: templates # directory containing heat templates
     wait: False # wait for heat to complete (True) or not (False)
