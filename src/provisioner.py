@@ -9,7 +9,7 @@ from guacamole import session
 from openstack import connect, enable_logging
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 from utils.load_template import load_global, load_heat, load_sec, load_env, load_template
-from utils.get_ids import replace_resource_ids
+from utils.get_ids import get_ids, read_yaml, write_yaml
 
 
 def main():
@@ -61,12 +61,39 @@ def main():
             success_msg("Connected to Guacamole")
 
         arg = sys.argv[1:]
+        try:
+            stacks = global_dict.heat['env']
+            general_msg("Found env stacks in the globals dictionary")
+            info_msg(json.dumps(stacks, indent=4), debug)
+        except KeyError:
+            general_msg("Could not find env stacks in the globals dictionary")
+            stacks = []
 
-        if (global_dict.heat['env']['enabled']):
-            replace_resource_ids(openstack_connect,
-                                 'templates/env.yaml',
-                                 global_dict.heat['env']['stacks'],
+        try:
+            env_path = global_dict.heat['template_dir']+"/env.yaml"
+            env_params = read_yaml(env_path)
+            env_params = get_ids(openstack_connect,
+                                 env_params,
+                                 stacks,
+                                 False,
                                  debug)
+            write_yaml(env_path, env_params)
+        except KeyError:
+            env_path = None
+
+        heat_params = get_ids(openstack_connect,
+                              heat_params,
+                              stacks,
+                              False,
+                              debug)
+        success_msg("Updated heat parameters")
+
+        sec_params = get_ids(openstack_connect,
+                             sec_params,
+                             stacks,
+                             False,
+                             debug)
+        success_msg("Updated security parameters")
 
         if len(arg) == 0:
             info_msg(
