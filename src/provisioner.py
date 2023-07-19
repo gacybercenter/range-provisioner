@@ -9,7 +9,7 @@ from guacamole import session
 from openstack import connect, enable_logging
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 from utils.load_template import load_global, load_heat, load_sec, load_env, load_template
-from utils.get_ids import get_ids, read_yaml, write_yaml
+from utils.get_ids import update_ids, update_env
 
 
 def main():
@@ -60,44 +60,18 @@ def main():
         if guacamole_connect:
             success_msg("Connected to Guacamole")
 
+        update_env(openstack_connect, global_dict, False, debug)
+        heat_params, sec_params, *remaining_params = update_ids(
+            openstack_connect, [heat_params, sec_params], [], False, debug)
+        info_msg(json.dumps(remaining_params, indent=4), debug)
+
         arg = sys.argv[1:]
-        try:
-            stacks = global_dict.heat['env']
-            general_msg("Found env stacks in the globals dictionary")
-            info_msg(json.dumps(stacks, indent=4), debug)
-        except KeyError:
-            general_msg("Could not find env stacks in the globals dictionary")
-            stacks = []
-
-        try:
-            env_path = global_dict.heat['template_dir']+"/env.yaml"
-            env_params = read_yaml(env_path)
-            env_params = get_ids(openstack_connect,
-                                 env_params,
-                                 stacks,
-                                 False,
-                                 debug)
-            write_yaml(env_path, env_params)
-        except KeyError:
-            env_path = None
-
-        heat_params = get_ids(openstack_connect,
-                              heat_params,
-                              stacks,
-                              False,
-                              debug)
-        success_msg("Updated heat parameters")
-
-        sec_params = get_ids(openstack_connect,
-                             sec_params,
-                             stacks,
-                             False,
-                             debug)
-        success_msg("Updated security parameters")
 
         if len(arg) == 0:
             info_msg(
-                "No arguments provided, please provide 'swift', 'heat' or 'guacamole' as an argument.")
+                "No arguments provided, please provide: "
+                "'swift', 'heat', or 'guacamole' as an argument."
+            )
         elif arg[0] == "swift":
             swift.provision(openstack_connect, globals, swift_globals, debug)
         elif arg[0] == "heat":
