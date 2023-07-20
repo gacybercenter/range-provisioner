@@ -9,9 +9,15 @@ import yaml
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
 
+<<<<<<< HEAD
 def update_env(conn: object,
                globals_dict: object,
                replace_stacks: bool = False,
+=======
+def update_env(conn,
+               global_dict: object,
+               replace: bool = False,
+>>>>>>> 5035f53 (fix: ci trigger validation)
                debug: bool = False):
     """
     Updates the env.yaml file with up to date resource IDs.
@@ -78,6 +84,7 @@ def get_env_path(globals_dict: dict) -> str:
     return env_path
 
 
+<<<<<<< HEAD
 def manage_params(heat_template: object) -> object:
     """
     Generates a new heat template by managing the parameters.
@@ -99,6 +106,9 @@ def manage_params(heat_template: object) -> object:
 
 
 def update_ids(conn: object,
+=======
+def update_ids(conn,
+>>>>>>> 5035f53 (fix: ci trigger validation)
                params: list,
                stacks: list,
                replace: bool = False,
@@ -157,9 +167,33 @@ def get_ids(conn: object,
     project_id = conn.current_project_id
     info_msg(f"Current project ID: {project_id}", debug)
 
+<<<<<<< HEAD
     if not stack_names:
         general_msg("No stacks provided, fetching all stacks...")
         stacks = conn.orchestration.stacks(project_id=project_id)
+=======
+
+def get_ids(conn: connection, params, stack_list, replace=False, debug=False):
+    """
+    Retrieves resource IDs from OpenStack.
+
+    Parameters:
+    - conn: The connection object to the OpenStack API.
+    - params: The parameters to be modified.
+    - stacks: The stacks of the stacks to retrieve IDs from. If none are
+    provided, IDs will be retrieved from all stacks.
+    - replace: A boolean indicating whether to replace existing parameter
+    values with the retrieved IDs.
+    - debug: A boolean indicating whether to enable debug mode.
+
+    Returns:
+    - modified_params: The modified parameters with the retrieved IDs.
+    """
+    # Gets the stacks of all stacks in the specified cloud if none are provided
+    if not stack_list:
+        general_msg("No stacks provided, getting resource IDs from all stacks")
+        stacks = conn.orchestration.stacks()
+>>>>>>> 5035f53 (fix: ci trigger validation)
         for stack in stacks:
             if conn.orchestration.find_stack(stack.name) is not None:
                 stack_names.append(stack.name)

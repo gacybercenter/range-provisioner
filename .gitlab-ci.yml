@@ -6,7 +6,7 @@ stages:
 pylint:
   stage: lint
   tags:
-    - docker
+    - docker-gcc
   image: python:3.7-slim
   before_script:
     - pip install pylint_gitlab
@@ -17,6 +17,3 @@ pylint:
     reports:
       codequality: codeclimate.json
     when: always
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
