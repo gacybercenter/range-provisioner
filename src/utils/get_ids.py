@@ -102,7 +102,7 @@ def compare_dictionaries(dict1, dict2):
     return different_entries
 
 
-def get_ids(conn: connection, params, stack_list, replace=False, debug=False):
+def get_ids(conn, params, stack_list, replace=False, debug=False):
     """
     Retrieves resource IDs from OpenStack.
 
