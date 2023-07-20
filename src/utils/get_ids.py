@@ -7,11 +7,10 @@ be processed.
 """
 import json
 import yaml
-from openstack import connection
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
 
-def update_env(conn: connection,
+def update_env(conn,
                global_dict: object,
                replace: bool = False,
                debug: bool = False):
@@ -50,7 +49,7 @@ def update_env(conn: connection,
         env_path = None
 
 
-def update_ids(conn: connection,
+def update_ids(conn,
                params: list,
                stacks: list,
                replace: bool = False,
@@ -103,7 +102,7 @@ def compare_dictionaries(dict1, dict2):
     return different_entries
 
 
-def get_ids(conn, params, stack_list, replace=False, debug=False):
+def get_ids(conn: connection, params, stack_list, replace=False, debug=False):
     """
     Retrieves resource IDs from OpenStack.
 
