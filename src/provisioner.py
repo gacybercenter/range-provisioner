@@ -61,9 +61,8 @@ def main():
             success_msg("Connected to Guacamole")
 
         update_env(openstack_connect, global_dict, False, debug)
-        heat_params, sec_params, *remaining_params = update_ids(
+        heat_params, sec_params, *E = update_ids(
             openstack_connect, [heat_params, sec_params], [], False, debug)
-        info_msg(json.dumps(remaining_params, indent=4), debug)
 
         arg = sys.argv[1:]
 
