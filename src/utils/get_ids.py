@@ -163,7 +163,9 @@ def get_ids(conn: object,
     Returns:
         (object): The modified parameters.
     """
-    parameters = manage_params(parameters)
+    if replace:
+        parameters = manage_params(parameters)
+
     project_id = conn.current_project_id
     info_msg(f"Current project ID: {project_id}", debug)
 
@@ -271,25 +273,38 @@ def replace_resource_id(data: dict,
         if not data["parameters"].get(f"{resource_name}_id"):
             info_msg(f"Adding: '{resource_name}_id': "
                      f"'{resource_id}'", debug)
-        elif not data["parameters"][f"{resource_name}_id"] == resource_id:
+        elif data["parameters"][f"{resource_name}_id"] == resource_id:
+            info_msg(f"Unchanged: '{resource_name}_id': "
+                     f"'{resource_id}' ", debug)
+        elif data["parameters"][f"{resource_name}_id"] != resource_id:
             info_msg(f"Updating: '{resource_name}_id': "
-                     f"'{resource_id}' to "
-                     f"'{data['parameters'][f'{resource_name}_id']}'", debug)
+                     f"'{data['parameters'][f'{resource_name}_id']}' to "
+                     f"'{resource_id}'", debug)
         data["parameters"][f"{resource_name}_id"] = resource_id
     else:
         if isinstance(data, dict):
             for key, value in list(data.items()):
                 if isinstance(value, dict):
-                    replace_resource_id(
-                        value, resource_name, resource_id, False, debug)
+                    replace_resource_id(value,
+                                        resource_name,
+                                        resource_id,
+                                        False,
+                                        debug)
+                elif key == f"{resource_name}_id" and data[key] == resource_id:
+                    info_msg(f"Unchanged: '{resource_name}_id': "
+                             f"'{resource_id}'", debug)
                 elif key == f"{resource_name}_id" and data[key] != resource_id:
                     info_msg(f"Updating: '{resource_name}_id': "
-                     f"from '{data[key]}' to '{resource_id}'", debug)
+                             f"'{data[key]}' to "
+                             f"'{resource_id}'", debug)
                     data[key] = resource_id
         elif isinstance(data, list):
             for item in data:
-                replace_resource_id(item, resource_name,
-                                    resource_id, False, debug)
+                replace_resource_id(item,
+                                    resource_name,
+                                    resource_id,
+                                    False,
+                                    debug)
 
 
 def read_yaml(template_path: str,
