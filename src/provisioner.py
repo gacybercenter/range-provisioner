@@ -9,7 +9,7 @@ from guacamole import session
 from openstack import connect, enable_logging
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 from utils.load_template import load_global, load_heat, load_sec, load_env, load_template
-from utils.get_ids import update_ids, update_env
+from utils.manage_ids import update_ids, update_env
 
 
 def main():
