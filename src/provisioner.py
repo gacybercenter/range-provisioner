@@ -60,7 +60,7 @@ def main():
         if guacamole_connect:
             success_msg("Connected to Guacamole")
 
-        update_env(openstack_connect, global_dict, False, debug)
+        update_env(openstack_connect, global_dict, True, debug)
         heat_params, sec_params, env_params = update_ids(
             openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
 
