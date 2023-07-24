@@ -11,7 +11,7 @@ from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
 def update_env(conn: object,
                globals_dict: object,
-               replace_stacks: bool = False,
+               make_entries: bool = False,
                debug: bool = False):
     """
     Updates the env.yaml file with up to date resource IDs.
@@ -19,7 +19,7 @@ def update_env(conn: object,
     Parameters:
         - conn (object): The connection object.
         - globals_dict (object): The global dictionary object.
-        - replace_stacks (bool, optional): Flag indicating whether to replace existing
+        - make_entries (bool, optional): Flag indicating whether to make new
         stacks. Defaults to False.
 
     Returns:
@@ -34,9 +34,10 @@ def update_env(conn: object,
         env_params = get_ids(conn,
                              env_params,
                              stacks,
-                             replace_stacks,
+                             make_entries,
                              debug)
         write_yaml(env_path, env_params)
+    return env_params
 
 
 def get_env_stacks(globals_dict: dict) -> list:
@@ -101,7 +102,7 @@ def manage_params(heat_template: object) -> object:
 def update_ids(conn: object,
                params: list,
                stacks: list,
-               replace: bool = False,
+               make_entries: bool = False,
                debug: bool = False) -> list:
     """
     Update the IDs in the parameters.
@@ -110,7 +111,7 @@ def update_ids(conn: object,
         - conn (connection): The connection object.
         - params (list): The list of parameters.
         - stacks (list): The list of stacks.
-        - replace (bool, optional): Whether to make new IDs or not.
+        - make_entries (bool, optional): Whether to make new IDs or not.
         Defaults to False.
         - debug (bool, optional): Whether to enable debugging or not.
         Defaults to False.
@@ -124,7 +125,7 @@ def update_ids(conn: object,
         get_ids(conn,
                 param,
                 stacks,
-                replace,
+                make_entries,
                 debug)
         for param in params
     ]
@@ -136,7 +137,7 @@ def update_ids(conn: object,
 def get_ids(conn: object,
             parameters: dict,
             stack_names: list,
-            replace: bool = False,
+            make_entries: bool = False,
             debug: bool = False) -> object:
     """
     Retrieves the resource IDs from the specified OpenStack stacks.
@@ -145,7 +146,7 @@ def get_ids(conn: object,
         - conn (object): The connection object.
         - parameters (dict): The parameters.
         - stack_names (list): The stack names.
-        - replace (bool, optional): Whether to replace the resource ID or not.
+        - make_entries (bool, optional): Whether to make new IDs or not.
         Defaults to False.
         - debug (bool, optional): Whether to enable debugging or not.
         Defaults to False.
@@ -153,7 +154,7 @@ def get_ids(conn: object,
     Returns:
         (object): The modified parameters.
     """
-    if replace:
+    if make_entries:
         parameters = manage_params(parameters)
 
     project_id = conn.current_project_id
@@ -192,7 +193,7 @@ def get_ids(conn: object,
                 replace_resource_id(modified_params,
                                     resource_name,
                                     resource_id,
-                                    replace,
+                                    make_entries,
                                     debug)
     success_msg("Retrieved IDs from OpenStack")
     return modified_params
@@ -220,7 +221,7 @@ def update_resource_name(resource_name: str,
 def replace_resource_id(data: dict,
                         resource_name: str,
                         resource_id: str,
-                        replace: bool = False,
+                        make_entries: bool = False,
                         debug: bool = False) -> None:
     """
     Replaces the resource ID in the given data with the provided resource ID.
@@ -229,13 +230,13 @@ def replace_resource_id(data: dict,
         - data (dict or list): The data structure in which the resource ID needs to be replaced.
         - resource_name (str): The name of the resource.
         - resource_id (str): The new resource ID.
-        - replace (bool): Specifies whether the resource ID should be replaced or not.
+        - make_entries (bool): Whether to make new IDs or not.
         - debug (bool): Specifies whether debug messages should be printed or not.
 
     Returns:
         (None)
     """
-    if replace and resource_name:
+    if make_entries and resource_name:
         if not data["parameters"].get(f"{resource_name}_id"):
             info_msg(f"Adding: '{resource_name}_id': "
                      f"'{resource_id}'", debug)
