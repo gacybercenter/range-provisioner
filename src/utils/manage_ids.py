@@ -212,8 +212,8 @@ def update_resource_name(resource_name: str,
         (str): The updated resource name without the prefix.
     """
     new_resource_name = resource_name.replace(
-        f"{stack_name}-", "").replace(
-            f"{stack_name}.", "")
+        f"{stack_name}-", "", 1).replace(
+            f"{stack_name}.", "", 1)
 
     return new_resource_name
 
