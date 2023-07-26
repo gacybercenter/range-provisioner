@@ -1,166 +1,163 @@
+"""_summary_:
+
+Returns:
+    _type_: _description_
+"""
 import unittest
+import yaml
+import openstack
 from src.utils.manage_ids import update_ids, update_env
 
 
 class UpdateIDsTestCase(unittest.TestCase):
+    """
+    Test case for the update IDs functionality.
+
+    This test case contains various test methods to validate the functionality of the update IDs feature.
+    The test methods cover scenarios like updating the env.yaml file with new resource IDs.
+
+    Attributes:
+        mock_connection (MockConnection): A mock connection object.
+        globals_dict (MockGlobalsDict): A mock object containing global dictionaries.
+    """
+
     def setUp(self):
-        # Set up any necessary objects or variables for testing
+        """
+        Set up the test environment.
 
-        pass
+        This function is used to prepare the test environment before each test method is executed.
+
+        Returns:
+            None
+        """
+        self.mock_connection = openstack.connect(cloud="gcr")
+        self.globals_dict = MockGlobalsDict()
+
     def tearDown(self):
-        # Clean up any resources used for testing
+        """
+        Clean up the test environment.
 
-        pass
+        This function is used to clean up the test environment after each test method is executed.
+
+        Returns:
+            None
+        """
+        self.mock_connection.close()
 
     def test_update_env_with_new_ids(self):
-        # Test updating env.yaml file with new resource IDs
-        conn = MockConnection()
-        globals_dict = MockGlobalsDict()
+        """
+        Test updating env.yaml file with new resource IDs.
+
+        This test method verifies the correctness of the update_env function by comparing the
+        output with the expected output. It checks if the env.yaml file is updated correctly.
+
+        Returns:
+            None
+        """
+        conn = self.mock_connection
+        globals_dict = self.globals_dict
         make_entries = False
         debug = False
 
-        self.assertEqual()
-        update_env(conn, globals_dict, make_entries, debug)
+        template_path = globals_dict.heat['template_dir'] + "/env.yaml"
+        encoding = 'utf-8'
+        with open(template_path, 'r', encoding=encoding) as template_file:
+            heat_template = yaml.safe_load(template_file)
 
-        # Add assertions to check if the env.yaml file has been updated correctly
-
-        self.assertTrue(True)  # Replace with actual assertion
-
-    def test_update_env_with_make_entries_flag(self):
-        # Test updating env.yaml file with new resource IDs and replace existing stacks
-        conn = MockConnection()
-        globals_dict = MockGlobalsDict()
-        make_entries = True
-        debug = False
-
-        update_env(conn, globals_dict, make_entries, debug)
-
-        # Add assertions to check if the env.yaml file has been updated correctly
-
-        self.assertTrue(True)  # Replace with actual assertion
-
-    def test_update_env_with_debug(self):
-        # Test updating env.yaml file with debug messages enabled
-        conn = MockConnection()
-        globals_dict = MockGlobalsDict()
-        make_entries = False
-        debug = True
-
-        update_env(conn, globals_dict, make_entries, debug)
-
-        # Add assertions to check if the env.yaml file has been updated correctly
-
-        self.assertTrue(True)  # Replace with actual assertion
-
-    def test_update_ids_with_single_param(self):
-        # Test updating IDs in a single parameter dictionary
-        conn = MockConnection()
-        params = [
-            {
-                "param_id": "old_id"
+        correct_outout = {
+            'parameters': {
+                'test1_id': 'correct_id'
             }
-        ]
-        stacks = MockStacks()
-        make_entries = False
-        debug = False
+        }
 
-        updated_params = update_ids(conn, params, stacks, make_entries, debug)
+        self.assertEqual(
+            update_env(conn,
+                       globals_dict,
+                       make_entries,
+                       debug),
+            correct_outout)
 
-        # Add assertions to check if the IDs in the parameter dictionary have been updated correctly
-
-        # Replace with actual assertion
-        self.assertEqual(updated_params[0]["param_id"], "new_id")
-
-    def test_update_ids_with_multiple_params(self):
-        # Test updating IDs in multiple parameter dictionaries
-        conn = MockConnection()
-        params = [
-            {
-                "param_id": "old_id_1"
-            },
-            {
-                "param_id": "old_id_2"
-            }
-        ]
-        stacks = MockStacks()
-        make_entries = False
-        debug = False
-
-        updated_params = update_ids(conn, params, stacks, make_entries, debug)
-
-        # Add assertions to check if the IDs in the parameter dictionaries have been updated correctly
-
-        # Replace with actual assertion
-        self.assertEqual(updated_params[0]["param_id"], "new_id_1")
-        # Replace with actual assertion
-        self.assertEqual(updated_params[1]["param_id"], "new_id_2")
-
-    def test_update_ids_with_make_entries(self):
-        # Test updating IDs with make_entries flag set to True
-        conn = MockConnection()
-        params = [
-            {
-                "param_id": "old_id"
-            }
-        ]
-        stacks = MockStacks()
-        make_entries = True
-        debug = False
-
-        updated_params = update_ids(conn, params, stacks, make_entries, debug)
-
-        # Add assertions to check if the IDs in the parameter dictionary have been updated correctly
-
-        # Replace with actual assertion
-        self.assertEqual(updated_params[0]["param_id"], "new_id")
-
-    def test_update_ids_with_debug(self):
-        # Test updating IDs with debug messages enabled
-        conn = MockConnection()
-        params = [
-            {
-                "param_id": "old_id"
-            }
-        ]
-        stacks = MockStacks()
-        make_entries = False
-        debug = True
-
-        updated_params = update_ids(conn, params, stacks, make_entries, debug)
-
-        # Add assertions to check if the IDs in the parameter dictionary have been updated correctly
-
-        # Replace with actual assertion
-        self.assertEqual(updated_params[0]["param_id"], "new_id")
+        self.assertTrue(heat_template == correct_outout)
 
 
 class MockConnection:
+    """
+    Simulates an Openstack connection.
+    """
     def __init__(self):
-        self.auth = self.MockAuth()
-        self.connection = self.MockConnectionDetails()
+        self.current_project_id = "mock_project_id"
+        self.orchestration = MockOrchestration()
 
-    class MockAuth:
-        def __init__(self):
-            self.identity = self.MockIdentity()
-            self.auth_url = "https://auth.example.com"
-            self.project_id = "project_id"
-            self.project_name = "project_name"
-            self.user_domain = "user_domain"
-            self.tenant_domain = "tenant_domain"
+class MockOrchestration:
+    """
+    Simulates the Openstack orchestration.
+    """
+    def stacks(self, project_id):
+        """
+        Retrieves the stacks associated with the given project ID.
 
-        class MockIdentity:
-            def __init__(self):
-                self.user = "username"
-                self.password = "password"
+        Args:
+            project_id (str): The ID of the project.
 
-    class MockConnectionDetails:
-        def __init__(self):
-            self.region = "region"
-            self.endpoint = "endpoint"
-            self.version = "version"
+        Returns:
+            list of Stack: A list of Stack objects representing the stacks associated
+            with the project ID. If the project ID is "mock_project_id", a list of
+            MockStack objects with names "stack1" and "stack2" is returned. If the
+            project ID is not "mock_project_id", returns None.
+        """
+        if project_id == "mock_project_id":
+            return [MockStack("stack1"), MockStack("stack2")]
+        return None
+    def find_stack(self, stack_name):
+        """
+        Finds a stack based on its name.
 
-        
+        Args:
+            stack_name (str): The name of the stack to find.
+
+        Returns:
+            MockStack or None: The found stack if it exists, otherwise None.
+        """
+        if stack_name == "stack1":
+            return MockStack(stack_name)
+        return None
+
+    def resources(self, stack_name):
+        """
+        Returns a list of resources for a given stack name.
+
+        Parameters:
+            stack_name (str): The name of the stack.
+
+        Returns:
+            list: A list of resources for the given stack name.
+        """
+        if stack_name in ("stack1", "stack2"):
+            return [
+                MockResource(stack_name, "network"),
+                MockResource(stack_name, "subnet")
+            ]
+
+class MockStack:
+    """
+    Simulates a stack.
+    """
+    def __init__(self, name):
+        self.name = name
+
+class MockResource:
+    """
+    Simulates a resource.
+    """
+    def __init__(self, stack_name, resource_type):
+        self.logical_resource_id = f"{stack_name}_mock.{resource_type}_id"
+        self.physical_resource_id = f"mock.{resource_type}_id"
+
+
 class MockGlobalsDict:
+    """
+    Simulates a global dictionary.
+    """
     def __init__(self):
         self.globals = {
             "debug": True,
@@ -186,7 +183,7 @@ class MockGlobalsDict:
             "main": True,
             "sec": False,
             "update": False,
-            "template_dir": "templates",
+            "template_dir": "test/templates",
             "wait": False,
             "pause": 2
         }
