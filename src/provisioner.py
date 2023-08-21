@@ -60,10 +60,6 @@ def main():
         if guacamole_connect:
             success_msg("Connected to Guacamole")
 
-        update_env(openstack_connect, global_dict, True, debug)
-        heat_params, sec_params, env_params = update_ids(
-            openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
-
         arg = sys.argv[1:]
 
         if len(arg) == 0:
@@ -74,6 +70,10 @@ def main():
         elif arg[0] == "swift":
             swift.provision(openstack_connect, globals, swift_globals, debug)
         elif arg[0] == "heat":
+            update_env(openstack_connect, global_dict, True, debug)
+            heat_params, sec_params, env_params = update_ids(
+            openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
+            
             heat.provision(openstack_connect, globals, heat_globals,
                            heat_params, sec_params, debug)
         elif arg[0] == "guacamole":
@@ -81,6 +81,11 @@ def main():
                            heat_params, debug)
         elif arg[0] == "full":
             swift.provision(openstack_connect, globals, swift_globals, debug)
+
+            update_env(openstack_connect, global_dict, True, debug)
+            heat_params, sec_params, env_params = update_ids(
+            openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
+
             heat.provision(openstack_connect, globals, heat_globals,
                            heat_params, sec_params, debug)
             guac.provision(openstack_connect, guacamole_connect, globals, guacamole_globals,
