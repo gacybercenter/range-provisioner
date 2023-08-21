@@ -51,6 +51,7 @@ def main():
         openstack_connect = connect(cloud=globals['cloud'])
         if openstack_connect:
             success_msg("Connected to OpenStack")
+        # openstack_connect.
 
         general_msg("Connecting to Guacamole...")
         general_msg(f"Endpoint: {guacamole_globals['guac_host']}")
@@ -59,6 +60,7 @@ def main():
             guacamole_clouds['user'], guacamole_clouds['password'])
         if guacamole_connect:
             success_msg("Connected to Guacamole")
+        # guacamole_connect.
 
         arg = sys.argv[1:]
 
