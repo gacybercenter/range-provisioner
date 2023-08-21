@@ -18,7 +18,7 @@ def provision(conn, gconn, globals, guacamole_globals, heat_params, debug=False)
                 info_msg(
                     f"Global provisioning is set to: {globals['provision']}", debug)
                 general_msg("Provisioning Guacamole")
-                guac.
+
                 # provision = guac.provision(conn, name, dir, debug)
                 # if provision:
                 #     return provision
