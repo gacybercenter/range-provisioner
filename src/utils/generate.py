@@ -37,7 +37,7 @@ def generate_instance_names(ranges, range_users, range_name, instance_name, debu
         return None
 
 
-def create_user_list(ranges, range_users, range_name, user_name, secure, debug):
+def generate_user_names(ranges, range_users, range_name, user_name, secure, debug):
     """Create user list"""
     try:
         general_msg(f"Creating User List for {range_name}")
