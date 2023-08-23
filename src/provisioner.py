@@ -60,7 +60,6 @@ def main():
             guacamole_clouds['user'], guacamole_clouds['password'])
         if guacamole_connect:
             success_msg("Connected to Guacamole")
-        # guacamole_connect.
 
         arg = sys.argv[1:]
 
