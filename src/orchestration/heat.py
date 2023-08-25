@@ -109,3 +109,31 @@ def delete(conn, stack, wait, debug=False):
     except Exception as e:
         error_msg(e)
         return None
+
+def get_ostack_instances(conn, debug=False):
+    """
+    Obtain openstack instance names and addresses
+
+    Parameters:
+        conn (object): The connection object for accessing the openstack instance.
+        debug (bool, optional): A flag indicating whether to enable debug mode.
+                                Defaults to False.
+
+    Returns:
+        list: A list of dictionaries containing the instance names and addresses.
+            Each dictionary has the following keys:
+                - name (str): The name of the instance.
+                - public_v4 (str): The public IPv4 address of the instance.
+                - private_v4 (str): The private IPv4 address of the instance.
+    """
+    instances = [
+        {
+            'name': instance.name,
+            'public_v4': instance.public_v4,
+            'private_v4': instance.private_v4
+        }
+        for instance in conn.list_servers()
+    ]
+    info_msg("Guacamole:  Retrieved OS Stack Instances:", debug)
+    info_msg(instances, debug)
+    return instances
