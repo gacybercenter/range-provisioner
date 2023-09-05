@@ -54,6 +54,7 @@ def create(conn, container_name, debug=False):
             container = conn.object_store.create_container(name=container_name)
             if container:
                 success_msg(f"Container {container_name} has been created")
+                access(conn, container_name, debug)
                 return container
     except Exception as e:
         error_msg(e)
