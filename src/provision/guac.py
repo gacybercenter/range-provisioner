@@ -1,4 +1,5 @@
 import time
+import json
 import orchestration.guac as guac
 import orchestration.heat as heat
 from utils.generate import generate_instance_names, generate_user_names, generate_group_names
@@ -17,19 +18,22 @@ def provision(conn,
     guac_params['conn_proto'] = heat_params['conn_proto']['default']
     guac_params['heat_pass'] = heat_params['password']['default']
     guac_params['heat_user'] = heat_params['username']['default']
+    guac_params['conn_groups'] = json.loads(gconn.list_connection_groups())
+    guac_params['conn_list'] = json.loads(gconn.list_connections())
+    # guac_params['users'] = list(json.loads(gconn.list_users()))
     guac_params['domain_name'] = guac.get_domain_name(heat_params,
                                                       debug)
     guac_params['instances'] = heat.get_ostack_instances(conn,
                                                          debug)
+    guac_params['conn_group_id'] = guac.find_conn_group_id(guac_params['conn_groups'],
+                                                          guac_params['org_name'],
+                                                          debug)
+    guac_params['child_groups'] = guac.find_child_groups(guac_params['conn_groups'],
+                                                        guac_params['conn_group_id'],
+                                                        debug)
     guac_params['new_users'] = generate_user_names(globals,
                                                    guacamole_globals,
                                                    debug)
-    guac_params['conn_group_id'] = guac.get_conn_group_id(gconn,
-                                                          guac_params['org_name'],
-                                                          debug)
-    guac_params['child_groups'] = guac.get_child_groups(gconn,
-                                                            guac_params['conn_group_id'],
-                                                            debug)
     guac_params['new_groups'] = generate_group_names(globals,
                                                      guacamole_globals,
                                                      debug)
