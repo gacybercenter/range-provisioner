@@ -44,7 +44,7 @@ def provision(conn, globals, heat_globals, heat_params, sec_params, debug=False)
                         if globals['num_ranges'] > 1:
                             for i in range(globals['num_ranges']):
                                 time.sleep(heat_globals['pause'])
-                                name = f"{stack_name}-{i}"
+                                name = f"{stack_name}{i+1}"
                                 if i == globals['num_ranges']-1:
                                     last_stack = True
                                 heat.provision(
@@ -64,7 +64,7 @@ def provision(conn, globals, heat_globals, heat_params, sec_params, debug=False)
                         if globals['num_ranges'] > 1:
                             for i in range(globals['num_ranges']):
                                 time.sleep(heat_globals['pause'])
-                                name = f"{stack_name}-{i}"
+                                name = f"{stack_name}{i+1}"
                                 if i == globals['num_ranges']-1:
                                     last_stack = True
                                 heat.deprovision(
@@ -119,7 +119,7 @@ def provision(conn, globals, heat_globals, heat_params, sec_params, debug=False)
                             if globals['num_ranges'] > 1:
                                 for i in range(globals['num_ranges']):
                                     time.sleep(heat_globals['pause'])
-                                    name = f"{stack_name}-{i}"
+                                    name = f"{stack_name}{i+1}"
                                     if i == globals['num_ranges']-1:
                                         last_stack = True
                                     heat.provision(
@@ -140,7 +140,7 @@ def provision(conn, globals, heat_globals, heat_params, sec_params, debug=False)
                             if globals['num_ranges'] > 1:
                                 for i in range(globals['num_ranges']):
                                     time.sleep(heat_globals['pause'])
-                                    name = f"{stack_name}-{i}"
+                                    name = f"{stack_name}{i+1}"
                                     if i == globals['num_ranges']-1:
                                         last_stack = True
                                     heat.deprovision(

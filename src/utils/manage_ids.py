@@ -174,6 +174,7 @@ def get_ids(conn: object,
         for resource in conn.orchestration.resources(stack_name):
             resource_id = resource.physical_resource_id
             resource_name = resource.logical_resource_id
+            new_resource_name = None
 
             if "network" in resource_name or "subnet" in resource_name:
                 try:

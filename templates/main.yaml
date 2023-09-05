@@ -1,153 +1,264 @@
 heat_template_version: 2018-03-02
 
-description: devstack deployment
+description: >
+  alphanox
 
 parameters:
-  username: 
+
+  instance_id:
     type: string
-    default: deafualt_username
+    label: instance_id
+    description: stack naming scheme for range provisioner
+    default: ncu_scratch
+
+  username:
+    type: string
+    label: Default Username
+    description: Sets the Username for the instances
+    default: kali
+
+  root_password:
+    type: string
+    default: P@ssw0rd
+    description: root password to be used throughout template
 
   password:
     type: string
-    default: default_password
+    default: password
+    description: student password to be used throughout template
 
-  instance.num:
+  tenant_id:
     type: string
-    default: 2
+    default: db413974768f4743a1689072f27da5d2
+    description: TenantID for swift object store
 
-  count:
+  apt_cache_proxy:
     type: string
-    default: default_instance_name
-
-  tenant_id: 
-    type: string
-    default: openstack_project_id_value
+    label: IP
+    default: 10.100.1.84
+    description: >
+      Sets the apt-cache proxy server for the desired deployment
+      - 10.100.1.84 prod
+      - x.x.x.x dev
+      - x.x.x.x research
 
   container_name:
     type: string
-    default: range_provisioner
+    description: name for object store container for instance assets
+    default: alphanox
+
+  dashboard:
+    type: string
+    default: dashboard.training
+    description: >
+      URL for the desired Georgia Cyber Range Sub-Domain
+      - dashboard.training
+      - dashboard.dev
+      - dashboard.research
+
+  dashboard_record:
+    type: string
+    default: 10.100.1.85
+    description: >
+      DNS A record address for Georgia Cyber Range Domain
+      - 10.100.1.85 training
+      - x.x.x.x dev
+      - x.x.x.x research
+
+  nameserver:
+    type: string
+    default: 10.100.10.1
+    description: >
+      DNS Server for Georgia Cyber Range
 
   conn_proto:
     type: comma_delimited_list
-    default: "ssh"
-  devstack.password:
+    default: "rdp"
+
+  count:
     type: string
-    default: yourpassword
-    description: Password that will be utilized for Login and Access
-  devstack.nova.branch:
-    type: string
-    default: 'master'
-    description: Branch that will be utilized for Nova
-  public.nameserver:
-    type: string
-    default: 10.100.1.58
-    description: IP Address that will be utilized for DNS and Package Cache
+    default: 2
+
+  disable.updates:
+    default: true
+    type: boolean
 
 resources:
-  devstack.router:
-    type: OS::Neutron::Router
-    properties:
-      external_gateway_info: {"network": public}
-
-  devstack.network.Interface:
-    type:  OS::Neutron::RouterInterface
-    properties:
-      router_id: { get_resource: devstack.router }
-      subnet_id: { get_resource: test.subnet }
-
-  devstack.network:
+## Networks / Subnets ##
+  student.network:
     type: OS::Neutron::Net
     properties:
+      name:
+        list_join: [ '-', [ { get_param: "OS::stack_name"}, 'student.network']]
       admin_state_up: true
       shared: false
 
-  test.subnet:
+  student.subnet:
     type: OS::Neutron::Subnet
     properties:
-      cidr: 192.168.1.0/24 
-      gateway_ip: 192.168.1.254 
-      network_id: { get_resource: devstack.network }
+      name:
+        list_join: [ '-', [ { get_param: "OS::stack_name"}, 'student.subnet']]
+      cidr: 192.168.1.0/26
+      gateway_ip: 192.168.1.1
       enable_dhcp: true
-      dns_nameservers: [{get_param: public.nameserver}]
+      network_id: { get_resource: student.network }
+      dns_nameservers: [{ get_param: apt_cache_proxy }, 10.100.10.1]
       ip_version: 4
 
-  devstack.host:
-    type: OS::Nova::Server
+## INFRASTRUCTURE ROUTER ##
+  infrastructure.router:
+    type: OS::Neutron::Router
     properties:
+      name:
+        list_join: [ '-', [ { get_param: "OS::stack_name"}, 'infrastructure.router']]
+      external_gateway_info: {"network": public}
+
+  infrastructure.student.internal.interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: infrastructure.router }
+      subnet: { get_resource: student.subnet }
+
+## GUACD.SYSTEM ##
+  guacd.server:
+    type: OS::Nova::Server
+    metadata:
+      hostname: guacd
+    properties:
+      name:
+        list_join: [ '-', [ { get_param: "OS::stack_name"}, 'guacd.server']]
       image: ubuntu2004
-      flavor: m1.large
+      flavor: r1.small
       diskConfig: AUTO
+      config_drive: true
       networks:
-        - port: { get_resource: devstack.host.port }
+        - port: { get_resource: guacd.server.port }
       user_data_format: RAW
-      user_data:
+      user_data: { get_resource: guacd.config }
+
+  guacd.config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ungrouped
+      config:
         str_replace:
           template: |
             #!/bin/bash
-            export UCF_FORCE_CONFOLD=1
-            export DEBIAN_FRONTEND=noninteractive
+            echo "__dashboard_record__ __dashboard__.gacyberrange.org" >> /etc/hosts
+            echo "nameserver __nameserver_ip__" > /etc/resolv.conf
+            chattr +i /etc/resolv.conf
 
-            echo '10.100.1.235 dashboard.gacyberrange.org' >> /etc/hosts
-            echo 'Acquire::http::proxy "http://publicnameserver:3142";' > /etc/apt/apt.conf.d/02proxy
+            echo 'Acquire::http::proxy "http://__cache_proxy__:3142";' > /etc/apt/apt.conf.d/02proxy
 
-            sed -i 's/ssh_pwaut h:   0/ssh_pwauth:   1/g' /etc/cloud/cloud.cfg
-            sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
-            sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config
-            sed -i 's/#Port 22/Port 22/g' /etc/ssh/sshd_config
-            sed -i 's/UsePAM yes/UsePAM no/g' /etc/ssh/sshd_config
-            service sshd restart
+            echo "root:__rootpass__" | chpasswd
+            echo "ubuntu:__rootpass__" | chpasswd
 
-            useradd -s /bin/bash -d /opt/stack -m stack
-            echo "ubuntu:devstackpassword" | chpasswd
-            echo "stack:devstackpassword" | chpasswd
-            echo "root:devstackpassword" | chpasswd
+            echo dashboard="__dashboard__" > ~/vars.sh
+            echo dashboard_record="__dashboard_record__" >> ~/vars.sh
+            echo tenant_id="__tenant_id__" >> ~/vars.sh
+            echo container_name="__container_name__" >> ~/vars.sh
+            echo cache_proxy="__apt_cache_proxy__" >> ~/vars.sh
+            echo private_ip="__private_ip__" >> ~/vars.sh
 
-            echo "stack ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/stack
+            curl https://__dashboard__.gacyberrange.org:7480/swift/v1/AUTH___tenant_id__/__container_name__/assets/guacd/config.sh > ~/config.sh
+            chmod +x ~/config.sh
+            /bin/bash ~/config.sh
 
-            apt update && apt install -yy git
-
-            cd /opt/stack/
-            git clone -b stable/yoga https://opendev.org/openstack/devstack 
-
-            cat > /opt/stack/devstack/local.conf <<"__EOF__"
-            [[local|localrc]]
-            ADMIN_PASSWORD=devstackpassword
-            DATABASE_PASSWORD=$ADMIN_PASSWORD
-            RABBIT_PASSWORD=$ADMIN_PASSWORD
-            SERVICE_PASSWORD=$ADMIN_PASSWORD
-            DOWNLOAD_DEFAULT_IMAGES=False
-            IMAGE_URLS="http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-aarch64-disk.img"
-            IMAGE_URLS+="http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-ppc64le-disk.img"
-            IMAGE_URLS+="http://download.cirros-cloud.net/0.5.2/cirros-0.5.2-x86_64-disk.img"
-            DEFAULT_INSTANCE_TYPE=m1.tiny
-            enable_plugin skyline-apiserver https://opendev.org/openstack/skyline-apiserver master
-            __EOF__
-
-            chown -R stack:stack devstack/
-
-            sudo -H -u stack bash -c 'cd devstack && ./stack.sh' 
           params:
-            devstackpassword: { get_param: devstack.password }
-            devstacknovabranch: { get_param: devstack.nova.branch }
-            publicnameserver: { get_param: public.nameserver }
+            __system_name__: "guacd"
+            __disable_updates__: { get_param: disable.updates }
+            __rootpass__: { get_param: root_password }
+            __studentpass__: { get_param: password }
+            __tenant_id__: { get_param: tenant_id }
+            __cache_proxy__: { get_param: apt_cache_proxy }
+            __container_name__: { get_param: container_name }
+            __dashboard__: { get_param: dashboard }
+            __dashboard_record__: { get_param: dashboard_record }
+            __nameserver_ip__: { get_param: nameserver }
 
-  devstack.host.port:
-    type: OS::Neutron::Port
-    properties:
-      network_id: { get_resource: devstack.network }
-      fixed_ips:
-      - subnet_id: { get_resource: test.subnet }
-        ip_address: 192.168.1.150
-      port_security_enabled: true
-      security_groups:
-      - devstack.security.group
+  guacd.server.port:
+      type: OS::Neutron::Port
+      properties:
+        name:
+          list_join: [ '-', [ { get_param: "OS::stack_name"}, 'guacd.server.port']]
+        network_id: { get_resource: student.network }
+        fixed_ips:
+          - subnet_id: { get_resource: student.subnet }
+            ip_address: 192.168.1.4
+        port_security_enabled: true
+        security_groups:
+          - any
 
-  devstack.host.port.float.ip:
+  guacd.server.float:
     type: OS::Neutron::FloatingIP
     properties: { floating_network: public }
 
-  devstack.host.port.float.ip.assoc:
+  guacd.server.float_association:
+    depends_on: guacd.server.port
     type: OS::Neutron::FloatingIPAssociation
     properties:
-      floatingip_id: { get_resource: devstack.host.port.float.ip }
-      port_id: { get_resource: devstack.host.port }
+      floatingip_id: { get_resource: guacd.server.float }
+      port_id: { get_resource: guacd.server.port }
+
+  analyst:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: { get_param: count }
+      removal_policies: [{'resource_list': ['0']}]
+      resource_def:
+        type: OS::Nova::Server
+        properties:
+          name:
+            list_join: [ '.', [ { get_param: "OS::stack_name"}, 'analyst', '%index%']]
+          image: kali_2204
+          flavor: d1.medium
+          config_drive: true
+          networks:
+          - network: { get_resource: student.network }
+          security_groups:
+          - any
+          user_data_format: RAW
+          user_data: { get_resource: kali.system.config }
+
+  kali.system.config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ungrouped
+      config:
+        str_replace:
+          template: |
+            #!/bin/bash
+            echo "__dashboard_record__ __dashboard__.gacyberrange.org" >> /etc/hosts
+            echo "nameserver __nameserver_ip__" > /etc/resolv.conf
+            chattr +i /etc/resolv.conf
+
+            echo 'Acquire::http::proxy "http://__cache_proxy__:3142";' > /etc/apt/apt.conf.d/02proxy
+
+            useradd -m -U -s /bin/bash __username__
+            usermod -aG sudo,netdev __username__
+            timedatectl set-timezone America/New_York
+            echo "root:__rootpass__" | chpasswd
+            echo "__username__:__userpass__" | chpasswd
+
+            echo dashboard="__dashboard__" > /root/vars.sh
+            echo dashboard_record="__dashboard_record__" >> /root/vars.sh
+            echo tenant_id="__tenant_id__" >> ~/vars.sh
+            echo container_name="__container_name__" >> /root/vars.sh
+            echo cache_proxy="__apt_cache_proxy__" >> /root/vars.sh
+            echo private_ip="__private_ip__" >> /root/vars.sh
+
+            curl https://__dashboard__.gacyberrange.org:7480/swift/v1/AUTH___tenant_id__/__container_name__/assets/kali/config.sh > /root/config.sh
+            chmod +x /root/config.sh
+            /bin/bash /root/config.sh
+
+          params:
+            __system_name__: "kali.system"
+            __username__: { get_param: username }
+            __rootpass__: { get_param: root_password }
+            __userpass__: { get_param: password }
+            __tenant_id__: { get_param: tenant_id }
+            __cache_proxy__: { get_param: apt_cache_proxy }
+            __container_name__: { get_param: container_name }
+            __dashboard__: { get_param: dashboard }
+            __dashboard_record__: { get_param: dashboard_record }
+            __nameserver_ip__: { get_param: nameserver }

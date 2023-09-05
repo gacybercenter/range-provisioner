@@ -14,31 +14,30 @@ def generate_password():
     return ''.join(secrets.choice(alphabet) for i in range(16))
 
 
-def generate_names(ranges, prefix,):
+def generate_names(ranges, prefix):
     """Generate a list of names with a prefix and a range of numbers"""
-    return [f"{prefix}{i}" for i in range(ranges)]
+    return [f"{prefix}{i+1}" for i in range(ranges)]
 
 
 def generate_instance_names(params, guac_params, debug):
     """Generate a list of instance names based on given ranges and names"""
     num_ranges = params.get('num_ranges')
     num_users = params.get('num_users')
+    user_name = params.get('user_name')
     range_name = params.get('range_name')
-    instance_name = guac_params.get('instance_name')
 
     try:
-        general_msg(f"Generating Instance Names for {range_name}")
+        general_msg(f"Generating instance names for {range_name}")
         instance_names = [
-            f"{name}.{instance_name}.{u}"
+            f"{name}.{user_name}.{u+1}"
             for name in generate_names(num_ranges, range_name)
             for u in range(num_users)
         ]
         info_msg(instance_names, debug)
         return instance_names
-    except Exception as e:
-        error_msg(e)
+    except Exception as error:
+        error_msg(error)
         return None
-
 
 def generate_user_names(params, guac_params, debug):
     """Create user list"""
@@ -49,14 +48,29 @@ def generate_user_names(params, guac_params, debug):
     secure = guac_params.get('secure')
 
     try:
-        general_msg(f"Creating User List for {range_name}")
-        user_names = [f"{name}.{user_name}.{u}" for name in generate_names(
+        general_msg(f"Generating user names for {range_name}")
+        user_names = [f"{name}.{user_name}.{u+1}" for name in generate_names(
             num_ranges, range_name) for u in range(num_users)]
-        users_list = {user: {'password': generate_password()} if secure else {
-            user: {'password': range_name}} for user in user_names}
+        users_list = {user:  generate_password() if secure else {
+            user: range_name} for user in user_names}
         info_msg(users_list, debug)
 
         return users_list
-    except Exception as e:
-        error_msg(e)
+    except Exception as error:
+        error_msg(error)
+        return None
+
+
+def generate_group_names (params, guac_params, debug):
+    """Generate a list of group names based on given ranges"""
+    num_ranges = params.get('num_ranges')
+    range_name = params.get('range_name')
+
+    try:
+        general_msg(f"Generating child group names for {range_name}")
+        instance_names = generate_names(num_ranges, range_name)
+        info_msg(instance_names, debug)
+        return instance_names
+    except Exception as error:
+        error_msg(error)
         return None
