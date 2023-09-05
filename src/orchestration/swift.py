@@ -120,7 +120,7 @@ def upload_objs(conn, container_name, dir, debug=False):
         # Create objects
         objs = [
             conn.create_object(
-                container_name, o,) for o in objs
+                container_name, o.replace('\\', '/'), filename=o) for o in objs
         ]
         success_msg(
             f"Objects have been uploaded to the {container_name} container")
