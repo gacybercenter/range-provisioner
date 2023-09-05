@@ -1,7 +1,7 @@
 import time
 import orchestration.guac as guac
 import orchestration.heat as heat
-from utils.generate import generate_instance_names, generate_user_names
+from utils.generate import generate_instance_names, generate_user_names, generate_group_names
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
 
@@ -10,30 +10,29 @@ def provision(conn,
               globals,
               guacamole_globals,
               heat_params,
-              debug=False):
+              debug):
 
-    guac_params = guacamole_globals
-    guac_params['guacd'] = globals['guacd']
+    guac_params = {}
+    guac_params['org_name'] = globals['org_name']
     guac_params['conn_proto'] = heat_params['conn_proto']['default']
-    guac_params['username'] = heat_params['username']['default']
-    guac_params['password'] = heat_params['password']['default']
+    guac_params['heat_pass'] = heat_params['password']['default']
+    guac_params['heat_user'] = heat_params['username']['default']
+    guac_params['domain_name'] = guac.get_domain_name(heat_params,
+                                                      debug)
     guac_params['instances'] = heat.get_ostack_instances(conn,
                                                          debug)
-    guac_params['new_instances'] = generate_instance_names(globals,
-                                                           guacamole_globals,
-                                                           debug)
-    guac_params['users'] = guac.get_existing_accounts(gconn,
-                                                      debug)
     guac_params['new_users'] = generate_user_names(globals,
                                                    guacamole_globals,
                                                    debug)
-    guac_params['conn_groups'] = guac.get_conn_groups(gconn,
-                                                      debug)
     guac_params['conn_group_id'] = guac.get_conn_group_id(gconn,
-                                                          guac_params['conn_group_name'],
-                                                          debug)[0]
-
-    # general_msg(guac_params)
+                                                          guac_params['org_name'],
+                                                          debug)
+    guac_params['child_groups'] = guac.get_child_groups(gconn,
+                                                            guac_params['conn_group_id'],
+                                                            debug)
+    guac_params['new_groups'] = generate_group_names(globals,
+                                                     guacamole_globals,
+                                                     debug)
 
     if isinstance(globals['provision'], bool) and globals['provision']:
         info_msg(
@@ -41,13 +40,13 @@ def provision(conn,
         general_msg("Provisioning Guacamole")
         guac.provision(gconn,
                        guac_params,
-                       debug=False)
+                       debug)
 
     elif isinstance(globals['provision'], bool) and not globals['provision']:
         general_msg("Deprovisioning Guacamole")
         guac.deprovision(gconn,
                          guac_params,
-                         debug=False)
+                         debug)
 
     elif isinstance(guacamole_globals['provision'], bool) and guacamole_globals['provision']:
         info_msg(
@@ -58,22 +57,22 @@ def provision(conn,
             general_msg("Updating Guacamole")
             guac.deprovision(gconn,
                              guac_params,
-                             debug=False)
+                             debug)
             guac.provision(gconn,
                            guac_params,
-                           debug=False)
+                           debug)
 
         else:
             general_msg("Provisioning Guacamole")
             guac.provision(gconn,
                            guac_params,
-                           debug=False)
+                           debug)
 
     elif isinstance(guacamole_globals['provision'], bool) and not guacamole_globals['provision']:
         general_msg("Deprovisioning Guacamole")
         guac.deprovision(gconn,
                          guac_params,
-                         debug=False)
+                         debug)
 
     else:
         error_msg("Please check the provision parameter in globals.yaml")

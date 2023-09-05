@@ -51,7 +51,6 @@ def main():
         openstack_connect = connect(cloud=globals['cloud'])
         if openstack_connect:
             success_msg("Connected to OpenStack")
-        # openstack_connect.
 
         general_msg("Connecting to Guacamole...")
         general_msg(f"Endpoint: {guacamole_globals['guac_host']}")
@@ -66,15 +65,16 @@ def main():
         if len(arg) == 0:
             info_msg(
                 "No arguments provided, please provide: "
-                "'swift', 'heat', or 'guacamole' as an argument."
+                "'swift', 'heat', or 'guacamole' as an argument.", debug
             )
         elif arg[0] == "swift":
             swift.provision(openstack_connect, globals, swift_globals, debug)
         elif arg[0] == "heat":
-            update_env(openstack_connect, global_dict, True, debug)
-            heat_params, sec_params, env_params = update_ids(
-            openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
-            
+
+            # update_env(openstack_connect, global_dict, True, debug)
+            # heat_params, sec_params, env_params = update_ids(
+            # openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
+
             heat.provision(openstack_connect, globals, heat_globals,
                            heat_params, sec_params, debug)
         elif arg[0] == "guacamole":
@@ -83,9 +83,9 @@ def main():
         elif arg[0] == "full":
             swift.provision(openstack_connect, globals, swift_globals, debug)
 
-            update_env(openstack_connect, global_dict, True, debug)
-            heat_params, sec_params, env_params = update_ids(
-            openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
+            # update_env(openstack_connect, global_dict, True, debug)
+            # heat_params, sec_params, env_params = update_ids(
+            # openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
 
             heat.provision(openstack_connect, globals, heat_globals,
                            heat_params, sec_params, debug)
