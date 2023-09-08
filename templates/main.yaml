@@ -126,7 +126,7 @@ resources:
       hostname: guacd
     properties:
       name:
-        list_join: [ '-', [ { get_param: "OS::stack_name"}, 'guacd.server']]
+        list_join: [ '.', [ { get_param: "OS::stack_name"}, 'guacd.server']]
       image: ubuntu2004
       flavor: r1.small
       diskConfig: AUTO
