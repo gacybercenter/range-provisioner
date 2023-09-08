@@ -2,7 +2,7 @@
 globals:
   debug: True # debug mode (True) or not (False)
   cloud: gcr # name of cloud to use
-  num_users: 2 # number of user systems to provision
+  num_users: 3 # number of user systems to provision
   num_ranges: 2 # number of ranges to provision
   user_name: analyst # user name prefix
   range_name: alphanox # range name prefix
