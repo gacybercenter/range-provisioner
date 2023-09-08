@@ -25,8 +25,7 @@ def main():
         heat_params = load_heat(global_dict.heat['template_dir']).parameters
         sec_params = load_sec(global_dict.heat['template_dir']).parameters
         env_params = load_env(global_dict.heat['template_dir']).parameters
-        openstack_clouds = load_template('clouds.yaml')[
-            'clouds'][f"{globals['cloud']}"]
+        openstack_clouds = load_template('clouds.yaml')['clouds'][f"{globals['cloud']}"]
         guacamole_clouds = load_template('clouds.yaml')['clouds']['guac']
 
         debug = globals['debug']
@@ -92,7 +91,7 @@ def main():
             guac.provision(openstack_connect, guacamole_connect, globals, guacamole_globals,
                            heat_params, debug)
         end = time.time()
-        general_msg("Total time: {:.2f} seconds".format(end - start))
+        general_msg(f"Total time: {end - start:.2f} seconds")
     except Exception as e:
         error_msg(e)
 
