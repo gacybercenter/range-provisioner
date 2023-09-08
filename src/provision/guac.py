@@ -20,7 +20,7 @@ def provision(conn,
     guac_params['heat_user'] = heat_params['username']['default']
     guac_params['conn_groups'] = json.loads(gconn.list_connection_groups())
     guac_params['conn_list'] = json.loads(gconn.list_connections())
-    # guac_params['users'] = list(json.loads(gconn.list_users()))
+    guac_params['conn_users'] = json.loads(gconn.list_users())
     guac_params['domain_name'] = guac.get_domain_name(heat_params,
                                                       debug)
     guac_params['instances'] = heat.get_ostack_instances(conn,
@@ -59,13 +59,9 @@ def provision(conn,
             info_msg(
                 f"Guacamole update is set to: {guacamole_globals['update']}", debug)
             general_msg("Updating Guacamole")
-            guac.deprovision(gconn,
+            guac.reprovision(gconn,
                              guac_params,
                              debug)
-            guac.provision(gconn,
-                           guac_params,
-                           debug)
-
         else:
             general_msg("Provisioning Guacamole")
             guac.provision(gconn,
