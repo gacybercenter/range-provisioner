@@ -39,7 +39,7 @@ def generate_instance_names(params, guac_params, debug):
         error_msg(error)
         return None
 
-def generate_user_names(params, guac_params, debug):
+def generate_users(params, guac_params, debug):
     """Create user list"""
     num_ranges = params.get('num_ranges')
     num_users = params.get('num_users')
@@ -51,8 +51,14 @@ def generate_user_names(params, guac_params, debug):
         general_msg(f"Generating user names for {range_name}")
         user_names = [f"{name}.{user_name}.{u+1}" for name in generate_names(
             num_ranges, range_name) for u in range(num_users)]
-        users_list = {user:  generate_password() if secure else {
-            user: range_name} for user in user_names}
+        users_list = {
+            user:
+                {
+                    'password': generate_password() if secure
+                    else {user: range_name, 'instances': user},
+                    'instances': [user]
+                }   for user in user_names
+            }
         info_msg(users_list, debug)
 
         return users_list
@@ -61,7 +67,7 @@ def generate_user_names(params, guac_params, debug):
         return None
 
 
-def generate_group_names (params, guac_params, debug):
+def generate_groups(params, debug):
     """Generate a list of group names based on given ranges"""
     num_ranges = params.get('num_ranges')
     range_name = params.get('range_name')
@@ -74,3 +80,27 @@ def generate_group_names (params, guac_params, debug):
     except Exception as error:
         error_msg(error)
         return None
+
+
+def format_users(user_params):
+    """
+    Merge multiple dictionaries into a single dictionary.
+
+    Parameters:
+        dicts (list): A list of dictionaries to be merged.
+
+    Returns:
+        dict: The merged dictionary.
+    """
+    users = {}
+    groups = list(user_params)
+    for group in groups:
+        for username, data in user_params[group].items():
+            user = {
+                username: {
+                    'password': data['password'],
+                    'instances': data['instances']
+                }
+            }
+            users.update(user)
+    return users

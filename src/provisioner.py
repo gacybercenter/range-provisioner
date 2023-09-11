@@ -8,7 +8,7 @@ import time
 from guacamole import session
 from openstack import connect, enable_logging
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
-from utils.load_template import load_global, load_heat, load_sec, load_env, load_template
+from utils.load_template import load_global, load_heat, load_sec, load_env, load_users, load_template
 from utils.manage_ids import update_ids, update_env
 
 
@@ -22,9 +22,10 @@ def main():
         guacamole_globals = global_dict.guacamole
         heat_globals = global_dict.heat
         swift_globals = global_dict.swift
-        heat_params = load_heat(global_dict.heat['template_dir']).parameters
-        sec_params = load_sec(global_dict.heat['template_dir']).parameters
-        env_params = load_env(global_dict.heat['template_dir']).parameters
+        heat_params = load_heat(global_dict.heat['template_dir']).get('parameters')
+        sec_params = load_sec(global_dict.heat['template_dir']).get('parameters')
+        env_params = load_env(global_dict.heat['template_dir']).get('parameters')
+        user_params = load_users(global_dict.heat['template_dir']).get('parameters')
         openstack_clouds = load_template('clouds.yaml')['clouds'][f"{globals['cloud']}"]
         guacamole_clouds = load_template('clouds.yaml')['clouds']['guac']
 
@@ -43,6 +44,7 @@ def main():
         info_msg(json.dumps(heat_params, indent=4), debug)
         info_msg(json.dumps(sec_params, indent=4), debug)
         info_msg(json.dumps(env_params, indent=4), debug)
+        info_msg(json.dumps(user_params, indent=4), debug)
 
         general_msg("Connecting to OpenStack...")
         general_msg(f"Endpoint: {openstack_clouds['auth']['auth_url']}")
@@ -77,7 +79,7 @@ def main():
                            heat_params, sec_params, debug)
         elif arg[0] == "guacamole":
             guac.provision(openstack_connect, guacamole_connect, globals, guacamole_globals,
-                           heat_params, debug)
+                           heat_params, user_params, debug)
         elif arg[0] == "full":
             swift.provision(openstack_connect, globals, swift_globals, debug)
 
@@ -89,7 +91,7 @@ def main():
                            heat_params, sec_params, debug)
 
             guac.provision(openstack_connect, guacamole_connect, globals, guacamole_globals,
-                           heat_params, debug)
+                           heat_params, user_params, debug)
         end = time.time()
         general_msg(f"Total time: {end - start:.2f} seconds")
     except Exception as e:
