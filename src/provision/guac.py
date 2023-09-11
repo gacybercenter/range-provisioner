@@ -2,7 +2,7 @@ import time
 import json
 import orchestration.guac as guac
 import orchestration.heat as heat
-from utils.generate import generate_instance_names, generate_user_names, generate_group_names
+from utils.generate import generate_groups, generate_users, format_users
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
 
@@ -11,6 +11,7 @@ def provision(conn,
               globals,
               guacamole_globals,
               heat_params,
+              user_params,
               debug):
 
     guac_params = {}
@@ -26,17 +27,20 @@ def provision(conn,
     guac_params['instances'] = heat.get_ostack_instances(conn,
                                                          debug)
     guac_params['conn_group_id'] = guac.find_conn_group_id(guac_params['conn_groups'],
-                                                          guac_params['org_name'],
-                                                          debug)
+                                                           guac_params['org_name'],
+                                                           debug)
     guac_params['child_groups'] = guac.find_child_groups(guac_params['conn_groups'],
-                                                        guac_params['conn_group_id'],
+                                                         guac_params['conn_group_id'],
+                                                         debug)
+    if user_params:
+        guac_params['new_groups'] = list(user_params.keys())
+        guac_params['new_users'] = format_users(user_params)
+    else:
+        guac_params['new_groups'] = generate_groups(globals,
+                                                            debug)
+        guac_params['new_users'] = generate_users(globals,
+                                                        guacamole_globals,
                                                         debug)
-    guac_params['new_users'] = generate_user_names(globals,
-                                                   guacamole_globals,
-                                                   debug)
-    guac_params['new_groups'] = generate_group_names(globals,
-                                                     guacamole_globals,
-                                                     debug)
 
     if isinstance(globals['provision'], bool) and globals['provision']:
         info_msg(
@@ -77,5 +81,3 @@ def provision(conn,
     else:
         error_msg("Please check the provision parameter in globals.yaml")
         return None
-    # except Exception as error:
-    #     error_msg(error)
