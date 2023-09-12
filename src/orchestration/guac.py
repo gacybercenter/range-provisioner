@@ -46,6 +46,7 @@ def provision(gconn,
     associate_user_conns(gconn,
                          create_vars['mappings'],
                          conn_groups,
+                         False,
                          debug)
 
     success_msg("Provisioned Guacamole")
@@ -108,6 +109,7 @@ def reprovision(gconn,
     associate_user_conns(gconn,
                          update_vars['mappings'],
                          conn_groups,
+                         True,
                          debug)
 
     success_msg("Reprovisioned Guacamole")
@@ -132,7 +134,7 @@ def create_data(guac_params: dict) -> tuple:
     create_groups = new_groups
     create_users = []
     create_conns = []
-    create_mappings = []
+    mappings = []
     guacd_ips = {}
 
     for username, data in new_users.items():
@@ -140,8 +142,10 @@ def create_data(guac_params: dict) -> tuple:
         conn_instances = [instance for instance in instances
                           if instance['name'] in data['instances']]
         for instance in conn_instances:
-            create_conns.append(instance)
-            create_mappings.append({username: instance['name']})
+            mappings.append({username: instance['name']})
+            if instance not in create_conns:
+                create_conns.append(instance)
+
 
     for instance in instances:
         if "guacd" in instance['name']:
@@ -152,7 +156,7 @@ def create_data(guac_params: dict) -> tuple:
         'groups': create_groups,
         'users': create_users,
         'conns': create_conns,
-        'mappings': create_mappings
+        'mappings': mappings
     }, guacd_ips)
 
 
@@ -173,7 +177,6 @@ def update_data(guac_params: dict) -> tuple:
 
     instances = guac_params['instances']
     new_users = guac_params['new_users']
-    new_conns = guac_params['new_users']
     new_groups = guac_params['new_groups']
     child_groups = guac_params['child_groups']
     conn_groups = guac_params['conn_groups']
@@ -185,10 +188,10 @@ def update_data(guac_params: dict) -> tuple:
     create_groups = []
     create_users = []
     create_conns = []
-    create_mappings = []
+    mappings = []
+    new_conns = []
     update_groups = []
     update_users = []
-    update_conns = []
     update_conns = []
     guacd_ips = {}
 
@@ -196,8 +199,6 @@ def update_data(guac_params: dict) -> tuple:
 
     current_groups = [group['name'] for group in conn_groups.values()
                       if group['parentIdentifier'] == conn_group_id]
-
-    print(conn_users)
 
     current_users = [user['username'] for user in conn_users.values()
                      if user['attributes'].get('guac-organization') == org_name]
@@ -216,19 +217,23 @@ def update_data(guac_params: dict) -> tuple:
             update_users.append({username: data['password']})
         else:
             create_users.append({username: data['password']})
+        mappings.append({username: [instance['name'] for instance in instances
+                                    if instance['name'] in data['instances']]})
         conn_instances = [instance for instance in instances
                           if instance['name'] in data['instances']]
         for instance in conn_instances:
-            if instance['name'] in current_conns:
+            if instance['name'] in current_conns and instance not in update_conns:
                 update_conns.append(instance)
-            else:
+            elif instance['name'] not in current_conns and instance not in create_conns:
                 create_conns.append(instance)
-            create_mappings.append({username: instance['name']})
 
     for instance in instances:
         if "guacd" in instance['name']:
             guacd_org = instance['name'].split('.')[0]
             guacd_ips[guacd_org] = instance['public_v4']
+
+    for mapping in mappings:
+        new_conns = new_conns + list(mapping.values())[0]
 
     delete_group_ids = [group[1] for group in child_groups.items()
                         if group[0] not in new_groups]
@@ -239,6 +244,9 @@ def update_data(guac_params: dict) -> tuple:
                        if conn['parentIdentifier'] in group_ids
                        and conn['parentIdentifier'] not in delete_group_ids
                        and conn['name'] not in new_conns]
+
+    print(new_conns)
+    print(delete_conn_ids)
 
     return ({
         'groups': {
@@ -256,7 +264,7 @@ def update_data(guac_params: dict) -> tuple:
             'delete': delete_conn_ids,
             'update': update_conns
         },
-        'mappings': create_mappings
+        'mappings': mappings
     }, guacd_ips)
 
 
@@ -318,8 +326,7 @@ def update_user_accts(gconn: object,
         if message:
             info_msg(f"Guacamole:  {message}", debug)
         else:
-            info_msg(f"Guacamole:  Updated Attributes for: {guac_user_name}, "
-                     f"Password: {guac_user_password}", debug)
+            info_msg(f"Guacamole:  Updated Attributes for: {guac_user_name}", debug)
 
         response = gconn.update_user_password('', guac_user_password,
                                               {"guac-organization": user_org})
@@ -634,7 +641,7 @@ def create_user_conns(gconn: object,
     general_msg("Guacamole:  Creating User Connections")
     if guacd_ips:
         general_msg("Guacamole:  Found Guacd servers. ")
-        info_msg(f"Guacamole:  {guacd_ips}", debug)
+        info_msg(f"Guacamole:  {json.dumps(guacd_ips, indent=4)}", debug)
     else:
         general_msg("Guacamole:  No Guacd servers found")
 
@@ -760,45 +767,69 @@ def create_connection(gconn: object,
         info_msg(f"Guacamole:  {message}", debug)
     elif update:
         info_msg(f"Guacamole:  Updated User Connection: {conn_name}.")
+        info_msg(f"Guacamole:  Username: {heat_user}, "
+                f"Password: {heat_pass}, IP: {conn_ip}", debug)
     else:
         info_msg(f"Guacamole:  Created User Connection: {conn_name}.")
-    info_msg(f"Guacamole:  Username: {heat_user}, "
-             f"Password: {heat_pass}, IP: {conn_ip}", debug)
+        info_msg(f"Guacamole:  Username: {heat_user}, "
+                f"Password: {heat_pass}, IP: {conn_ip}", debug)
 
 
 def associate_user_conns(gconn: object,
                          mappings: dict,
                          conn_groups: dict,
+                         update = False,
                          debug=False) -> None:
     """Associate user accounts with group_id and connections"""
 
+    if not mappings:
+        general_msg("Guacamole:  No User Connections to Associate")
+        return
+
     general_msg("Guacamole:  Associating User Connections")
+
     for mapping in mappings:
         user_name = list(mapping.keys())[0]
-        conn_name = list(mapping.values())[0]
-        conn_org = conn_name.split('.')[0]
-        conn_group_id = conn_groups[conn_org]
-        conn_id = get_conn_id(gconn, conn_name, conn_group_id, debug)
-        time.sleep(0.1)
+        conn_names = list(mapping.values())[0]
+        groups = []
 
-        response = gconn.update_user_connection(
-            conn_name, conn_group_id, "add", True)
-        message = parse_response(response)
-        if message:
-            info_msg(f"Guacamole:  {message}")
-        else:
-            info_msg(f"Guacamole:  Associated {conn_name} "
-                     f"to group: {conn_group_id}.", debug)
-        time.sleep(0.1)
+        if update:
+            conn_group_ids = set(id for id in conn_groups.values())
+            for conn_group_id in conn_group_ids:
+                response = gconn.update_user_connection(
+                    user_name, conn_group_id, "remove", True)
+                message = parse_response(response)
+                if message:
+                    info_msg(f"Guacamole:  {message}")
+            info_msg(f"Guacamole:  Reset Mappings for {user_name}", debug)
+            time.sleep(0.1)
 
-        response = gconn.update_user_connection(
-            user_name, conn_id, "add", False)
-        message = parse_response(response)
-        if message:
-            info_msg(f"Guacamole:  {message}")
-        else:
-            info_msg(f"Guacamole:  Associated {conn_name} "
-                     f"to connection: {conn_id}. ", debug)
+        for conn_name in conn_names:
+            group_name = conn_name.split('.')[0]
+            conn_group_id = conn_groups[group_name]
+            if group_name not in groups:
+                response = gconn.update_user_connection(
+                    user_name, conn_group_id, "add", True)
+                message = parse_response(response)
+                if message:
+                    info_msg(f"Guacamole:  {message}")
+                else:
+                    info_msg(f"Guacamole:  Associated {user_name} "
+                            f"to group: {group_name} ({conn_group_id})", debug)
+                groups.append(group_name)
+                time.sleep(0.1)
+
+            conn_id = get_conn_id(gconn, conn_name, conn_group_id, debug)
+            response = gconn.update_user_connection(
+                user_name, conn_id, "add", False)
+            message = parse_response(response)
+            if message:
+                info_msg(f"Guacamole:  {message}")
+            else:
+                info_msg(f"Guacamole:  Associated {user_name} "
+                         f"to connection: {conn_name} ({conn_id})", debug)
+            time.sleep(0.1)
+
 
 
 def get_domain_name(heat_params: dict,
