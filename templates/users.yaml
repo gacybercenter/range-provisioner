@@ -1,28 +1,25 @@
 parameters:
-  alphanox1:
-    Amon Gus:
-      password: password
-      instances:
-        - alphanox1.analyst.1
-    Imp Oster:
-      password: password
-      instances:
-        - alphanox1.analyst.2
-    Suh Zee:
-      password: password
-      instances:
-        - alphanox1.analyst.3
-
-  alphanox2:
-    Ven Ted:
-      password: password
-      instances:
-        - alphanox2.analyst.1
-    Enerd Gency:
-      password: password
-      instances:
-        - alphanox2.analyst.2
-    Voe Ted:
-      password: password
-      instances:
-        - alphanox2.analyst.3
+  Amon Gus:
+    password: password
+    instances:
+      - alphanox1.analyst.1
+  Imp Oster:
+    password: password
+    instances:
+      - alphanox1.analyst.2
+  Suh Zee:
+    password: password
+    instances:
+      - alphanox1.analyst.3
+  Ven Ted:
+    password: password
+    instances:
+      - alphanox2.analyst.1
+  Enerd Gency:
+    password: password
+    instances:
+      - alphanox2.analyst.2
+  Voe Ted:
+    password: password
+    instances:
+      - alphanox2.analyst.3

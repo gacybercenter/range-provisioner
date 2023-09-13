@@ -32,15 +32,14 @@ def provision(conn,
     guac_params['child_groups'] = guac.find_child_groups(guac_params['conn_groups'],
                                                          guac_params['conn_group_id'],
                                                          debug)
+    guac_params['new_groups'] = generate_groups(globals,
+                                                debug)
     if user_params:
-        guac_params['new_groups'] = list(user_params.keys())
         guac_params['new_users'] = format_users(user_params)
     else:
-        guac_params['new_groups'] = generate_groups(globals,
-                                                            debug)
         guac_params['new_users'] = generate_users(globals,
-                                                        guacamole_globals,
-                                                        debug)
+                                                  guacamole_globals,
+                                                  debug)
 
     if isinstance(globals['provision'], bool) and globals['provision']:
         info_msg(
