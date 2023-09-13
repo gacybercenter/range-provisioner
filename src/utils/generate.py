@@ -93,14 +93,12 @@ def format_users(user_params):
         dict: The merged dictionary.
     """
     users = {}
-    groups = list(user_params)
-    for group in groups:
-        for username, data in user_params[group].items():
-            user = {
-                username: {
-                    'password': data['password'],
-                    'instances': data['instances']
-                }
+    for username, data in user_params.items():
+        user = {
+            username: {
+                'password': data['password'],
+                'instances': data['instances']
             }
-            users.update(user)
+        }
+        users.update(user)
     return users
