@@ -731,10 +731,50 @@ def get_conn_id(gconn: object,
     return conn_id
 
 
+def get_connection_groups(gconn: object,
+                          debug=False) -> dict:
+    """Get connection group data from Guacamole"""
+
+    conn_groups = json.loads(gconn.list_connection_groups())
+    info_msg(f"Guacamole:  Retrieved connection groups: {conn_groups}", debug)
+    return conn_groups
+
+
+def get_connections(gconn: object,
+                    debug=False) -> dict:
+    """Get connection data from Guacamole"""
+
+    conn_list = json.loads(gconn.list_connections())
+    info_msg(f"Guacamole:  Retrieved connections: {conn_list}", debug)
+    return conn_list
+
+
+def get_users(gconn: object,
+              debug=False) -> dict:
+    """Get user data from Guacamole"""
+
+    user_list = json.loads(gconn.list_users())
+    info_msg(f"Guacamole:  Retrieved users: {user_list}", debug)
+    return user_list
+
+
+def find_domain_name(heat_params: dict,
+                    debug=False) -> str:
+    """Locates the domain name from the given heat parameters."""
+
+    try:
+        domain_name = heat_params['domain_name']['default']
+        info_msg(f"Guacamole:  Retrieved domain name: {domain_name}", debug)
+        return domain_name
+    except KeyError:
+        info_msg("Guacamole:  Did not find a domain name", debug)
+        return ''
+
+
 def find_conn_group_id(conn_groups: dict,
                        org_name: str,
                        debug=False) -> str:
-    """Locate connection group id"""
+    """Locates the parent connection group id"""
 
     try:
         group_id = [key for key in conn_groups.keys()
@@ -753,7 +793,7 @@ def find_conn_group_id(conn_groups: dict,
 def find_child_groups(conn_list: list,
                       conn_group_id: str,
                       debug=False) -> dict:
-    """Locate connection id"""
+    """Locates the child groups and their connection ids"""
 
     conn_groups = {}
     try:
@@ -772,7 +812,7 @@ def find_conn_id(conn_list: list,
                  conn_name: str,
                  conn_group_id: str,
                  debug=False) -> str:
-    """Locate connection id"""
+    """Locates a user connection id"""
 
     try:
         conn_id = [conn['identifier'] for conn in conn_list.values()
@@ -784,19 +824,6 @@ def find_conn_id(conn_list: list,
         error_msg(f"Guacamole ERROR:  {conn_name} "
                   f"is missing from connection list  {error}")
     return conn_id
-
-
-def get_domain_name(heat_params: dict,
-                    debug=False) -> str:
-    """Retrieves the domain name from the given heat parameters."""
-
-    try:
-        domain_name = heat_params['domain_name']['default']
-        info_msg(f"Guacamole:  Retrieved domain name: {domain_name}", debug)
-        return domain_name
-    except KeyError:
-        info_msg("Guacamole:  Did not find a domain name", debug)
-        return ''
 
 
 def parse_response(response: object) -> str:
