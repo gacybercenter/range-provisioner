@@ -19,18 +19,21 @@ def provision(conn,
     guac_params['conn_proto'] = heat_params['conn_proto']['default']
     guac_params['heat_pass'] = heat_params['password']['default']
     guac_params['heat_user'] = heat_params['username']['default']
-    guac_params['conn_groups'] = json.loads(gconn.list_connection_groups())
-    guac_params['conn_list'] = json.loads(gconn.list_connections())
-    guac_params['conn_users'] = json.loads(gconn.list_users())
-    guac_params['domain_name'] = guac.get_domain_name(heat_params,
-                                                      debug)
-    guac_params['instances'] = heat.get_ostack_instances(conn,
-                                                         debug)
+    guac_params['domain_name'] = guac.find_domain_name(heat_params,
+                                                       debug)
+    guac_params['conn_groups'] = guac.get_connection_groups(gconn,
+                                                            debug)
+    guac_params['conn_list'] = guac.get_connections(gconn,
+                                                    debug)
+    guac_params['conn_users'] = guac.get_users(gconn,
+                                               debug)
     guac_params['conn_group_id'] = guac.find_conn_group_id(guac_params['conn_groups'],
                                                            guac_params['org_name'],
                                                            debug)
     guac_params['child_groups'] = guac.find_child_groups(guac_params['conn_groups'],
                                                          guac_params['conn_group_id'],
+                                                         debug)
+    guac_params['instances'] = heat.get_ostack_instances(conn,
                                                          debug)
     guac_params['new_groups'] = generate_groups(globals,
                                                 debug)

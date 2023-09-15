@@ -19,7 +19,9 @@ def generate_names(ranges, prefix):
     return [f"{prefix}{i+1}" for i in range(ranges)]
 
 
-def generate_instance_names(params, guac_params, debug):
+def generate_instance_names(params,
+                            guac_params,
+                            debug=False):
     """Generate a list of instance names based on given ranges and names"""
     num_ranges = params.get('num_ranges')
     num_users = params.get('num_users')
@@ -59,7 +61,8 @@ def generate_users(params, guac_params, debug):
                     'instances': [user]
                 }   for user in user_names
             }
-        info_msg(users_list, debug)
+        info_msg("Guacamole:  Generated Users:\n"
+                 f"{users_list}", debug)
 
         return users_list
     except Exception as error:
@@ -73,16 +76,18 @@ def generate_groups(params, debug):
     range_name = params.get('range_name')
 
     try:
-        general_msg(f"Generating child group names for {range_name}")
+        general_msg(f"Guacamole:  Generating group names for {range_name}")
         instance_names = generate_names(num_ranges, range_name)
-        info_msg(instance_names, debug)
+        info_msg("Guacamole:  Generated Groups:\n"
+                 f"{instance_names}", debug)
         return instance_names
     except Exception as error:
         error_msg(error)
         return None
 
 
-def format_users(user_params):
+def format_users(user_params,
+                 debug=False):
     """
     Merge multiple dictionaries into a single dictionary.
 
@@ -101,4 +106,7 @@ def format_users(user_params):
             }
         }
         users.update(user)
+    info_msg("Guacamole:  Retrieved users from users.yaml:\n"
+             f"{users}", debug)
+
     return users
