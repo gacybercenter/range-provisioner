@@ -110,7 +110,9 @@ def delete(conn, stack, wait, debug=False):
         error_msg(e)
         return None
 
-def get_ostack_instances(conn, debug=False):
+def get_ostack_instances(conn,
+                         groups,
+                         debug=False):
     """
     Obtain openstack instance names and addresses
 
@@ -133,7 +135,9 @@ def get_ostack_instances(conn, debug=False):
             'private_v4': instance.private_v4
         }
         for instance in conn.list_servers()
+        if instance['name'].split('.')[0] in groups
     ]
+
     info_msg("Guacamole:  Retrieved OS Stack Instances:", debug)
     info_msg(instances, debug)
     return instances
