@@ -290,41 +290,22 @@ def create_user_accts(gconn: object,
                     user,
                     user_org,
                     debug)
-        time.sleep(0.1)
 
 
 def delete_user_accts(gconn: object,
-                      users: list,
+                      delete_users: list,
                       debug=False) -> None:
     """"Delete user accounts"""
 
-    if not users:
+    if not delete_users:
         general_msg("Guacamole:  No Users Accounts to Delete")
         return
 
     general_msg("Guacamole:  Deleting User Accounts")
-    for user in users:
-        response = gconn.delete_user(user)
-        message = parse_response(response)
-        if message:
-            info_msg(f"Guacamole:  {message}", debug)
-        else:
-            info_msg("Guacamole:  Deleted Account: "
-                     f"{user}", debug)
-        time.sleep(0.1)
-
-
-def delete_user(gconn: object,
-                user: str,
-                debug=False) -> None:
-    """Deletes a user account based on a string"""
-    response = gconn.delete_user(user)
-    message = parse_response(response)
-    if message:
-        info_msg(f"Guacamole:  {message}", debug)
-    else:
-        info_msg("Guacamole:  Deleted Account: "
-                 f"{user}", debug)
+    for user in delete_users:
+        delete_user(gconn,
+                    user,
+                    debug)
 
 
 def create_user(gconn: object,
@@ -343,6 +324,21 @@ def create_user(gconn: object,
     else:
         info_msg(f"Guacamole:  Created User: {username}, "
                  f"Password: {password}", debug)
+    time.sleep(0.1)
+
+
+def delete_user(gconn: object,
+                user: str,
+                debug=False) -> None:
+    """Deletes a user account based on a string"""
+    response = gconn.delete_user(user)
+    message = parse_response(response)
+    if message:
+        info_msg(f"Guacamole:  {message}", debug)
+    else:
+        info_msg("Guacamole:  Deleted Account: "
+                 f"{user}", debug)
+    time.sleep(0.1)
 
 
 def create_user_conns(gconn: object,
@@ -374,7 +370,6 @@ def create_user_conns(gconn: object,
                                        conn_vars,
                                        None,
                                        debug)
-        time.sleep(0.1)
 
     return conns
 
@@ -390,14 +385,9 @@ def delete_user_conns(gconn: object,
 
     general_msg("Guacamole:  Deleting User Connections")
     for conn_id in delete_conn_ids:
-        response = gconn.delete_connection(conn_id)
-        message = parse_response(response)
-        if message:
-            info_msg(f"Guacamole:  {message}", debug)
-        else:
-            info_msg("Guacamole:  Deleted Connection ID: "
-                     f"{conn_id}", debug)
-    time.sleep(0.1)
+        delete_conn(gconn,
+                    conn_id,
+                    debug)
 
 
 def create_conn(gconn: object,
@@ -456,11 +446,29 @@ def create_conn(gconn: object,
         info_msg(f"Guacamole:  Created User Connection: {conn_name}. "
                  f"({heat_user}, {heat_pass}) "
                  f"IP: {conn_ip}", debug)
+        time.sleep(0.1)
         conn_id = get_conn_id(gconn,
                               conn_name,
                               conn_group_id,
                               debug)
+    time.sleep(0.1)
+
     return conn_id
+
+
+def delete_conn(gconn: object,
+                conn_id: str,
+                debug=False) -> None:
+    """Delete a user connection."""
+
+    response = gconn.delete_connection(conn_id)
+    message = parse_response(response)
+    if message:
+        info_msg(f"Guacamole:  {message}", debug)
+    else:
+        info_msg("Guacamole:  Deleted Connection ID: "
+                    f"{conn_id}", debug)
+    time.sleep(0.1)
 
 
 def associate_user_conns(gconn: object,
@@ -611,7 +619,8 @@ def get_users(gconn: object,
     """Get user data from Guacamole"""
 
     user_list = json.loads(gconn.list_users())
-    info_msg(f"Guacamole:  Retrieved users: {user_list}", debug)
+    info_msg("Guacamole:  Retrieved users:", debug)
+    info_msg(user_list, debug)
     return user_list
 
 
