@@ -41,6 +41,7 @@ def provision(gconn,
 
     associate_user_conns(gconn,
                          create_vars['mappings'],
+                         guac_params['org_name'],
                          conn_groups,
                          conns,
                          debug)
@@ -72,6 +73,14 @@ def reprovision(gconn,
                 guac_params,
                 debug=False):
     """Reprovision Guacamole connections and users"""
+
+    deprovision(gconn,
+                guac_params,
+                debug)
+
+    provision(gconn,
+              guac_params,
+              debug)
 
     update_vars, guacd_ips = update_data(guac_params)
 
@@ -155,10 +164,13 @@ def create_data(guac_params: dict) -> tuple:
 def delete_data(guac_params: dict) -> tuple:
     """Formats the data used to delete Guacamole"""
 
-    new_users = guac_params['new_users']
     child_groups = guac_params['child_groups']
-    delete_users = list(new_users.keys())
+    conn_users = guac_params['conn_users']
+    org_name = guac_params['org_name']
+
     delete_group_ids = list(child_groups.values())
+    delete_users = [user['username'] for user in conn_users.values()
+                    if user['attributes'].get('guac-organization') == org_name]
 
     return (delete_users,
             delete_group_ids)
@@ -214,9 +226,9 @@ def create_conn_groups(gconn: object,
 
     general_msg("Guacamole:  Creating Connection Groups")
     conn_groups = create_parent_group(gconn,
-                                        conn_group_id,
-                                        org_name,
-                                        debug)
+                                      conn_group_id,
+                                      org_name,
+                                      debug)
     parent_id = conn_groups[org_name]
 
     if create_groups:
@@ -245,9 +257,9 @@ def update_conn_groups(gconn: object,
 
     general_msg("Guacamole:  Updating Connection Groups")
     conn_groups = create_parent_group(gconn,
-                                        conn_group_id,
-                                        org_name,
-                                        debug)
+                                      conn_group_id,
+                                      org_name,
+                                      debug)
     parent_id = conn_groups[org_name]
 
     for group in create_groups:
@@ -630,6 +642,7 @@ def create_conn(gconn: object,
 
 def associate_user_conns(gconn: object,
                          mappings: dict,
+                         org_name: str,
                          conn_groups: dict,
                          conn_ids: dict,
                          debug=False) -> None:
@@ -644,34 +657,52 @@ def associate_user_conns(gconn: object,
     for mapping in mappings:
         user_name = list(mapping.keys())[0]
         conn_names = list(mapping.values())[0]
+        parent_id = conn_groups[org_name]
         groups = []
+
+        associate_conn(gconn,
+                       user_name,
+                       parent_id,
+                       org_name,
+                       debug)
 
         for conn_name in conn_names:
             group = conn_name.split('.')[0]
             conn_group_id = conn_groups[group]
             if group not in groups:
-                response = gconn.update_user_connection(
-                    user_name, conn_group_id, "add", True)
-                message = parse_response(response)
-                if message:
-                    info_msg(f"Guacamole:  {message}")
-                else:
-                    info_msg(f"Guacamole:  Associated {user_name} "
-                             f"to group: {group} ({conn_group_id})", debug)
                 groups.append(group)
-                time.sleep(0.1)
+                associate_conn(gconn,
+                               user_name,
+                               conn_group_id,
+                               group,
+                               debug)
 
             conn_id = conn_ids[conn_name]
-            response = gconn.update_user_connection(
-                user_name, conn_id, "add", False)
-            message = parse_response(response)
-            if message:
-                info_msg(f"Guacamole:  {message}")
-            else:
-                info_msg(f"Guacamole:  Associated {user_name} "
-                         f"to connection: {conn_name} ({conn_id})", debug)
-            time.sleep(0.1)
+            associate_conn(gconn,
+                           user_name,
+                           conn_id,
+                           conn_name,
+                           debug)
 
+
+def associate_conn(gconn: object,
+                   user_name: str,
+                   conn_id: str,
+                   conn_name=None,
+                   debug=False) -> None:
+    """Associate user accounts with group_ids and connections"""
+    response = gconn.update_user_connection(
+        user_name, conn_id, "add", True)
+    message = parse_response(response)
+    if message:
+        info_msg(f"Guacamole:  {message}")
+    elif conn_name:
+        info_msg(f"Guacamole:  Associated {user_name} "
+                    f"to connection: {conn_name} ({conn_id})", debug)
+    else:
+        info_msg(f"Guacamole:  Associated {user_name} "
+            f"to connection id: {conn_id}", debug)
+    time.sleep(0.1)
 
 def get_conn_group_id(gconn: object,
                       org_name: str,
@@ -736,7 +767,8 @@ def get_connection_groups(gconn: object,
     """Get connection group data from Guacamole"""
 
     conn_groups = json.loads(gconn.list_connection_groups())
-    info_msg(f"Guacamole:  Retrieved connection groups: {conn_groups}", debug)
+    info_msg("Guacamole:  Retrieved connection groups:", debug)
+    info_msg(conn_groups, debug)
     return conn_groups
 
 
@@ -745,7 +777,9 @@ def get_connections(gconn: object,
     """Get connection data from Guacamole"""
 
     conn_list = json.loads(gconn.list_connections())
-    info_msg(f"Guacamole:  Retrieved connections: {conn_list}", debug)
+
+    info_msg("Guacamole:  Retrieved connections:", debug)
+    info_msg(conn_list, debug)
     return conn_list
 
 
@@ -759,7 +793,7 @@ def get_users(gconn: object,
 
 
 def find_domain_name(heat_params: dict,
-                    debug=False) -> str:
+                     debug=False) -> str:
     """Locates the domain name from the given heat parameters."""
 
     try:
