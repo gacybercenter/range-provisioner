@@ -7,16 +7,14 @@ globals:
   user_name: analyst # user name prefix
   range_name: alphanox # range name prefix
   org_name: alphanox_test # name of organization
+  artifacts: True # artifacts (True) or not (False)
   provision: # provision range (True) or not (False)
 
 guacamole:
   provision: True # provision guacamole (True) or not (False)
-  update: False # update guacamole users (True) or not (False)
+  update: True # update guacamole users (True) or not (False)
   secure: True # secure passwords (True) or insecure passwords (False)
   guac_host: https://training.gacyberrange.org # guacamole host
-  conn_group_name: range_team # name of connection group
-  user_org: "" # organization of user
-  instance_mapping: user.instance # name of instance mapping
 
 heat:
   provision: True # provision heat (True) or not (False)
