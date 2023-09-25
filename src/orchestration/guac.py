@@ -18,7 +18,7 @@ def provision(gconn,
 
     conn_groups = create_conn_groups(gconn,
                                      create_vars['groups'],
-                                     guac_params['conn_group_id'],
+                                     guac_params['parent_group_id'],
                                      guac_params['org_name'],
                                      debug)
 
@@ -133,16 +133,12 @@ def create_data(guac_params: dict) -> tuple:
 def delete_data(guac_params: dict) -> tuple:
     """Formats the data used to delete Guacamole"""
 
-    child_groups = guac_params['child_groups']
+    conn_group_ids = guac_params['conn_group_ids']
     conn_users = guac_params['conn_users']
-    org_name = guac_params['org_name']
+    # conn_list = guac_params['conn_list']
 
-    delete_group_ids = list(child_groups.values())
-    delete_users = [user['username'] for user in conn_users.values()
-                    if user['attributes'].get('guac-organization') == org_name]
-
-    return (delete_users,
-            delete_group_ids)
+    return (conn_users,
+            conn_group_ids)
 
 
 def create_conn_groups(gconn: object,
@@ -467,7 +463,7 @@ def delete_conn(gconn: object,
         info_msg(f"Guacamole:  {message}", debug)
     else:
         info_msg("Guacamole:  Deleted Connection ID: "
-                    f"{conn_id}", debug)
+                 f"{conn_id}", debug)
     time.sleep(0.1)
 
 
@@ -529,11 +525,12 @@ def associate_conn(gconn: object,
         info_msg(f"Guacamole:  {message}")
     elif conn_name:
         info_msg(f"Guacamole:  Associated {user_name} "
-                    f"to connection: {conn_name} ({conn_id})", debug)
+                 f"to connection: {conn_name} ({conn_id})", debug)
     else:
         info_msg(f"Guacamole:  Associated {user_name} "
-            f"to connection id: {conn_id}", debug)
+                 f"to connection id: {conn_id}", debug)
     time.sleep(0.1)
+
 
 def get_conn_group_id(gconn: object,
                       org_name: str,
@@ -568,6 +565,7 @@ def get_child_groups(gconn: object,
                 conn_groups[conn.get('name')] = conn.get('identifier')
         info_msg(f"Guacamole:  Retrieved {conn_group_id}'s "
                  f"child groups: {conn_groups}", debug)
+
     except KeyError as error:
         error_msg(f"Guacamole ERROR:  {conn_group_id} "
                   f"has no child groups  {error}")
@@ -586,6 +584,7 @@ def get_conn_id(gconn: object,
                    and conn['name'] == conn_name][0]
         info_msg(
             f"Guacamole:  Retrieved {conn_name}'s connection ID: {conn_id}", debug)
+
     except IndexError as error:
         conn_id = []
         error_msg(f"Guacamole ERROR:  {conn_name} "
@@ -593,35 +592,43 @@ def get_conn_id(gconn: object,
     return conn_id
 
 
-def get_connection_groups(gconn: object,
+def get_groups(gconn: object,
+                          parent_id: str,
                           debug=False) -> dict:
     """Get connection group data from Guacamole"""
 
-    conn_groups = json.loads(gconn.list_connection_groups())
+    all_conn_groups = json.loads(gconn.list_connection_groups())
+    conn_groups = [group for group in all_conn_groups.values()
+                   if group['parentIdentifier'] == parent_id]
     info_msg("Guacamole:  Retrieved connection groups:", debug)
     info_msg(conn_groups, debug)
     return conn_groups
 
 
-def get_connections(gconn: object,
+def get_conns(gconn: object,
+                    conn_group_ids: dict,
                     debug=False) -> dict:
     """Get connection data from Guacamole"""
 
-    conn_list = json.loads(gconn.list_connections())
-
+    all_conns = json.loads(gconn.list_connections())
+    conns = [conn for conn in all_conns
+             if all_conns[conn]['parentIdentifier'] in conn_group_ids]
     info_msg("Guacamole:  Retrieved connections:", debug)
-    info_msg(conn_list, debug)
-    return conn_list
+    info_msg(conns, debug)
+    return conns
 
 
 def get_users(gconn: object,
+              org_name: str,
               debug=False) -> dict:
     """Get user data from Guacamole"""
 
-    user_list = json.loads(gconn.list_users())
+    all_users = json.loads(gconn.list_users())
+    users = [user for user in all_users
+                 if all_users[user]['attributes']['guac-organization'] == org_name]
     info_msg("Guacamole:  Retrieved users:", debug)
-    info_msg(user_list, debug)
-    return user_list
+    info_msg(users, debug)
+    return users
 
 
 def find_domain_name(heat_params: dict,
@@ -647,7 +654,7 @@ def find_conn_group_id(conn_groups: dict,
                     if conn_groups[key]['name'] == org_name]
         return_id = group_id[0]
         info_msg(f"Guacamole:  Found {org_name}'s "
-                 f"group ID(s): {group_id}", debug)
+                 f"group ID(s): {return_id}", debug)
 
     except IndexError:
         general_msg(f"Guacamole:  {org_name} "
@@ -656,22 +663,16 @@ def find_conn_group_id(conn_groups: dict,
     return return_id
 
 
-def find_child_groups(conn_list: list,
-                      conn_group_id: str,
+def find_group_ids(conn_list: list,
                       debug=False) -> dict:
     """Locates the child groups and their connection ids"""
 
-    conn_groups = {}
-    try:
-        for conn in conn_list.values():
-            if conn.get('parentIdentifier') == conn_group_id:
-                conn_groups[conn.get('name')] = conn.get('identifier')
-        info_msg(f"Guacamole:  Found {conn_group_id}'s "
-                 f"child groups: {conn_groups}", debug)
-    except KeyError as error:
-        error_msg(f"Guacamole ERROR:  {conn_group_id} "
-                  f"has no child groups  {error}")
-    return conn_groups
+    conn_group_ids = [
+        conn['identifier'] for conn in conn_list
+    ]
+    info_msg("Guacamole:  Found connection group IDs:", debug)
+    info_msg(conn_group_ids, debug)
+    return conn_group_ids
 
 
 def find_conn_id(conn_list: list,
