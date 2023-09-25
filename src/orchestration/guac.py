@@ -246,13 +246,16 @@ def create_group(gconn: object,
             }
         )
         time.sleep(0.1)
-        child_id = get_conn_group_id(gconn, child_name, debug)
         message = parse_response(response)
         if message:
             info_msg(f"Guacamole:  {message}", debug)
         else:
             info_msg("Guacamole:  Created Group: "
                      f"{child_name} under group ID: {parent_id}", debug)
+        child_id = get_conn_group_id(gconn,
+                                     child_name,
+                                     debug)
+        time.sleep(0.1)
 
     return child_id
 
@@ -547,7 +550,7 @@ def get_conn_group_id(gconn: object,
                     if conn_groups[key]['name'] == org_name]
         return_id = group_id[0]
         info_msg(f"Guacamole:  Retrieved {org_name}'s "
-                 f"group ID(s): {group_id}", debug)
+                 f"group ID: {return_id}", debug)
 
     except IndexError:
         error_msg(f"Guacamole ERROR:  {org_name} "
