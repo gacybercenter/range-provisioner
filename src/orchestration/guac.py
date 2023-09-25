@@ -490,6 +490,7 @@ def associate_user_conns(gconn: object,
         associate_conn(gconn,
                        user_name,
                        parent_id,
+                       True,
                        org_name,
                        debug)
 
@@ -501,6 +502,7 @@ def associate_user_conns(gconn: object,
                 associate_conn(gconn,
                                user_name,
                                conn_group_id,
+                               True,
                                group,
                                debug)
 
@@ -508,6 +510,7 @@ def associate_user_conns(gconn: object,
             associate_conn(gconn,
                            user_name,
                            conn_id,
+                           False,
                            conn_name,
                            debug)
 
@@ -515,11 +518,12 @@ def associate_user_conns(gconn: object,
 def associate_conn(gconn: object,
                    user_name: str,
                    conn_id: str,
-                   conn_name=None,
+                   is_group: bool,
+                   conn_name=False,
                    debug=False) -> None:
     """Associate user accounts with group_ids and connections"""
     response = gconn.update_user_connection(
-        user_name, conn_id, "add", True)
+        user_name, conn_id, "add", is_group)
     message = parse_response(response)
     if message:
         info_msg(f"Guacamole:  {message}")
