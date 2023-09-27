@@ -22,11 +22,16 @@ def main():
         guacamole_globals = global_dict.guacamole
         heat_globals = global_dict.heat
         swift_globals = global_dict.swift
-        heat_params = load_heat(global_dict.heat['template_dir']).get('parameters')
-        sec_params = load_sec(global_dict.heat['template_dir']).get('parameters')
-        env_params = load_env(global_dict.heat['template_dir']).get('parameters')
-        user_params = load_users(global_dict.heat['template_dir']).get('parameters')
-        openstack_clouds = load_template('clouds.yaml')['clouds'][f"{globals['cloud']}"]
+        heat_params = load_heat(
+            global_dict.heat['template_dir']).get('parameters')
+        sec_params = load_sec(
+            global_dict.heat['template_dir']).get('parameters')
+        env_params = load_env(
+            global_dict.heat['template_dir']).get('parameters')
+        user_params = load_users(
+            global_dict.heat['template_dir']).get('parameters')
+        openstack_clouds = load_template(
+            'clouds.yaml')['clouds'][f"{globals['cloud']}"]
         guacamole_clouds = load_template('clouds.yaml')['clouds']['guac']
 
         debug = globals['debug']
@@ -74,7 +79,7 @@ def main():
             if env_params:
                 update_env(openstack_connect, global_dict, True, debug)
                 heat_params, sec_params, env_params = update_ids(
-                openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
+                    openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
             heat.provision(openstack_connect, globals, heat_globals,
                            heat_params, sec_params, debug)
         elif arg[0] == "guacamole":
@@ -86,7 +91,7 @@ def main():
             if env_params:
                 update_env(openstack_connect, global_dict, True, debug)
                 heat_params, sec_params, env_params = update_ids(
-                openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
+                    openstack_connect, [heat_params, sec_params, env_params], [], False, debug)
             heat.provision(openstack_connect, globals, heat_globals,
                            heat_params, sec_params, debug)
 
