@@ -130,11 +130,10 @@ def get_ostack_instances(conn,
     """
     instances = [
         {
-            'name': instance.name,
-            'public_v4': instance.public_v4,
-            'private_v4': instance.private_v4
+            'name': instance['name'],
+            'hostname': instance['public_v4'] if instance['public_v4'] else instance['private_v4']
         }
-        for instance in conn.list_servers()
+        for instance in conn.list_servers(False)
         if instance['name'].split('.')[0] in groups
     ]
 
