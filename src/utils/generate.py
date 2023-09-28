@@ -86,18 +86,47 @@ def generate_groups(params, debug):
         return None
 
 
+def format_groups(user_params,
+                 debug=False):
+    """
+    Format the users.yaml data into a list of groups.
+
+    Parameters:
+        user_params (dict): The usrs.yaml dictionary.
+
+    Returns:
+        list: The group names present in the users.yaml
+    """
+
+    groups = []
+
+    for data in user_params.values():
+        instances = data.get('instances', [])
+        for instance in instances:
+            group = instance.split('.')[0]
+            if group not in groups:
+                groups.append(group)
+
+    general_msg("Guacamole:  Retrieved groups from users.yaml")
+    info_msg(f"{groups}", debug)
+
+    return groups
+
+
 def format_users(user_params,
                  debug=False):
     """
-    Merge multiple dictionaries into a single dictionary.
+    Format the users.yaml data into a dictionary of user objects.
 
     Parameters:
-        dicts (list): A list of dictionaries to be merged.
+        user_params (dict): The usrs.yaml dictionary.
 
     Returns:
-        dict: The merged dictionary.
+        dict: The formated users dictionary.
     """
+
     users = {}
+
     for username, data in user_params.items():
         user = {
             username: {
@@ -106,7 +135,8 @@ def format_users(user_params,
             }
         }
         users.update(user)
-    info_msg("Guacamole:  Retrieved users from users.yaml:\n"
-             f"{users}", debug)
+
+    general_msg("Guacamole:  Retrieved users from users.yaml")
+    info_msg(f"{users}", debug)
 
     return users
