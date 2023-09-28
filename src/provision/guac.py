@@ -1,9 +1,16 @@
-import time
-import json
+"""
+Guacamole provisioning script.
+Author: Marcus Corulli
+Date: 09/28/2023
+Version: 1.0
+
+Description:
+    Handles the logic for provisioning Guacamole
+"""
 import orchestration.guac as guac
 import orchestration.heat as heat
 from utils.generate import generate_groups, generate_users, format_users, format_groups
-from utils.msg_format import error_msg, info_msg, success_msg, general_msg
+from utils.msg_format import error_msg, info_msg
 
 
 def provision(conn,
@@ -64,8 +71,8 @@ def provision(conn,
 
     guac_params['org_name'] = globals['org_name']
     guac_params['parent_group_id'] = guac.get_conn_group_id(gconn,
-                                                        guac_params['org_name'],
-                                                        debug)
+                                                            guac_params['org_name'],
+                                                            debug)
 
     # Populate the guac_params for provision or reprovision
     if create or update:

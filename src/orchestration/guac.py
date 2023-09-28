@@ -1,8 +1,11 @@
 """
 Author: Marcus Corulli
 Description: Provision and Deprovision Guacamole
-Date: 08/23/2023
+Date: 09/28/2023
 Version: 1.0
+
+Description:
+    Contains all the main functions for provisioning Guacamole
 """
 import json
 import time
