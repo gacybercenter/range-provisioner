@@ -21,8 +21,10 @@ def provision(gconn: object,
         debug (bool, optional): Whether to enable debug mode.
 
     Returns:
-        bool: True if Guacamole was successfully provisioned, False otherwise.
+        None
     """
+
+    general_msg("Provisioning Guacamole")
 
     # Generate the create data
     create_vars, guacd_ips = create_data(guac_params)
@@ -55,9 +57,7 @@ def provision(gconn: object,
                          conns,
                          debug)
 
-    # Print success message
     success_msg("Provisioned Guacamole")
-    return True
 
 
 def deprovision(gconn: object,
@@ -72,8 +72,10 @@ def deprovision(gconn: object,
         debug (bool, optional): Whether to enable debug mode.
 
     Returns:
-        bool: True if deprovisioning is successful, False otherwise.
+        None
     """
+
+    general_msg("Deprovisioning Guacamole")
 
     # Generate the delete data
     delete_vars = delete_data(guac_params)
@@ -93,10 +95,7 @@ def deprovision(gconn: object,
                       delete_vars['conns'],
                       debug)
 
-    # Print success message
     success_msg("Deprovisioned Guacamole")
-
-    return True
 
 
 def reprovision(gconn: object,
@@ -111,8 +110,10 @@ def reprovision(gconn: object,
         debug (bool, optional): Whether to run in debug mode. Defaults to False.
 
     Returns:
-        bool: True if the reprovisioning was successful.
+        None
     """
+
+    general_msg("Reprovisioning Guacamole")
 
     # Generate the update data
     create_vars, delete_vars, guacd_ips = update_data(guac_params)
@@ -160,10 +161,7 @@ def reprovision(gconn: object,
                          conns,
                          debug)
 
-    # Print success message
     success_msg("Reprovisioned Guacamole")
-
-    return True
 
 
 # TODO(chateaulav): Everything below this point is a work in progress
@@ -747,7 +745,7 @@ def delete_user_conns(gconn: object,
 
     # Check if there are any connection IDs to delete
     if not delete_conn_ids:
-        general_msg(" No User Connections to Delete")
+        general_msg("No User Connections to Delete")
         return
 
     general_msg("Guacamole:  Deleting User Connections")
