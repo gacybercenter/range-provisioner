@@ -113,7 +113,7 @@ def reprovision(gconn: object,
         None
     """
 
-    general_msg("Reprovisioning Guacamole")
+    general_msg("Updating Guacamole")
 
     # Generate the update data
     create_vars, delete_vars, guacd_ips = update_data(guac_params)
@@ -161,7 +161,7 @@ def reprovision(gconn: object,
                          conns,
                          debug)
 
-    success_msg("Reprovisioned Guacamole")
+    success_msg("Updated Guacamole")
 
 
 # TODO(chateaulav): Everything below this point is a work in progress
@@ -745,7 +745,7 @@ def delete_user_conns(gconn: object,
 
     # Check if there are any connection IDs to delete
     if not delete_conn_ids:
-        general_msg("No User Connections to Delete")
+        general_msg("Guacamole:  No User Connections to Delete")
         return
 
     general_msg("Guacamole:  Deleting User Connections")
@@ -1041,7 +1041,7 @@ def get_conn_id(gconn: object,
                    and conn['name'] == conn_name][0]
 
         info_msg(f"Guacamole:  Retrieved {conn_name}'s "
-                 f"connection ID: {conn_id}", debug)
+                 f"connection ID \"{conn_id}\"", debug)
 
     except IndexError as error:
         # Handle the case when the connection is missing from the list
@@ -1227,10 +1227,10 @@ def find_conn_id(conn_list: list,
                    and conn['name'] == conn_name][0]
 
         info_msg(f"Guacamole:  Found {conn_name}'s "
-                 f"connection ID: {conn_id}", debug)
+                 f"connection ID \"{conn_id}\"", debug)
         return conn_id
     except KeyError as error:
-        error_msg(f"Guacamole ERROR: {conn_name} "
+        error_msg(f"Guacamole ERROR:  {conn_name} "
                   f"is missing from connection list {error}")
         return None
 
