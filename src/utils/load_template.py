@@ -18,7 +18,7 @@ def load_template(template):
             parameters = Munch(safe_load(file))
     except Exception as error:
         error_msg(f"Cannot load template \n  ({error})")
-        return None
+        return {}
     return parameters
 
 def load_global():
@@ -49,7 +49,11 @@ def load_heat(heat_template_dir):
     Returns:
     - heat_dict (dict): The loaded heat template as a dictionary.
 
-    This function loads the heat template from the specified directory by calling the `load_template` function with the path to the `main.yaml` file. If the loading is successful, a success message is printed. If an exception occurs during the loading process, an error message is printed and `None` is returned. The loaded heat template is returned as a dictionary.
+    This function loads the heat template from the specified directory by calling the
+    `load_template`function with the path to the `main.yaml` file. If the loading is
+    successful, a success message is printed. If an exception occurs during the loading
+    process, an error message is printed and {} is returned. The loaded heat template
+    is returned as a dictionary.
 
     Note: The `load_template` and `success_msg` functions are assumed to be defined elsewhere.
     """
@@ -58,7 +62,7 @@ def load_heat(heat_template_dir):
         success_msg(f"{heat_template_dir}/main.yaml loaded")
     except Exception as error:
         error_msg(error)
-        return None 
+        return {}
     return heat_dict
 
 
@@ -70,14 +74,14 @@ def load_sec(heat_template_dir):
         heat_template_dir (str): The directory path where the heat template files are located.
 
     Returns:
-        dict: A dictionary containing the loaded security template, or None if an error occurred.
+        dict: A dictionary containing the loaded security template, or {} if an error occurred.
     """
     try:
         security_dict = load_template(f"{heat_template_dir}/sec.yaml")
         success_msg(f"{heat_template_dir}/sec.yaml loaded")
     except Exception as error:
         error_msg(error)
-        return None 
+        return {}
     return security_dict
 
 
@@ -90,14 +94,14 @@ def load_env(heat_template_dir):
 
     Returns:
         environment_dict (dict): The environment dictionary loaded from the heat template.
-        None: If there was an error loading the template or any exception occurred.
+        {}: If there was an error loading the template or any exception occurred.
     """
     try:
         environment_dict = load_template(f"{heat_template_dir}/env.yaml")
         success_msg(f"{heat_template_dir}/env.yaml loaded")
     except Exception as error:
         error_msg(error)
-        return None 
+        return {}
     return environment_dict
 
 
@@ -110,12 +114,12 @@ def load_users(heat_template_dir):
 
     Returns:
         dict: A dictionary containing the loaded environment configuration from the Heat template.
-            If an error occurs during the loading process, None is returned.
+            If an error occurs during the loading process, {} is returned.
     """
     try:
         environment_dict = load_template(f"{heat_template_dir}/users.yaml")
         success_msg(f"{heat_template_dir}/users.yaml loaded")
     except Exception as error:
         error_msg(error)
-        return None 
+        return {}
     return environment_dict
