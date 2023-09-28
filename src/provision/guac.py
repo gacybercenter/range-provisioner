@@ -2,7 +2,7 @@ import time
 import json
 import orchestration.guac as guac
 import orchestration.heat as heat
-from utils.generate import generate_groups, generate_users, format_users
+from utils.generate import generate_groups, generate_users, format_users, format_groups
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
 
@@ -19,11 +19,14 @@ def provision(conn,
     guac_params['protocol'] = heat_params['conn_proto']['default']
     guac_params['password'] = heat_params['password']['default']
     guac_params['username'] = heat_params['username']['default']
-    guac_params['new_groups'] = generate_groups(globals,
-                                                debug)
     if user_params:
-        guac_params['new_users'] = format_users(user_params)
+        guac_params['new_groups'] = format_groups(user_params,
+                                                  debug)
+        guac_params['new_users'] = format_users(user_params,
+                                                debug)
     else:
+        guac_params['new_groups'] = generate_groups(globals,
+                                                    debug)
         guac_params['new_users'] = generate_users(globals,
                                                   guacamole_globals,
                                                   debug)
