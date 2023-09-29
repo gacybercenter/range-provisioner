@@ -5,12 +5,13 @@ from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 def provision(conn, globals, heat_globals, heat_params, sec_params, debug=False):
     try:
         stack_name = globals['range_name']
+        instance_name = globals['user_name']
         template_dir = heat_globals['template_dir']
         update = heat_globals['update']
         last_stack = False
         if heat_params:
             heat_params = {k: v['default'] for k, v in heat_params.items() if 'default' in v}
-        
+
         if sec_params:
             sec_params = {k: v['default'] for k, v in sec_params.items() if 'default' in v}
 
@@ -39,6 +40,7 @@ def provision(conn, globals, heat_globals, heat_params, sec_params, debug=False)
                         dir = f"{template_dir}/main.yaml"
                         parameters = heat_params
                         parameters['container_name'] = stack_name
+                        parameters['instance_name'] = instance_name
                         parameters['count'] = globals['num_users']
 
                         if globals['num_ranges'] > 1:
@@ -115,6 +117,7 @@ def provision(conn, globals, heat_globals, heat_params, sec_params, debug=False)
                             dir = f"{template_dir}/main.yaml"
                             parameters = heat_params
                             parameters['container_name'] = stack_name
+                            parameters['instance_name'] = instance_name
                             parameters['count'] = globals['num_users']
 
                             if globals['num_ranges'] > 1:
