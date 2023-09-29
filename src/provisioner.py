@@ -1,35 +1,47 @@
 import json
 import logging
-import provision.heat as heat
-import provision.swift as swift
-import provision.guac as guac
 import sys
 import time
 from guacamole import session
 from openstack import connect, enable_logging
+from provision import heat
+from provision import swift
+from provision import guac
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 from utils.load_template import load_global, load_heat, load_sec, load_env, load_users, load_template
 from utils.manage_ids import update_ids, update_env
 
 
 def main():
+    """
+    This function is the main entry point of the program.
+    It sets up the necessary dictionaries for parsing and connects to OpenStack and Guacamole.
+    It then checks the command line arguments and executes the corresponding provisioning functions.
+    Finally, it calculates and prints the total execution time of the program.
+
+    Parameters:
+        None
+
+    Returns:
+        None
+    """
     try:
         start = time.time()
 
         # Create dictionaries for parsing
         global_dict = load_global()
-        globals = global_dict.globals
-        guacamole_globals = global_dict.guacamole
-        heat_globals = global_dict.heat
-        swift_globals = global_dict.swift
+        globals = global_dict['globals']
+        guacamole_globals = global_dict['guacamole']
+        heat_globals = global_dict['heat']
+        swift_globals = global_dict['swift']
         heat_params = load_heat(
-            global_dict.heat['template_dir']).get('parameters')
+            global_dict['heat']['template_dir']).get('parameters')
         sec_params = load_sec(
-            global_dict.heat['template_dir']).get('parameters')
+            global_dict['heat']['template_dir']).get('parameters')
         env_params = load_env(
-            global_dict.heat['template_dir']).get('parameters')
+            global_dict['heat']['template_dir']).get('parameters')
         user_params = load_users(
-            global_dict.heat['template_dir']).get('parameters')
+            global_dict['heat']['template_dir']).get('parameters')
         openstack_clouds = load_template(
             'clouds.yaml')['clouds'][f"{globals['cloud']}"]
         guacamole_clouds = load_template('clouds.yaml')['clouds']['guac']
@@ -99,8 +111,9 @@ def main():
                            heat_params, user_params, debug)
         end = time.time()
         general_msg(f"Total time: {end - start:.2f} seconds")
-    except Exception as e:
-        error_msg(e)
+
+    except Exception as error:
+        error_msg(error)
 
 
 if __name__ == '__main__':
