@@ -50,6 +50,7 @@ def provision(conn, globals, heat_globals, heat_params, sec_params, debug=False)
                                 heat.provision(
                                     conn, name, dir, parameters, last_stack, update, debug)
                         else:
+                            name = stack_name
                             last_stack = True
                             heat.provision(
                                 conn, name, dir, parameters, last_stack, update, debug)
