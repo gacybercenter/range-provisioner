@@ -16,6 +16,8 @@ def generate_password():
 
 def generate_names(ranges, prefix):
     """Generate a list of names with a prefix and a range of numbers"""
+    if ranges == 1:
+        return [prefix]
     return [f"{prefix}{i+1}" for i in range(ranges)]
 
 
@@ -28,18 +30,23 @@ def generate_instance_names(params,
     user_name = params.get('user_name')
     range_name = params.get('range_name')
 
+    general_msg(f"Guacamole:  Generating instance names for {range_name}")
     try:
-        general_msg(f"Generating instance names for {range_name}")
-        instance_names = [
-            f"{name}.{user_name}.{u+1}"
-            for name in generate_names(num_ranges, range_name)
-            for u in range(num_users)
-        ]
+        if num_users == 1:
+            instance_names = [f"{range_name}.{user_name}"]
+        else:
+            instance_names = [
+                f"{name}.{user_name}.{u+1}"
+                for name in generate_names(num_ranges, range_name)
+                for u in range(num_users)
+            ]
         info_msg(instance_names, debug)
+
         return instance_names
     except Exception as error:
         error_msg(error)
         return None
+
 
 def generate_users(params, guac_params, debug):
     """Create user list"""
@@ -49,10 +56,16 @@ def generate_users(params, guac_params, debug):
     user_name = params.get('user_name')
     secure = guac_params.get('secure')
 
+    general_msg(f"Guacamole:  Generating user names for {range_name}")
     try:
-        general_msg(f"Generating user names for {range_name}")
-        user_names = [f"{name}.{user_name}.{u+1}" for name in generate_names(
-            num_ranges, range_name) for u in range(num_users)]
+        if num_users == 1:
+            user_names = [f"{range_name}.{user_name}"]
+        else:
+            user_names = [
+                f"{name}.{user_name}.{u+1}"
+                for name in generate_names(num_ranges, range_name)
+                for u in range(num_users)
+            ]
         users_list = {
             user:
                 {
@@ -70,16 +83,23 @@ def generate_users(params, guac_params, debug):
         return None
 
 
-def generate_groups(params, debug):
+def generate_groups(params,
+                    debug=False):
     """Generate a list of group names based on given ranges"""
     num_ranges = params.get('num_ranges')
     range_name = params.get('range_name')
 
+    general_msg(f"Guacamole:  Generating group names for {range_name}")
+    if num_ranges == 1:
+        info_msg("Guacamole:  Generated Group:\n"
+                 f"{range_name}", debug)
+        return [range_name]
+
     try:
-        general_msg(f"Guacamole:  Generating group names for {range_name}")
         instance_names = generate_names(num_ranges, range_name)
         info_msg("Guacamole:  Generated Groups:\n"
                  f"{instance_names}", debug)
+
         return instance_names
     except Exception as error:
         error_msg(error)
