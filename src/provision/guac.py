@@ -7,6 +7,7 @@ Version: 1.0
 Description:
     Handles the logic for provisioning Guacamole
 """
+import time
 import orchestration.guac as guac
 import orchestration.heat as heat
 from utils.generate import generate_groups, generate_users, format_users, format_groups
@@ -94,9 +95,20 @@ def provision(conn,
                                                       debug)
         guac_params['domain_name'] = guac.find_domain_name(heat_params,
                                                            debug)
-        guac_params['instances'] = heat.get_ostack_instances(conn,
-                                                             guac_params['new_groups'],
-                                                             debug)
+        # Get the ostack instances, wait for them to get IP addresses if necessary
+        ostack_complete = False
+        while not ostack_complete:
+            guac_params['instances'] = heat.get_ostack_instances(conn,
+                                                                 guac_params['new_groups'],
+                                                                 debug)
+            for instance in guac_params['instances']:
+                if not instance['hostname']:
+                    info_msg(f"Waiting for {instance['name']}"
+                             f" to get an IP address", debug)
+                    time.sleep(5)
+                    continue
+
+            ostack_complete = True
 
     # Populate the guac_params for deprovision or reprovision
     if not create or update:
