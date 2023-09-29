@@ -1254,12 +1254,8 @@ def parse_response(response: object) -> str:
 
     try:
         # Extract the message from the response
-        message = response.json().get('message')
+        message = json.loads(response.text).get('message', '')
     except json.decoder.JSONDecodeError:
-        return ''
-
-    # If not message, return empty string
-    if not message:
         return ''
 
     return message
