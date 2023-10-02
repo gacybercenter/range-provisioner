@@ -31,22 +31,22 @@ def main():
         # Create dictionaries for parsing
         global_dict = load_global()
         globals = global_dict['globals']
+        debug = globals['debug']
         guacamole_globals = global_dict['guacamole']
         heat_globals = global_dict['heat']
         swift_globals = global_dict['swift']
-        heat_params = load_heat(
-            global_dict['heat']['template_dir']).get('parameters')
-        sec_params = load_sec(
-            global_dict['heat']['template_dir']).get('parameters')
-        env_params = load_env(
-            global_dict['heat']['template_dir']).get('parameters')
-        user_params = load_users(
-            global_dict['heat']['template_dir']).get('parameters')
-        openstack_clouds = load_template(
-            'clouds.yaml')['clouds'][f"{globals['cloud']}"]
-        guacamole_clouds = load_template('clouds.yaml')['clouds']['guac']
-
-        debug = globals['debug']
+        heat_params = load_heat(global_dict['heat']['template_dir'],
+                                debug).get('parameters')
+        sec_params = load_sec(global_dict['heat']['template_dir'],
+                              debug).get('parameters')
+        env_params = load_env(global_dict['heat']['template_dir'],
+                              debug).get('parameters')
+        user_params = load_users(global_dict['heat']['template_dir'],
+                                 debug).get('parameters')
+        openstack_clouds = load_template('clouds.yaml',
+                                         debug)['clouds'][f"{globals['cloud']}"]
+        guacamole_clouds = load_template('clouds.yaml',
+                                         debug)['clouds']['guac']
 
         # Enable debug logging if specified within the globals file
         enable_logging(globals['debug'])
