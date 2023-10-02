@@ -26,6 +26,16 @@ def main():
         None
     """
     try:
+        arg = sys.argv[1:]
+        if len(arg) == 0:
+            error_msg("No arguments provided.\n"
+                      "Args: 'swift', 'heat', 'guacamole', or 'full'")
+            return
+        elif arg[0] not in ["swift", "heat", "guacamole", "full"]:
+            error_msg(f"'{arg[0]}' is an invalid arguement.\n"
+                      "Args: 'swift', 'heat', 'guacamole', or 'full'")
+            return
+
         start = time.time()
 
         # Create dictionaries for parsing
@@ -78,14 +88,7 @@ def main():
         if guacamole_connect:
             success_msg("Connected to Guacamole")
 
-        arg = sys.argv[1:]
-
-        if len(arg) == 0:
-            info_msg(
-                "No arguments provided, please provide: "
-                "'swift', 'heat', or 'guacamole' as an argument.", debug
-            )
-        elif arg[0] == "swift":
+        if arg[0] == "swift":
             swift.provision(openstack_connect, globals, swift_globals, debug)
         elif arg[0] == "heat":
             if env_params:
