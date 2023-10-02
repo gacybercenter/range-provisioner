@@ -11,13 +11,13 @@ def provision(conn: object,
               debug=False) -> None:
     """
     Provisions or deprovisions Swift based on the given parameters.
-    
+
     Args:
         conn (object): The Heat connection object.
         globals (dict): The globals dictionary.
         swift_globals (dict): The Swift globals dictionary.
         debug (bool): The debug flag.
-    
+
     Returns:
         None
     """
@@ -28,7 +28,7 @@ def provision(conn: object,
         info_msg("Global provisioning is set to: "
                  f"{create}", debug)
 
-    # Set the create and update flags from the guacamole globals vars
+    # Set the create and update flags from the swift globals vars
     elif isinstance(swift_globals['provision'], bool) and isinstance(swift_globals['update'], bool):
         create = swift_globals['provision']
         update = swift_globals['update']
