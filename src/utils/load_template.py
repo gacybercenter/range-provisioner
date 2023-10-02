@@ -1,6 +1,6 @@
 from munch import Munch
 from yaml import safe_load
-from utils.msg_format import error_msg, info_msg, general_msg
+from utils.msg_format import error_msg, info_msg, general_msg, success_msg
 
 
 def load_template(template,
@@ -38,7 +38,7 @@ def load_global(debug=False):
     globals_dict = load_template("globals.yaml",
                                  debug)
     if globals_dict:
-        general_msg("Globals loaded")
+        success_msg("Globals loaded")
     else:
         general_msg("No globals found")
     return globals_dict
@@ -65,7 +65,7 @@ def load_heat(heat_template_dir,
     heat_dict = load_template(f"{heat_template_dir}/main.yaml",
                               debug)
     if heat_dict:
-        general_msg(f"{heat_template_dir}/main.yaml loaded")
+        success_msg(f"{heat_template_dir}/main.yaml loaded")
     else:
         general_msg(f"{heat_template_dir}/main.yaml not found")
     return heat_dict
@@ -85,7 +85,7 @@ def load_sec(heat_template_dir,
     security_dict = load_template(f"{heat_template_dir}/sec.yaml",
                                   debug)
     if security_dict:
-        general_msg(f"{heat_template_dir}/sec.yaml loaded")
+        success_msg(f"{heat_template_dir}/sec.yaml loaded")
     else:
         general_msg(f"{heat_template_dir}/sec.yaml not found")
     return security_dict
@@ -106,7 +106,7 @@ def load_env(heat_template_dir,
     environment_dict = load_template(f"{heat_template_dir}/env.yaml",
                                     debug)
     if environment_dict:
-        general_msg(f"{heat_template_dir}/env.yaml loaded")
+        success_msg(f"{heat_template_dir}/env.yaml loaded")
     else:
         general_msg(f"{heat_template_dir}/env.yaml not found")
     return environment_dict
@@ -127,7 +127,7 @@ def load_users(heat_template_dir,
     environment_dict = load_template(f"{heat_template_dir}/users.yaml",
                                     debug)
     if environment_dict:
-        general_msg(f"{heat_template_dir}/users.yaml loaded")
+        success_msg(f"{heat_template_dir}/users.yaml loaded")
     else:
         general_msg(f"{heat_template_dir}/users.yaml not found")
     return environment_dict
