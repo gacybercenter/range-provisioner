@@ -167,14 +167,6 @@ def reprovision(gconn: object,
     success_msg("Updated Guacamole")
 
 
-# TODO(chateaulav): Everything below this point is a work in progress
-#                   and is not currently functional. It belonged to the
-#                   original guac.py file and is being moved here for
-#                   reference purposes.
-
-# TODO(MCcrusade): Yeah, What he said. ^
-
-
 def create_data(guac_params: dict) -> tuple:
     """
     Create data for Guacamole API based on given parameters.
