@@ -1,30 +1,36 @@
+"""
+Handles the logic for generating Heat and Guacamole data
+"""
 import secrets
 import string
-from utils.msg_format import error_msg, info_msg, success_msg, general_msg
+from utils.msg_format import error_msg, info_msg, general_msg
 
 
-def generate_password():
+def generate_password() -> str:
     """
     Generate a random password consisting of 16 characters.
 
     Returns:
         str: The generated password.
     """
+
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for i in range(16))
 
 
-def generate_names(ranges, prefix):
+def generate_names(ranges: int,
+                   prefix: str) -> list:
     """Generate a list of names with a prefix and a range of numbers"""
+
     if ranges == 1:
         return [prefix]
     return [f"{prefix}{i+1}" for i in range(ranges)]
 
 
-def generate_instance_names(params,
-                            guac_params,
+def generate_instance_names(params: dict,
                             debug=False):
     """Generate a list of instance names based on given ranges and names"""
+
     num_ranges = params.get('num_ranges')
     num_users = params.get('num_users')
     user_name = params.get('user_name')
@@ -43,13 +49,17 @@ def generate_instance_names(params,
         info_msg(instance_names, debug)
 
         return instance_names
+
     except Exception as error:
         error_msg(error)
         return None
 
 
-def generate_users(params, guac_params, debug):
-    """Create user list"""
+def generate_users(params: dict,
+                   guac_params: dict,
+                   debug) -> dict | None:
+    """Create a user list based on given ranges"""
+
     num_ranges = params.get('num_ranges')
     num_users = params.get('num_users')
     range_name = params.get('range_name')
@@ -78,14 +88,16 @@ def generate_users(params, guac_params, debug):
                  f"{users_list}", debug)
 
         return users_list
+
     except Exception as error:
         error_msg(error)
         return None
 
 
-def generate_groups(params,
-                    debug=False):
+def generate_groups(params: dict,
+                    debug=False) -> list | None:
     """Generate a list of group names based on given ranges"""
+
     num_ranges = params.get('num_ranges')
     range_name = params.get('range_name')
 
@@ -101,13 +113,14 @@ def generate_groups(params,
                  f"{instance_names}", debug)
 
         return instance_names
+
     except Exception as error:
         error_msg(error)
         return None
 
 
-def format_groups(user_params,
-                 debug=False):
+def format_groups(user_params: dict,
+                 debug=False) -> list:
     """
     Format the users.yaml data into a list of groups.
 
@@ -133,8 +146,8 @@ def format_groups(user_params,
     return groups
 
 
-def format_users(user_params,
-                 debug=False):
+def format_users(user_params: dict,
+                 debug=False) -> dict:
     """
     Format the users.yaml data into a dictionary of user objects.
 

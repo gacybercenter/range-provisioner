@@ -76,13 +76,13 @@ def create(conn: object,
     container = conn.object_store.create_container(name=container_name)
     if not container:
         error_msg("Swift:  Failed to create container "
-                    f"'{container_name}'")
+                  f"'{container_name}'")
         return None
 
     success_msg(f"Swift:  Container '{container_name}' has been created")
     access(conn,
-            container_name,
-            debug)
+           container_name,
+           debug)
     return container
 
 
@@ -96,7 +96,7 @@ def delete(conn: object,
                     debug)
     if not exists:
         error_msg("Swift:  Cannot delete container. "
-                    f"'{container_name}' does not exists")
+                  f"'{container_name}' does not exists")
         return
 
     delete_objs(conn,
@@ -180,7 +180,7 @@ def delete_objs(conn: object,
     if objects:
         for obj in objects:
             conn.delete_object(container_name,
-                                str(obj.name))
+                               str(obj.name))
             general_msg(f"Swift:  Deleted '{obj.name}'")
         success_msg("Swift:  Objects have been deleted "
                     f"from '{container_name}'")
