@@ -45,7 +45,7 @@ def provision(conn,
                  f"{create}", debug)
 
     # Set the create and update flags from the guacamole globals vars
-    elif isinstance(guacamole_globals['provision'], bool):
+    elif isinstance(guacamole_globals['provision'], bool) and isinstance(guacamole_globals['update'], bool):
         create = guacamole_globals['provision']
         update = guacamole_globals['update']
 
@@ -63,8 +63,8 @@ def provision(conn,
 
     else:
         error_msg(
-            "Guacamole ERROR:  Please check the "
-            "provision parameter in globals.yaml"
+            "Guacamole ERROR:  Please check the Guacamole"
+            "provision and update parameters in globals.yaml"
         )
         return
 
