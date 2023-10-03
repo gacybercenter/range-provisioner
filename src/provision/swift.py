@@ -21,12 +21,16 @@ def provision(conn: object,
     Returns:
         None
     """
+
+    endpoint = 'Swift'
+
     # Set the create and update flags from the globals vars
     if isinstance(globals['provision'], bool):
         create = globals['provision']
         update = False
-        info_msg("Global provisioning is set to: "
-                 f"{create}", debug)
+        info_msg(f"Global provisioning is set to '{create}'",
+                 endpoint,
+                 debug)
 
     # Set the create and update flags from the swift globals vars
     elif isinstance(swift_globals['provision'], bool) and isinstance(swift_globals['update'], bool):
@@ -35,20 +39,22 @@ def provision(conn: object,
 
         if not create and update:
             error_msg(
-                "Swift ERROR:  Can't have "
-                "provision: False, update: True in globals.yaml"
+                "Can't have provision: False, update: True in globals.yaml",
+                endpoint
             )
             return
 
-        info_msg("Swift provisioning is set to: "
-                 f"{create}", debug)
-        info_msg("Swift update is set to: "
-                 f"{update}", debug)
+        info_msg(f"Swift provisioning is set to '{create}'",
+                 endpoint,
+                 debug)
+        info_msg(f"Swift update is set to '{update}'",
+                 endpoint,
+                 debug)
 
     else:
         error_msg(
-            "Swift ERROR:  Please check the Swift"
-            "provison and update parameters in globals.yaml"
+            "Please check the Swift provison and update parameters in globals.yaml",
+            endpoint
         )
         return
 

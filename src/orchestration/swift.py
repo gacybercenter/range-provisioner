@@ -12,6 +12,11 @@ def provision(conn: object,
               debug=False) -> None:
     """Provision container and upload assets"""
 
+    endpoint = 'Swift'
+
+    general_msg("Provisioning Swift",
+                endpoint)
+
     try:
         container = create(conn,
                            container_name,
@@ -23,9 +28,14 @@ def provision(conn: object,
                         debug)
         else:
             return
+
     except Exception as error:
-        error_msg(error)
+        error_msg(error,
+                  endpoint)
         return
+
+    success_msg("Provisioned Swift",
+                endpoint)
 
 
 def deprovision(conn: object,
@@ -33,13 +43,23 @@ def deprovision(conn: object,
                 debug=False) -> None:
     """Deprovision container and delete assets"""
 
+    endpoint = 'Swift'
+
+    general_msg("Deprovisioning Swift",
+                endpoint)
+
     try:
         delete(conn,
                container_name,
                debug)
+
     except Exception as error:
-        error_msg(error)
+        error_msg(error,
+                  endpoint)
         return
+
+    success_msg("Deprovisioned Swift",
+                endpoint)
 
 
 def search(conn: object,
@@ -47,14 +67,21 @@ def search(conn: object,
            debug=False) -> list | None:
     """Search if container exists"""
 
-    general_msg(f"Swift:  Searching for '{container_name}' container...")
+    endpoint = 'Swift'
+
+    general_msg(f"Searching for '{container_name}' container...",
+                endpoint)
     result = conn.search_containers(name=container_name)
 
     if result:
-        success_msg(f"Swift:  '{container_name}' container exists")
-        info_msg(result, debug)
+        success_msg(f"'{container_name}' container exists",
+                    endpoint)
+        info_msg(result,
+                 endpoint,
+                 debug)
         return result
-    general_msg(f"Swift:  '{container_name}' container doesn't exist")
+    general_msg(f"'{container_name}' container doesn't exist",
+                endpoint)
     return
 
 
@@ -63,23 +90,26 @@ def create(conn: object,
            debug=False) -> object | None:
     """Create new object store container"""
 
+    endpoint = 'Swift'
+
     exists = search(conn,
                     container_name,
                     debug)
     if exists:
-        error_msg("Swift:  Cannot create container. "
-                  f"'{container_name}' it already exists")
+        error_msg(f"Cannot create container. '{container_name}' already exists",
+                  endpoint)
         return None
 
-    general_msg("Swift:  Creating container "
-                f"'{container_name}' in the object store")
+    general_msg(f"Creating container '{container_name}' in the object store",
+                endpoint)
     container = conn.object_store.create_container(name=container_name)
     if not container:
-        error_msg("Swift:  Failed to create container "
-                  f"'{container_name}'")
+        error_msg(f"Failed to create container '{container_name}'",
+                  endpoint)
         return None
 
-    success_msg(f"Swift:  Container '{container_name}' has been created")
+    success_msg(f"Container '{container_name}' has been created",
+                endpoint)
     access(conn,
            container_name,
            debug)
@@ -91,21 +121,25 @@ def delete(conn: object,
            debug=False) -> None:
     """Delete container from object store"""
 
+    endpoint = 'Swift'
+
     exists = search(conn,
                     container_name,
                     debug)
     if not exists:
-        error_msg("Swift:  Cannot delete container. "
-                  f"'{container_name}' does not exists")
+        error_msg(f"Cannot delete container. '{container_name}' does not exists",
+                  endpoint)
         return
 
     delete_objs(conn,
                 container_name,
                 debug)
-    general_msg(f"Swift:  Deleting container... '{container_name}'")
+    general_msg(f"Deleting container... '{container_name}'",
+                endpoint)
     conn.object_store.delete_container(container_name,
                                        debug)
-    success_msg(f"Swift:  '{container_name}' container has been deleted")
+    success_msg(f"'{container_name}' container has been deleted",
+                endpoint)
 
 
 def access(conn: object,
@@ -113,17 +147,22 @@ def access(conn: object,
            debug=False) -> None:
     """Set container access to public"""
 
+    endpoint = 'Swift'
+
     container = search(conn,
                        container_name,
                        debug)
     if container:
-        general_msg("Swift:  Setting container "
-                    f"'{container_name}' to public")
+        general_msg(f"Setting container '{container_name}' to public",
+                    endpoint)
         result = conn.set_container_access(name=container_name,
                                            access="public")
         if result:
-            success_msg(f"Swift:  Container '{container_name}' is now public")
-            info_msg(result, debug)
+            success_msg(f"Container '{container_name}' is now public",
+                        endpoint)
+            info_msg(result,
+                     endpoint,
+                     debug)
             return result
 
 
@@ -132,6 +171,8 @@ def upload_objs(conn: object,
                 directory: str,
                 debug=False) -> None:
     """Create directory markers and upload objects"""
+
+    endpoint = 'Swift'
 
     # Collect all the files and folders in the given directory
     objs = []
@@ -148,8 +189,8 @@ def upload_objs(conn: object,
                                             dir_mark)
         for dir_mark in dir_markers
     ]
-    success_msg("Swift:  Required directories have been created "
-                f"in the '{container_name}' container")
+    success_msg(f"Required directories created in the '{container_name}' container",
+                endpoint)
 
     # Create objects
     objs = [
@@ -158,15 +199,20 @@ def upload_objs(conn: object,
                            filename=obj)
         for obj in objs
     ]
-    success_msg("Swift:  Objects have been uploaded "
-                f"to the '{container_name}' container")
+    success_msg(f"Objects uploaded to the '{container_name}' container",
+                endpoint)
 
     objects = conn.list_objects(container_name)
     if objects:
-        info_msg(f"Swift:  Listing objects from '{container_name}'", debug)
-        info_msg(json.dumps(objects, indent=4), debug)
+        info_msg(f"Listing objects from '{container_name}'",
+                 endpoint,
+                 debug)
+        info_msg(json.dumps(objects, indent=4),
+                 endpoint,
+                 debug)
         for obj in objects:
-            general_msg(f"Swift:  Uploaded '{obj.name}'")
+            general_msg(f"Uploaded '{obj.name}'",
+                        endpoint)
 
 
 def delete_objs(conn: object,
@@ -174,13 +220,19 @@ def delete_objs(conn: object,
                 debug=False) -> None:
     """Delete container objects"""
 
+    endpoint = 'Swift'
+
     objects = conn.list_objects(container_name)
-    info_msg(json.dumps(objects, indent=4), debug)
-    general_msg(f"Swift:  Deleting objects from '{container_name}'")
+    info_msg(json.dumps(objects, indent=4),
+             endpoint,
+             debug)
+    general_msg(f"Deleting objects from '{container_name}'",
+                endpoint)
     if objects:
         for obj in objects:
             conn.delete_object(container_name,
                                str(obj.name))
-            general_msg(f"Swift:  Deleted '{obj.name}'")
-        success_msg("Swift:  Objects have been deleted "
-                    f"from '{container_name}'")
+            general_msg(f"Deleted '{obj.name}'",
+                        endpoint)
+        success_msg(f"Objects have been deleted from '{container_name}'",
+                    endpoint)

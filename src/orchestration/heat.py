@@ -13,20 +13,26 @@ def provision(conn: object,
               debug=False) -> None:
     """Provision container and upload assets"""
 
-    if update_stack:
-        update(conn,
-               stack,
-               template,
-               parameters,
-               last_stack,
-               debug)
-    else:
-        create(conn,
-               stack,
-               template,
-               parameters,
-               last_stack,
-               debug)
+    endpoint = 'Heat'
+
+    try:
+        if update_stack:
+            update(conn,
+                   stack,
+                   template,
+                   parameters,
+                   last_stack,
+                   debug)
+        else:
+            create(conn,
+                   stack,
+                   template,
+                   parameters,
+                   last_stack,
+                   debug)
+    except Exception as error:
+        error_msg(error,
+                  endpoint)
 
 
 def deprovision(conn: object,
@@ -35,10 +41,16 @@ def deprovision(conn: object,
                 debug=False) -> None:
     """Deprovision container and delete assets"""
 
-    delete(conn,
-           stack,
-           wait,
-           debug)
+    endpoint = 'Heat'
+
+    try:
+        delete(conn,
+               stack,
+               wait,
+               debug)
+    except Exception as error:
+        error_msg(error,
+                  endpoint)
 
 
 def search(conn: object,
@@ -46,13 +58,18 @@ def search(conn: object,
            debug=False) -> list | None:
     """Search for a stack and return the stack if it exists."""
 
-    general_msg(f"Heat:  Searching for stack... {stack_name}")
+    endpoint = 'Heat'
+
+    general_msg(f"Searching for stack... {stack_name}",
+                endpoint)
     result = conn.search_stacks(name_or_id=stack_name)
     if result:
-        success_msg(f"Heat:  {stack_name} stack exists")
+        success_msg(f"{stack_name} stack exists",
+                    endpoint)
         info_msg(result, debug)
         return result
-    general_msg(f"Heat:  {stack_name} stack doesn't exist")
+    general_msg(f"{stack_name} stack doesn't exist",
+                endpoint)
     return None
 
 
@@ -64,14 +81,18 @@ def create(conn: object,
            debug=False) -> None:
     """Create a new stack with the provided parameters."""
 
+    endpoint = 'Heat'
+
     exists = search(conn,
                     stack,
                     debug)
     if exists:
-        error_msg(f"Heat:  The stack '{stack}' already exists")
+        error_msg(f"The stack '{stack}' already exists",
+                  endpoint)
         return None
 
-    general_msg(f"Heat:  Creating stack '{stack}'")
+    general_msg(f"Creating stack '{stack}'",
+                endpoint)
     if parameters is None:
         conn.create_stack(
             name=stack,
@@ -95,7 +116,8 @@ def create(conn: object,
                 wait=last_stack,
                 **parameters,
             )
-    success_msg(f"Heat:  Created '{stack}'")
+    success_msg(f"Created '{stack}'",
+                endpoint)
 
 
 def update(conn: object,
@@ -106,9 +128,12 @@ def update(conn: object,
            debug=False) -> None:
     """Update a deployed stack"""
 
+    endpoint = 'Heat'
+
     exists = search(conn, stack, debug)
     if exists:
-        general_msg(f"Heat:  Updating stack '{stack}'")
+        general_msg(f"Updating stack '{stack}'",
+                    endpoint)
         if parameters is None:
             conn.update_stack(
                 name_or_id=stack,
@@ -124,9 +149,11 @@ def update(conn: object,
                 wait=last_stack,
                 **parameters,
             )
-        success_msg(f"Heat:  '{stack}' has been updated")
+        success_msg(f"'{stack}' has been updated",
+                    endpoint)
     else:
-        error_msg(f"Heat:  '{stack}' cannot be updated, it doesn't exist")
+        error_msg(f"'{stack}' cannot be updated, it doesn't exist",
+                  endpoint)
 
 
 def delete(conn: object,
@@ -135,14 +162,21 @@ def delete(conn: object,
            debug=False) -> None:
     """Delete a deployed stack"""
 
-    exists = search(conn, stack, debug)
+    endpoint = 'Heat'
+
+    exists = search(conn,
+                    stack,
+                    debug)
     if exists:
-        general_msg(f"Heat:  Deleting stack '{stack}'")
+        general_msg(f"Deleting stack '{stack}'",
+                    endpoint)
         conn.delete_stack(name_or_id=stack, wait=wait)
-        success_msg(f"Heat:  The stack '{stack}' has been deleted")
+        success_msg(f"The stack '{stack}' has been deleted",
+                    endpoint)
     else:
         error_msg(
-            f"Heat:  The stack '{stack}' cannot be deleted, it doesn't exist")
+            f"The stack '{stack}' cannot be deleted, it doesn't exist",
+            endpoint)
 
 
 def get_ostack_instances(conn: object,
@@ -164,6 +198,9 @@ def get_ostack_instances(conn: object,
                 - public_v4 (str): The public IPv4 address of the instance.
                 - private_v4 (str): The private IPv4 address of the instance.
     """
+
+    endpoint = 'Heat'
+
     instances = [
         {
             'name': instance['name'],
@@ -173,6 +210,9 @@ def get_ostack_instances(conn: object,
         if instance['name'].split('.')[0] in groups
     ]
 
-    general_msg(f"Heat:  Retrieved stack instances in {groups}")
-    info_msg(instances, debug)
+    general_msg(f"Retrieved stack instances in {groups}",
+                endpoint)
+    info_msg(instances,
+             endpoint,
+             debug)
     return instances
