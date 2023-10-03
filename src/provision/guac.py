@@ -11,7 +11,7 @@ import time
 import orchestration.guac as guac
 import orchestration.heat as heat
 from utils.generate import generate_groups, generate_users, format_users, format_groups
-from utils.msg_format import error_msg, info_msg
+from utils.msg_format import error_msg, info_msg, general_msg
 
 
 def provision(conn,
@@ -37,12 +37,15 @@ def provision(conn,
         None
     """
 
+    endpoint = 'Guacamole'
+
     # Set the create and update flags from the globals vars
     if isinstance(globals['provision'], bool):
         create = globals['provision']
         update = False
-        info_msg("Global provisioning is set to: "
-                 f"{create}", debug)
+        info_msg(f"Global provisioning is set to {create}",
+                 endpoint,
+                 debug)
 
     # Set the create and update flags from the guacamole globals vars
     elif isinstance(guacamole_globals['provision'], bool) and isinstance(guacamole_globals['update'], bool):
@@ -51,20 +54,22 @@ def provision(conn,
 
         if not create and update:
             error_msg(
-                "Guacamole ERROR:  Can't have "
-                "provision: False, update: True in globals.yaml"
+                "Can't have provision: False, update: True in globals.yaml",
+                endpoint
             )
             return
 
-        info_msg("Guacamole provisioning is set to: "
-                 f"{create}", debug)
-        info_msg("Guacamole update is set to: "
-                 f"{update}", debug)
+        info_msg(f"Guacamole provisioning is set to '{create}'",
+                 endpoint,
+                 debug)
+        info_msg(f"Guacamole update is set to '{update}'",
+                 endpoint,
+                 debug)
 
     else:
         error_msg(
-            "Guacamole ERROR:  Please check the Guacamole"
-            "provision and update parameters in globals.yaml"
+            "Please check the Guacamole provision and update parameters in globals.yaml",
+            endpoint
         )
         return
 
@@ -103,8 +108,8 @@ def provision(conn,
                                                                  debug)
             for instance in guac_params['instances']:
                 if not instance['hostname']:
-                    info_msg(f"Waiting for {instance['name']}"
-                             f" to get an IP address", debug)
+                    general_msg(f"Waiting for {instance['name']} to get an IP address",
+                                endpoint)
                     time.sleep(5)
                     continue
 

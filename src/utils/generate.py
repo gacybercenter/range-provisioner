@@ -20,7 +20,16 @@ def generate_password() -> str:
 
 def generate_names(ranges: int,
                    prefix: str) -> list:
-    """Generate a list of names with a prefix and a range of numbers"""
+    """
+    Generate a list of names with a prefix and a range of numbers
+
+    Args:
+        ranges (int): The number of names to generate.
+        prefix (str): The prefix for the names.
+
+    Returns:
+        list: The generated names
+    """
 
     if ranges == 1:
         return [prefix]
@@ -29,14 +38,25 @@ def generate_names(ranges: int,
 
 def generate_instance_names(params: dict,
                             debug=False):
-    """Generate a list of instance names based on given ranges and names"""
+    """
+    Generate a list of instance names based on given ranges and names
+
+    Args:
+        params (dict): The parameters for the generation
+        debug (bool): A flag indicating whether to enable debug mode.
+
+    Returns:
+        list: The generated instance names
+    """
 
     num_ranges = params.get('num_ranges')
     num_users = params.get('num_users')
     user_name = params.get('user_name')
     range_name = params.get('range_name')
+    endpoint = 'Generate'
 
-    general_msg(f"Guacamole:  Generating instance names for {range_name}")
+    general_msg(f"Generating instance names for {range_name}",
+                endpoint)
     try:
         if num_users == 1:
             instance_names = [f"{range_name}.{user_name}"]
@@ -51,7 +71,7 @@ def generate_instance_names(params: dict,
         return instance_names
 
     except Exception as error:
-        error_msg(error)
+        error_msg(error, endpoint)
         return None
 
 
@@ -65,8 +85,10 @@ def generate_users(params: dict,
     range_name = params.get('range_name')
     user_name = params.get('user_name')
     secure = guac_params.get('secure')
+    endpoint = 'Generate'
 
-    general_msg(f"Guacamole:  Generating user names for {range_name}")
+    general_msg(f"Generating user names for {range_name}",
+                endpoint)
     try:
         if num_users == 1:
             user_names = [f"{range_name}.{user_name}"]
@@ -82,15 +104,16 @@ def generate_users(params: dict,
                     'password': generate_password() if secure
                     else {user: range_name, 'instances': user},
                     'instances': [user]
-                }   for user in user_names
-            }
-        info_msg("Guacamole:  Generated Users:\n"
-                 f"{users_list}", debug)
+                } for user in user_names
+        }
+        info_msg(users_list,
+                 endpoint,
+                 debug)
 
         return users_list
 
     except Exception as error:
-        error_msg(error)
+        error_msg(error, endpoint)
         return None
 
 
@@ -100,27 +123,30 @@ def generate_groups(params: dict,
 
     num_ranges = params.get('num_ranges')
     range_name = params.get('range_name')
+    endpoint = 'Generate'
 
-    general_msg(f"Guacamole:  Generating group names for {range_name}")
+    general_msg(f"Generating group names for {range_name}",
+                endpoint)
     if num_ranges == 1:
-        info_msg("Guacamole:  Generated Group:\n"
-                 f"{range_name}", debug)
+        info_msg(range_name,
+                 endpoint,
+                 debug)
         return [range_name]
 
     try:
         instance_names = generate_names(num_ranges, range_name)
-        info_msg("Guacamole:  Generated Groups:\n"
-                 f"{instance_names}", debug)
-
+        info_msg(range_name,
+                 endpoint,
+                 debug)
         return instance_names
 
     except Exception as error:
-        error_msg(error)
+        error_msg(error, endpoint)
         return None
 
 
 def format_groups(user_params: dict,
-                 debug=False) -> list:
+                  debug=False) -> list:
     """
     Format the users.yaml data into a list of groups.
 
@@ -131,6 +157,7 @@ def format_groups(user_params: dict,
         list: The group names present in the users.yaml
     """
 
+    endpoint = 'Generate'
     groups = []
 
     for data in user_params.values():
@@ -140,8 +167,11 @@ def format_groups(user_params: dict,
             if group not in groups:
                 groups.append(group)
 
-    general_msg("Guacamole:  Retrieved groups from users.yaml")
-    info_msg(f"{groups}", debug)
+    general_msg("Retrieved groups from users.yaml",
+                endpoint)
+    info_msg(groups,
+             endpoint,
+             debug)
 
     return groups
 
@@ -158,6 +188,7 @@ def format_users(user_params: dict,
         dict: The formated users dictionary.
     """
 
+    endpoint = 'Generate'
     users = {}
 
     for username, data in user_params.items():
@@ -169,7 +200,10 @@ def format_users(user_params: dict,
         }
         users.update(user)
 
-    general_msg("Guacamole:  Retrieved users from users.yaml")
-    info_msg(f"{users}", debug)
+    general_msg("Retrieved users from users.yaml",
+                endpoint)
+    info_msg(users,
+             endpoint,
+             debug)
 
     return users

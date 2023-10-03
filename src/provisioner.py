@@ -5,6 +5,7 @@ Provisioning and deprovisioning for swift, heat, and guacamole
 """
 import json
 import logging
+import traceback
 import sys
 import time
 from guacamole import session
@@ -30,16 +31,25 @@ def main():
     Returns:
         None
     """
+
+    endpoint = 'Pipeline'
+
     try:
         # Parse and validate command line arguments
         arg = sys.argv[1:]
         if len(arg) == 0:
-            error_msg("No arguments provided.")
-            general_msg("Valid arguments: 'swift', 'heat', 'guacamole', or 'full'")
+            error_msg("No arguments provided.",
+                      endpoint)
+            general_msg(
+                "Valid arguments: 'swift', 'heat', 'guacamole', or 'full'",
+                endpoint)
             return
         elif arg[0] not in ["swift", "heat", "guacamole", "full"]:
-            error_msg(f"'{arg[0]}' is an invalid arguement.")
-            general_msg("Valid arguments: 'swift', 'heat', 'guacamole', or 'full'")
+            error_msg(f"'{arg[0]}' is an invalid arguement.",
+                      endpoint)
+            general_msg(
+                "Valid arguments: 'swift', 'heat', 'guacamole', or 'full'",
+                endpoint)
             return
 
         start = time.time()
@@ -74,11 +84,21 @@ def main():
             logging.getLogger("keystoneauth").setLevel(logging.CRITICAL)
 
         # Dump the dictionaries to the console
-        info_msg(json.dumps(global_dict, indent=4), debug)
-        info_msg(json.dumps(heat_params, indent=4), debug)
-        info_msg(json.dumps(sec_params, indent=4), debug)
-        info_msg(json.dumps(env_params, indent=4), debug)
-        info_msg(json.dumps(user_params, indent=4), debug)
+        info_msg(json.dumps(global_dict, indent=4),
+                 endpoint,
+                 debug)
+        info_msg(json.dumps(heat_params, indent=4),
+                 endpoint,
+                 debug)
+        info_msg(json.dumps(sec_params, indent=4),
+                 endpoint,
+                 debug)
+        info_msg(json.dumps(env_params, indent=4),
+                 endpoint,
+                 debug)
+        info_msg(json.dumps(user_params, indent=4),
+                 endpoint,
+                 debug)
 
         # Connect to OpenStack
         general_msg("Connecting to OpenStack...")
@@ -86,7 +106,8 @@ def main():
         general_msg(f"Project: {openstack_clouds['auth']['project_name']}")
         openstack_connect = connect(cloud=globals['cloud'])
         if openstack_connect:
-            success_msg("Connected to OpenStack")
+            success_msg("Connected to OpenStack",
+                        endpoint)
 
         # Connect to Guacamole
         general_msg("Connecting to Guacamole...")
@@ -96,7 +117,8 @@ def main():
                                     guacamole_clouds['user'],
                                     guacamole_clouds['password'])
         if guacamole_connect:
-            success_msg("Connected to Guacamole")
+            success_msg("Connected to Guacamole",
+                        endpoint)
 
         # Provision 'swift', 'heat', and or 'guacamole'
         if arg[0] == "swift":
@@ -166,10 +188,14 @@ def main():
                            debug)
 
         end = time.time()
-        general_msg(f"Total time: {end - start:.2f} seconds")
+        general_msg(f"Total time: {end - start:.2f} seconds",
+                    endpoint)
 
     except Exception as error:
-        error_msg(error)
+        error_msg(f"Error: {error}.\nTraceback: {traceback.format_exc()}",
+                  endpoint)
+
+        sys.exit(1)
 
 
 if __name__ == '__main__':

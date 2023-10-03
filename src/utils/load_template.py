@@ -7,23 +7,36 @@ def load_template(template,
                   debug=False):
     """ 
     Load a template file and return a dictionary
-    
+
     Args:
         template (str): The path to the template file.
     Returns:
         dict: A dictionary containing the template parameters.
     """
+
+    endpoint = 'Templates'
+
+    info_msg(f"Loading {template}",
+                endpoint,
+                debug)
+
     try:
-        info_msg(f"Loading {template}", debug)
         with open(template, 'r', encoding='utf-8') as file:
             parameters = Munch(safe_load(file))
+
     except FileNotFoundError:
-        info_msg(f"Cannot find {template}")
+        info_msg(f"Cannot find {template}",
+                 endpoint,
+                 debug)
         return {}
+
     except Exception as error:
-        error_msg(f"Cannot load template \n  ({error})")
+        error_msg(f"Cannot load template. {error}",
+                  endpoint)
         return {}
+
     return parameters
+
 
 def load_global(debug=False):
     """
@@ -35,13 +48,20 @@ def load_global(debug=False):
     Raises:
         Exception: If there is an error while loading the template file.
     """
+
+    endpoint = 'Templates'
+
     globals_dict = load_template("globals.yaml",
                                  debug)
     if globals_dict:
-        success_msg("Globals loaded")
+        success_msg("Globals loaded",
+                    endpoint)
     else:
-        general_msg("No globals found")
+        general_msg("No globals found",
+                    endpoint)
+
     return globals_dict
+
 
 def load_heat(heat_template_dir,
               debug=False):
@@ -62,12 +82,18 @@ def load_heat(heat_template_dir,
 
     Note: The `load_template` and `general_msg` functions are assumed to be defined elsewhere.
     """
+
+    endpoint = 'Templates'
+
     heat_dict = load_template(f"{heat_template_dir}/main.yaml",
                               debug)
     if heat_dict:
-        success_msg(f"{heat_template_dir}/main.yaml loaded")
+        success_msg(f"'{heat_template_dir}/main.yaml' loaded",
+                    endpoint)
     else:
-        general_msg(f"{heat_template_dir}/main.yaml not found")
+        general_msg(f"'{heat_template_dir}/main.yaml' not found",
+                    endpoint)
+
     return heat_dict
 
 
@@ -82,12 +108,18 @@ def load_sec(heat_template_dir,
     Returns:
         dict: A dictionary containing the loaded security template, or {} if an error occurred.
     """
+
+    endpoint = 'Templates'
+
     security_dict = load_template(f"{heat_template_dir}/sec.yaml",
                                   debug)
     if security_dict:
-        success_msg(f"{heat_template_dir}/sec.yaml loaded")
+        success_msg(f"'{heat_template_dir}/sec.yaml' loaded",
+                    endpoint)
     else:
-        general_msg(f"{heat_template_dir}/sec.yaml not found")
+        general_msg(f"'{heat_template_dir}/sec.yaml' not found",
+                    endpoint)
+
     return security_dict
 
 
@@ -103,12 +135,18 @@ def load_env(heat_template_dir,
         environment_dict (dict): The environment dictionary loaded from the heat template.
         {}: If there was an error loading the template or any exception occurred.
     """
+
+    endpoint = 'Templates'
+
     environment_dict = load_template(f"{heat_template_dir}/env.yaml",
-                                    debug)
+                                     debug)
     if environment_dict:
-        success_msg(f"{heat_template_dir}/env.yaml loaded")
+        success_msg(f"'{heat_template_dir}/env.yaml' loaded",
+                    endpoint)
     else:
-        general_msg(f"{heat_template_dir}/env.yaml not found")
+        general_msg(f"'{heat_template_dir}/env.yaml' not found",
+                    endpoint)
+
     return environment_dict
 
 
@@ -124,10 +162,16 @@ def load_users(heat_template_dir,
         dict: A dictionary containing the loaded environment configuration from the Heat template.
             If an error occurs during the loading process, {} is returned.
     """
+
+    endpoint = 'Templates'
+
     environment_dict = load_template(f"{heat_template_dir}/users.yaml",
-                                    debug)
+                                     debug)
     if environment_dict:
-        success_msg(f"{heat_template_dir}/users.yaml loaded")
+        success_msg(f"'{heat_template_dir}/users.yaml' loaded",
+                    endpoint)
     else:
-        general_msg(f"{heat_template_dir}/users.yaml not found")
+        general_msg(f"'{heat_template_dir}/users.yaml' not found",
+                    endpoint)
+
     return environment_dict

@@ -15,12 +15,15 @@ def provision(conn: object,
               debug=False) -> bool:
     """ Provisions or deprovisions Heat based on the given parameters. """
 
+    endpoint = 'Heat'
+
     # Set the create and update flags from the globals vars
     if isinstance(globals['provision'], bool):
         create = globals['provision']
         update = False
-        info_msg("Global provisioning is set to: "
-                 f"{create}", debug)
+        info_msg(f"Global provisioning is set to '{create}'",
+                 endpoint,
+                 debug)
 
     # Set the create and update flags from the heat globals vars
     elif isinstance(heat_globals['provision'], bool) and isinstance(heat_globals['update'], bool):
@@ -29,20 +32,22 @@ def provision(conn: object,
 
         if not create and update:
             error_msg(
-                "Heat ERROR:  Can't have "
-                "provision: False, update: True in globals.yaml"
+                "Can't have provision: False, update: True in globals.yaml",
+                endpoint
             )
             return
 
-        info_msg("Heat provisioning is set to: "
-                 f"{create}", debug)
-        info_msg("Heat update is set to: "
-                 f"{update}", debug)
+        info_msg(f"provisioning is set to '{create}'",
+                 endpoint,
+                 debug)
+        info_msg(f"update is set to '{update}'",
+                 endpoint,
+                 debug)
 
     else:
         error_msg(
-            "Heat ERROR:  Please check the Heat"
-            "provison and update parameters in globals.yaml"
+            "Please check the Heat provison and update parameters in globals.yaml",
+            endpoint
         )
         return
 
@@ -80,7 +85,8 @@ def provision(conn: object,
                            debug)
             time.sleep(heat_globals['pause'])
         else:
-            general_msg("No security group parameters were provided")
+            general_msg("No security group parameters were provided",
+                        endpoint)
         for name in stack_names:
             last_stack = name == stack_names[-1]
             heat.provision(conn,
