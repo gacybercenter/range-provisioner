@@ -36,18 +36,25 @@ def main():
         # Parse and validate command line arguments
         arg = sys.argv[1:]
         if len(arg) == 0:
-            error_msg("No arguments provided.",
-                      endpoint)
+            error_msg(
+                "No arguments provided.",
+                endpoint
+            )
             general_msg(
                 "Valid arguments: 'swift', 'heat', 'guacamole', or 'full'",
-                endpoint)
+                endpoint
+            )
             return
-        elif arg[0] not in ["swift", "heat", "guacamole", "full"]:
-            error_msg(f"'{arg[0]}' is an invalid arguement.",
-                      endpoint)
+
+        if arg[0] not in ["swift", "heat", "guacamole", "full"]:
+            error_msg(
+                f"'{arg[0]}' is an invalid arguement.",
+                endpoint
+            )
             general_msg(
                 "Valid arguments: 'swift', 'heat', 'guacamole', or 'full'",
-                endpoint)
+                endpoint
+            )
             return
 
         start = time.time()
