@@ -10,9 +10,7 @@ import sys
 import time
 from guacamole import session
 from openstack import connect, enable_logging
-from provision import heat
-from provision import swift
-from provision import guac
+from provision import swift, heat, guac
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 from utils.load_template import load_global, load_heat, load_sec, load_env, load_users, load_template
 from utils.manage_ids import update_ids, update_env
@@ -101,17 +99,25 @@ def main():
                  debug)
 
         # Connect to OpenStack
-        general_msg("Connecting to OpenStack...")
-        general_msg(f"Endpoint: {openstack_clouds['auth']['auth_url']}")
-        general_msg(f"Project: {openstack_clouds['auth']['project_name']}")
+        general_msg("Connecting to OpenStack...",
+                    endpoint)
+        info_msg(f"Endpoint: {openstack_clouds['auth']['auth_url']}",
+                 endpoint,
+                 debug)
+        info_msg(f"Project: {openstack_clouds['auth']['project_name']}",
+                 endpoint,
+                 debug)
         openstack_connect = connect(cloud=globals['cloud'])
         if openstack_connect:
             success_msg("Connected to OpenStack",
                         endpoint)
 
         # Connect to Guacamole
-        general_msg("Connecting to Guacamole...")
-        general_msg(f"Endpoint: {guacamole_globals['guac_host']}")
+        general_msg("Connecting to Guacamole...",
+                    endpoint)
+        info_msg(f"Endpoint: {guacamole_globals['guac_host']}",
+                 endpoint,
+                 debug)
         guacamole_connect = session(guacamole_globals['guac_host'],
                                     'mysql',
                                     guacamole_clouds['user'],
