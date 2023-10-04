@@ -3,7 +3,7 @@ Handles the logic for generating Heat and Guacamole data
 """
 import secrets
 import string
-from utils.msg_format import error_msg, info_msg, general_msg
+from utils.msg_format import info_msg, general_msg
 
 
 def generate_password() -> str:
@@ -15,6 +15,7 @@ def generate_password() -> str:
     """
 
     alphabet = string.ascii_letters + string.digits
+
     return ''.join(secrets.choice(alphabet) for i in range(16))
 
 
@@ -33,6 +34,7 @@ def generate_names(ranges: int,
 
     if ranges == 1:
         return [prefix]
+
     return [f"{prefix}{i+1}" for i in range(ranges)]
 
 
@@ -57,22 +59,18 @@ def generate_instance_names(params: dict,
 
     general_msg(f"Generating instance names for {range_name}",
                 endpoint)
-    try:
-        if num_users == 1:
-            instance_names = [f"{range_name}.{user_name}"]
-        else:
-            instance_names = [
-                f"{name}.{user_name}.{u+1}"
-                for name in generate_names(num_ranges, range_name)
-                for u in range(num_users)
-            ]
-        info_msg(instance_names, debug)
 
-        return instance_names
+    if num_users == 1:
+        instance_names = [f"{range_name}.{user_name}"]
+    else:
+        instance_names = [
+            f"{name}.{user_name}.{u+1}"
+            for name in generate_names(num_ranges, range_name)
+            for u in range(num_users)
+        ]
+    info_msg(instance_names, debug)
 
-    except Exception as error:
-        error_msg(error, endpoint)
-        return None
+    return instance_names
 
 
 def generate_users(params: dict,
@@ -89,32 +87,28 @@ def generate_users(params: dict,
 
     general_msg(f"Generating user names for {range_name}",
                 endpoint)
-    try:
-        if num_users == 1:
-            user_names = [f"{range_name}.{user_name}"]
-        else:
-            user_names = [
-                f"{name}.{user_name}.{u+1}"
-                for name in generate_names(num_ranges, range_name)
-                for u in range(num_users)
-            ]
-        users_list = {
-            user:
-                {
-                    'password': generate_password() if secure
-                    else {user: range_name, 'instances': user},
-                    'instances': [user]
-                } for user in user_names
-        }
-        info_msg(users_list,
-                 endpoint,
-                 debug)
 
-        return users_list
+    if num_users == 1:
+        user_names = [f"{range_name}.{user_name}"]
+    else:
+        user_names = [
+            f"{name}.{user_name}.{u+1}"
+            for name in generate_names(num_ranges, range_name)
+            for u in range(num_users)
+        ]
+    users_list = {
+        user:
+            {
+                'password': generate_password() if secure
+                else {user: range_name, 'instances': user},
+                'instances': [user]
+            } for user in user_names
+    }
+    info_msg(users_list,
+                endpoint,
+                debug)
 
-    except Exception as error:
-        error_msg(error, endpoint)
-        return None
+    return users_list
 
 
 def generate_groups(params: dict,
@@ -127,22 +121,14 @@ def generate_groups(params: dict,
 
     general_msg(f"Generating group names for {range_name}",
                 endpoint)
-    if num_ranges == 1:
-        info_msg(range_name,
-                 endpoint,
-                 debug)
-        return [range_name]
 
-    try:
-        instance_names = generate_names(num_ranges, range_name)
-        info_msg(range_name,
-                 endpoint,
-                 debug)
-        return instance_names
+    instance_names = generate_names(num_ranges,
+                                    range_name)
+    info_msg(range_name,
+                endpoint,
+                debug)
 
-    except Exception as error:
-        error_msg(error, endpoint)
-        return None
+    return instance_names
 
 
 def format_groups(user_params: dict,
