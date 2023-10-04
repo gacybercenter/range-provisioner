@@ -8,8 +8,8 @@ Description:
     Handles the logic for provisioning Guacamole
 """
 import time
-import orchestration.guac as guac
-import orchestration.heat as heat
+from orchestration import guac
+from orchestration import heat
 from utils.generate import generate_groups, generate_users, format_users, format_groups
 from utils.msg_format import error_msg, info_msg, general_msg
 
@@ -48,7 +48,8 @@ def provision(conn,
                  debug)
 
     # Set the create and update flags from the guacamole globals vars
-    elif isinstance(guacamole_globals['provision'], bool) and isinstance(guacamole_globals['update'], bool):
+    elif (isinstance(guacamole_globals['provision'], bool) and
+          isinstance(guacamole_globals['update'], bool)):
         create = guacamole_globals['provision']
         update = guacamole_globals['update']
 

@@ -32,42 +32,36 @@ def provision(gconn: object,
     general_msg("Provisioning Guacamole",
                 endpoint)
 
-    try:
-        # Generate the create data
-        create_vars, guacd_ips = create_data(guac_params)
+    # Generate the create data
+    create_vars, guacd_ips = create_data(guac_params)
 
-        # Create connection groups
-        conn_groups = create_conn_groups(gconn,
-                                         create_vars['groups'],
-                                         guac_params['parent_group_id'],
-                                         guac_params['org_name'],
-                                         debug)
+    # Create connection groups
+    conn_groups = create_conn_groups(gconn,
+                                     create_vars['groups'],
+                                     guac_params['parent_group_id'],
+                                     guac_params['org_name'],
+                                     debug)
 
-        # Create user accounts
-        create_user_accts(gconn,
-                          create_vars['users'],
-                          guac_params['org_name'],
-                          debug)
+    # Create user accounts
+    create_user_accts(gconn,
+                      create_vars['users'],
+                      guac_params['org_name'],
+                      debug)
 
-        # Create user connections
-        conns = create_user_conns(gconn,
-                                  create_vars['conns'],
-                                  conn_groups,
-                                  guacd_ips,
-                                  debug)
+    # Create user connections
+    conns = create_user_conns(gconn,
+                              create_vars['conns'],
+                              conn_groups,
+                              guacd_ips,
+                              debug)
 
-        # Associate user connections
-        associate_user_conns(gconn,
-                             create_vars['mappings'],
-                             guac_params['org_name'],
-                             conn_groups,
-                             conns,
-                             debug)
-
-    except Exception as error:
-        error_msg(error,
-                  endpoint)
-        return
+    # Associate user connections
+    associate_user_conns(gconn,
+                         create_vars['mappings'],
+                         guac_params['org_name'],
+                         conn_groups,
+                         conns,
+                         debug)
 
     success_msg("Provisioned Guacamole",
                 endpoint)
@@ -93,29 +87,23 @@ def deprovision(gconn: object,
     general_msg("Deprovisioning Guacamole",
                 endpoint)
 
-    try:
-        # Generate the delete data
-        delete_vars = delete_data(guac_params)
+    # Generate the delete data
+    delete_vars = delete_data(guac_params)
 
-        # Delete connection groups
-        delete_conn_groups(gconn,
-                           delete_vars['groups'],
-                           debug)
+    # Delete connection groups
+    delete_conn_groups(gconn,
+                       delete_vars['groups'],
+                       debug)
 
-        # Delete user accounts
-        delete_user_accts(gconn,
-                          delete_vars['users'],
-                          debug)
+    # Delete user accounts
+    delete_user_accts(gconn,
+                      delete_vars['users'],
+                      debug)
 
-        # Delete user connections
-        delete_user_conns(gconn,
-                          delete_vars['conns'],
-                          debug)
-
-    except Exception as error:
-        error_msg(error,
-                  endpoint)
-        return
+    # Delete user connections
+    delete_user_conns(gconn,
+                      delete_vars['conns'],
+                      debug)
 
     success_msg("Deprovisioned Guacamole",
                 endpoint)
@@ -141,57 +129,51 @@ def reprovision(gconn: object,
     general_msg("Updating Guacamole",
                 endpoint)
 
-    try:
-        # Generate the update data
-        create_vars, delete_vars, guacd_ips = update_data(guac_params)
+    # Generate the update data
+    create_vars, delete_vars, guacd_ips = update_data(guac_params)
 
-        # Delete connection groups
-        delete_conn_groups(gconn,
-                           delete_vars['groups'],
-                           debug)
+    # Delete connection groups
+    delete_conn_groups(gconn,
+                       delete_vars['groups'],
+                       debug)
 
-        # Delete user accounts
-        delete_user_accts(gconn,
-                          delete_vars['users'],
-                          debug)
+    # Delete user accounts
+    delete_user_accts(gconn,
+                      delete_vars['users'],
+                      debug)
 
-        # Delete user connections
-        delete_user_conns(gconn,
-                          delete_vars['conns'],
-                          debug)
+    # Delete user connections
+    delete_user_conns(gconn,
+                      delete_vars['conns'],
+                      debug)
 
-        # Create connection groups
-        conn_groups = create_conn_groups(gconn,
-                                         create_vars['groups'],
-                                         guac_params['parent_group_id'],
-                                         guac_params['org_name'],
-                                         debug)
+    # Create connection groups
+    conn_groups = create_conn_groups(gconn,
+                                     create_vars['groups'],
+                                     guac_params['parent_group_id'],
+                                     guac_params['org_name'],
+                                     debug)
 
-        # Create user accounts
-        create_user_accts(gconn,
-                          create_vars['users'],
-                          guac_params['org_name'],
-                          debug)
+    # Create user accounts
+    create_user_accts(gconn,
+                      create_vars['users'],
+                      guac_params['org_name'],
+                      debug)
 
-        # Create user connections
-        conns = create_user_conns(gconn,
-                                  create_vars['conns'],
-                                  conn_groups,
-                                  guacd_ips,
-                                  debug)
+    # Create user connections
+    conns = create_user_conns(gconn,
+                              create_vars['conns'],
+                              conn_groups,
+                              guacd_ips,
+                              debug)
 
-        # Associate user connections with user accounts and connection groups
-        associate_user_conns(gconn,
-                             create_vars['mappings'],
-                             guac_params['org_name'],
-                             conn_groups,
-                             conns,
-                             debug)
-
-    except Exception as error:
-        error_msg(error,
-                  endpoint)
-        return
+    # Associate user connections with user accounts and connection groups
+    associate_user_conns(gconn,
+                         create_vars['mappings'],
+                         guac_params['org_name'],
+                         conn_groups,
+                         conns,
+                         debug)
 
     success_msg("Updated Guacamole",
                 endpoint)
@@ -1306,8 +1288,9 @@ def find_domain_name(heat_params: dict,
         domain_name = heat_params['domain_name']['default']
 
     except KeyError:
-        general_msg("Did not find a domain name",
-                    endpoint)
+        info_msg("Did not find a domain name",
+                 endpoint,
+                 debug)
         return ''
 
     general_msg(f"Retrieved domain name '{domain_name}'",

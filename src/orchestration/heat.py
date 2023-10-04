@@ -15,24 +15,26 @@ def provision(conn: object,
 
     endpoint = 'Heat'
 
-    try:
-        if update_stack:
-            update(conn,
-                   stack,
-                   template,
-                   parameters,
-                   last_stack,
-                   debug)
-        else:
-            create(conn,
-                   stack,
-                   template,
-                   parameters,
-                   last_stack,
-                   debug)
-    except Exception as error:
-        error_msg(error,
-                  endpoint)
+    general_msg("Provisioning Heat",
+                endpoint)
+
+    if update_stack:
+        update(conn,
+                stack,
+                template,
+                parameters,
+                last_stack,
+                debug)
+    else:
+        create(conn,
+                stack,
+                template,
+                parameters,
+                last_stack,
+                debug)
+        
+    success_msg("Provisioned Heat",
+                endpoint)
 
 
 def deprovision(conn: object,
@@ -43,14 +45,16 @@ def deprovision(conn: object,
 
     endpoint = 'Heat'
 
-    try:
-        delete(conn,
-               stack,
-               wait,
-               debug)
-    except Exception as error:
-        error_msg(error,
-                  endpoint)
+    general_msg("Deprovisioning Heat",
+                endpoint)
+
+    delete(conn,
+            stack,
+            wait,
+            debug)
+
+    success_msg("Deprovisioned Heat",
+                endpoint)
 
 
 def search(conn: object,
