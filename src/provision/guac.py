@@ -86,6 +86,8 @@ def provision(conn,
         guac_params['protocol'] = heat_params['conn_proto']['default']
         guac_params['password'] = heat_params['password']['default']
         guac_params['username'] = heat_params['username']['default']
+        guac_params['recording'] = guacamole_globals['recording']
+        guac_params['sharing'] = guacamole_globals['sharing']
         # Format the users.yaml data into groups and users data
         if user_params:
             guac_params['new_groups'] = format_groups(user_params,
@@ -129,6 +131,12 @@ def provision(conn,
         guac_params['conn_list'] = guac.get_conns(gconn,
                                                   guac_params['conn_group_ids'],
                                                   debug)
+
+    # Populate the guac_params for sharing
+    if update:
+        guac_params['conn_sharing'] = guac.get_sharing(gconn,
+                                                       guac_params['conn_list'],
+                                                        debug)
 
     # Provision, deprovision, or reprovision
     if update:

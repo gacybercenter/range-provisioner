@@ -55,6 +55,13 @@ def provision(gconn: object,
                               guacd_ips,
                               debug)
 
+    # Create sharing profiles
+    create_sharing_profiles(gconn,
+                            create_vars['sharings'],
+                            conns,
+                            debug)
+
+
     # Associate user connections
     associate_user_conns(gconn,
                          create_vars['mappings'],
@@ -167,6 +174,12 @@ def reprovision(gconn: object,
                               guacd_ips,
                               debug)
 
+    # Create sharing profiles
+    create_sharing_profiles(gconn,
+                            create_vars['sharings'],
+                            conns,
+                            debug)
+
     # Associate user connections with user accounts and connection groups
     associate_user_conns(gconn,
                          create_vars['mappings'],
@@ -194,6 +207,8 @@ def create_data(guac_params: dict) -> tuple:
     new_users = guac_params['new_users']
     new_groups = guac_params['new_groups']
     instances = guac_params['instances']
+    recording = guac_params['recording']
+    sharing = guac_params['sharing']
     guacd_ips = {}
 
     # Process each instance
@@ -207,7 +222,10 @@ def create_data(guac_params: dict) -> tuple:
             "domain": guac_params['domain_name'],
             "port": "3389" if instance['protocol'] == "rdp" else "22",
             "security": "any" if instance['protocol'] == "rdp" else "",
-            "ignore-cert": "true" if instance['protocol'] == "rdp" else ""
+            "ignore-cert": "true" if instance['protocol'] == "rdp" else "",
+            "create-recording-path": "true" if recording else "",
+            "recording-name": "${GUAC_USERNAME}-${GUAC_DATE}-${GUAC_TIME}" if recording else "",
+            "recording-path": "${HISTORY_PATH}/${HISTORY_UUID}" if recording else "",
         }
         # Remove hostname from instance
         del instance['hostname']
@@ -226,18 +244,20 @@ def create_data(guac_params: dict) -> tuple:
     create_groups = new_groups
     create_users = []
     create_conns = []
-    mappings = []
+    create_sharings = []
+    create_mappings = []
 
     # Generate the create data based on the new user mapping data
     for username, data in new_users.items():
         # Create user dictionary
         create_users.append(
             {
-                username: data['password']
+                'username': username,
+                'password': data['password']
             }
         )
         # Create mapping dictionary
-        mappings.append(
+        create_mappings.append(
             {
                 username: [instance['name'] for instance in instances
                            if instance['name'] in data['instances']]
@@ -251,13 +271,35 @@ def create_data(guac_params: dict) -> tuple:
             if instance not in create_conns:
                 create_conns.append(instance)
 
+    if sharing and sharing not in ['read', 'write']:
+        error_msg(
+            f"The Guacamole sharing parameter is set to {sharing}."
+        )
+        general_msg(
+            "It must be either 'read', 'write', or False."
+        )
+
+    elif sharing in ['read', 'write']:
+        for conn in create_conns:
+            create_sharings.append(
+                {
+                    # 'primaryConnectionIdentifier': '',
+                    'name': conn['name'],
+                    'parameters': {
+                        "read-only": 'true' if sharing == 'read' else 'false'
+                    }
+                }
+            )
+
+
     # Return the created data and guacd IPs
     return (
         {
             'groups': create_groups,
             'users': create_users,
             'conns': create_conns,
-            'mappings': mappings
+            'sharings': create_sharings,
+            'mappings': create_mappings
         },
         guacd_ips
     )
@@ -330,7 +372,7 @@ def update_data(guac_params: dict) -> tuple:
     delete_users = []
 
     # Get the names of users and connections to create
-    create_usernames = [list(user.keys())[0] for user in create_vars['users']]
+    create_usernames = [user['username'] for user in create_vars['users']]
 
     # Check if any groups need to be deleted
     for group in conn_groups:
@@ -684,8 +726,8 @@ def create_user(gconn: object,
     endpoint = 'Guacamole'
 
     # Extract the username and password from the user dictionary
-    username = list(user.keys())[0]
-    password = list(user.values())[0]
+    username = user['username']
+    password = user['password']
 
     # Call the create_user method of the gconn object
     response = gconn.create_user(username,
@@ -853,12 +895,7 @@ def create_conn(gconn: object,
     conn_group_id = conn_groups[conn_org]
 
     # Determine the type of request based on whether a connection ID is provided
-    if conn_id:
-        req_type = "put"
-        update = True
-    else:
-        req_type = "post"
-        update = False
+    req_type = "put" if conn_id else "post"
 
     # Manage the connection using the connection object
     response = gconn.manage_connection(
@@ -885,7 +922,7 @@ def create_conn(gconn: object,
                               conn_name,
                               conn_group_id,
                               debug)
-    elif update:
+    elif conn_id:
         # Print the update case
         info_msg(f"Updated User Connection '{conn_name}'. "
                  f"User '{conn['params']['username']}', "
@@ -942,6 +979,150 @@ def delete_conn(gconn: object,
     else:
         # If no error message, print the deleted connection ID
         info_msg(f"Deleted Connection ID '{conn_id}'",
+                 endpoint,
+                 debug)
+    time.sleep(0.1)
+
+
+def create_sharing_profiles(gconn: object,
+                            sharings: list,
+                            conns: dict,
+                            debug: bool = False) -> None:
+    """
+    Create sharing profiles in Guacamole.
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        sharings (list): List of sharing profiles to create.
+        conns (dict): Dictionary of connections.
+        debug (bool, optional): Enable debug mode. Defaults to False.
+    """
+
+    endpoint = 'Guacamole'
+
+    # Check if there are no sharing profiles to create
+    if not sharings:
+        general_msg("No Sharing Profiles to Create",
+                    endpoint)
+        return
+
+    general_msg("Creating Sharing Profiles Accounts",
+                endpoint)
+
+    # Create sharing profiles
+    for sharing in sharings:
+        share_id = conns[sharing['name']]
+        share_name = f"{sharing['name']}.share"
+        parameters = sharing['parameters']
+
+        create_sharing(gconn,
+                       share_id,
+                       share_name,
+                       parameters,
+                       debug)
+
+
+def delete_sharing_profiles(gconn: object,
+                            sharing_ids: list,
+                            debug: bool = False) -> None:
+    """
+    Delete sharing profiles in Guacamole.
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        sharing_ids (list): List of sharing profile IDs to delete.
+        debug (bool, optional): Enable debug mode. Defaults to False.
+    """
+
+    endpoint = 'Guacamole'
+
+    # Check if there are no sharing profiles to delete
+    if not sharing_ids:
+        general_msg("No Sharing IDs to Delete",
+                    endpoint)
+        return
+
+    general_msg("Deleting Sharing IDs",
+                endpoint)
+    # Delete sharing profiles
+    for share_id in sharing_ids:
+        delete_sharing(gconn,
+                       share_id,
+                       debug)
+
+
+def create_sharing(gconn: object,
+                   share_id: str,
+                   share_name: str,
+                   parameters: dict,
+                   debug: bool = False) -> None:
+    """
+    Create a share connection.
+
+    Args:
+        gconn (object): The guacamole connection object
+        sharing (dict): sharing profile object to be created
+        conns (dict): Dictionary of connections
+        debug (bool, optional): Whether to print debug messages. Defaults to False.
+
+    Returns:
+        None
+    """
+
+    endpoint = 'Guacamole'
+
+    # Delete the connection using the guacamole connection object
+    response = gconn.create_sharing_profile(share_id,
+                                            share_name,
+                                            parameters)
+
+    # Parse the response to extract any error message
+    message = parse_response(response)
+
+    # If there is an error message, print it
+    if message:
+        info_msg(f"{message}",
+                 endpoint,
+                 debug)
+    else:
+        # If no error message, print the deleted connection ID
+        info_msg(f"Created Sharing Profile '{share_name}' (Under {share_id})",
+                 endpoint,
+                 debug)
+    time.sleep(0.1)
+
+
+def delete_sharing(gconn: object,
+                   share_id: str,
+                   debug: bool = False) -> None:
+    """
+    Delete a share connection.
+
+    Args:
+        gconn (object): The guacamole connection object
+        share_id (str): The ID of the share object to be deleted
+        debug (bool, optional): Whether to print debug messages. Defaults to False.
+
+    Returns:
+        None
+    """
+
+    endpoint = 'Guacamole'
+
+    # Delete the connection using the guacamole connection object
+    response = gconn.delete_sharing_profile(share_id)
+
+    # Parse the response to extract any error message
+    message = parse_response(response)
+
+    # If there is an error message, print it
+    if message:
+        info_msg(f"{message}",
+                 endpoint,
+                 debug)
+    else:
+        # If no error message, print the deleted connection ID
+        info_msg(f"Deleted Sharing Profile ID '{share_id}'",
                  endpoint,
                  debug)
     time.sleep(0.1)
@@ -1262,6 +1443,48 @@ def get_users(gconn: object,
              debug)
 
     return users
+
+
+def get_sharing(gconn: object,
+                conns: list,
+                debug: bool = False) -> dict:
+    """
+    Retrieves connections from Guacamole client using the provided connection group IDs.
+
+    Args:
+        gconn (object): Guacamole client object.
+        debug (bool, optional): Flag to enable debug mode. Defaults to False.
+
+    Returns:
+        dict: List of connections retrieved from Guacamole.
+    """
+
+    endpoint = 'Guacamole'
+
+    conn_ids = [conn['identifier'] for conn in conns]
+
+    sharings = [
+        share
+        for share in json.loads(gconn.list_sharing_profile()).values()
+        if share['primaryConnectionIdentifier'] in conn_ids
+    ]
+
+    # Retrieve params for each connection
+    for share in sharings:
+        share['params'] = json.loads(
+            gconn.details_sharing_profile(share['identifier'], "params")
+        )
+
+    # Retrieve the connections from Guacamole client
+    sharing = json.loads(gconn.list_sharing_profile())
+
+    general_msg("Retrieved sharing profiles",
+                endpoint)
+    info_msg(sharing,
+             endpoint,
+             debug)
+
+    return sharing
 
 
 def find_domain_name(heat_params: dict,
