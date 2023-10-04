@@ -17,21 +17,15 @@ def provision(conn: object,
     general_msg("Provisioning Swift",
                 endpoint)
 
-    try:
-        container = create(conn,
-                           container_name,
-                           debug)
-        if container:
-            upload_objs(conn,
-                        container_name,
-                        asset_dir,
-                        debug)
-        else:
-            return
-
-    except Exception as error:
-        error_msg(error,
-                  endpoint)
+    container = create(conn,
+                       container_name,
+                       debug)
+    if container:
+        upload_objs(conn,
+                    container_name,
+                    asset_dir,
+                    debug)
+    else:
         return
 
     success_msg("Provisioned Swift",
@@ -48,15 +42,9 @@ def deprovision(conn: object,
     general_msg("Deprovisioning Swift",
                 endpoint)
 
-    try:
-        delete(conn,
-               container_name,
-               debug)
-
-    except Exception as error:
-        error_msg(error,
-                  endpoint)
-        return
+    delete(conn,
+           container_name,
+           debug)
 
     success_msg("Deprovisioned Swift",
                 endpoint)
@@ -82,7 +70,8 @@ def search(conn: object,
         return result
     general_msg(f"'{container_name}' container doesn't exist",
                 endpoint)
-    return
+
+    return None
 
 
 def create(conn: object,
@@ -113,6 +102,7 @@ def create(conn: object,
     access(conn,
            container_name,
            debug)
+
     return container
 
 
@@ -165,6 +155,11 @@ def access(conn: object,
                      debug)
             return result
 
+    error_msg(f"Failed to set access for container '{container_name}'",
+              endpoint)
+
+    return None
+
 
 def upload_objs(conn: object,
                 container_name: str,
@@ -203,16 +198,21 @@ def upload_objs(conn: object,
                 endpoint)
 
     objects = conn.list_objects(container_name)
-    if objects:
-        info_msg(f"Listing objects from '{container_name}'",
-                 endpoint,
-                 debug)
-        info_msg(json.dumps(objects, indent=4),
-                 endpoint,
-                 debug)
-        for obj in objects:
-            general_msg(f"Uploaded '{obj.name}'",
-                        endpoint)
+
+    if not objects:
+        error_msg(f"No container objects found in '{container_name}'",
+                  endpoint)
+        return
+
+    info_msg(f"Listing objects from '{container_name}'",
+             endpoint,
+             debug)
+    info_msg(json.dumps(objects, indent=4),
+             endpoint,
+             debug)
+    for obj in objects:
+        general_msg(f"Uploaded '{obj.name}'",
+                    endpoint)
 
 
 def delete_objs(conn: object,
@@ -223,16 +223,22 @@ def delete_objs(conn: object,
     endpoint = 'Swift'
 
     objects = conn.list_objects(container_name)
+
+    if not objects:
+        error_msg(f"No container objects found in '{container_name}'",
+                  endpoint)
+        return
+
     info_msg(json.dumps(objects, indent=4),
              endpoint,
              debug)
     general_msg(f"Deleting objects from '{container_name}'",
                 endpoint)
-    if objects:
-        for obj in objects:
-            conn.delete_object(container_name,
-                               str(obj.name))
-            general_msg(f"Deleted '{obj.name}'",
-                        endpoint)
-        success_msg(f"Objects have been deleted from '{container_name}'",
+
+    for obj in objects:
+        conn.delete_object(container_name,
+                           str(obj.name))
+        general_msg(f"Deleted '{obj.name}'",
                     endpoint)
+    success_msg(f"Objects have been deleted from '{container_name}'",
+                endpoint)
