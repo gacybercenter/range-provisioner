@@ -55,21 +55,21 @@ def provision(conn,
 
         if not create and update:
             error_msg(
-                "Can't have provision: False, update: True in globals.yaml",
+                f"Can't have provision: False, update: True in {endpoint} globals.yaml",
                 endpoint
             )
             return
 
-        info_msg(f"Guacamole provisioning is set to '{create}'",
+        info_msg(f"{endpoint} provisioning is set to '{create}'",
                  endpoint,
                  debug)
-        info_msg(f"Guacamole update is set to '{update}'",
+        info_msg(f"{endpoint} update is set to '{update}'",
                  endpoint,
                  debug)
 
     else:
         error_msg(
-            "Please check the Guacamole provision and update parameters in globals.yaml",
+            f"Please check the {endpoint} provison and update parameters in globals.yaml",
             endpoint
         )
         return
@@ -136,7 +136,7 @@ def provision(conn,
     if update:
         guac_params['conn_sharing'] = guac.get_sharing(gconn,
                                                        guac_params['conn_list'],
-                                                        debug)
+                                                       debug)
 
     # Provision, deprovision, or reprovision
     if update:

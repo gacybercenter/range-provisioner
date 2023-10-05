@@ -33,27 +33,28 @@ def provision(conn: object,
                  debug)
 
     # Set the create and update flags from the swift globals vars
-    elif isinstance(swift_globals['provision'], bool) and isinstance(swift_globals['update'], bool):
+    elif (isinstance(swift_globals['provision'], bool) and
+          isinstance(swift_globals['update'], bool)):
         create = swift_globals['provision']
         update = swift_globals['update']
 
         if not create and update:
             error_msg(
-                "Can't have provision: False, update: True in globals.yaml",
+                f"Can't have provision: False, update: True in {endpoint} globals.yaml",
                 endpoint
             )
             return
 
-        info_msg(f"Swift provisioning is set to '{create}'",
+        info_msg(f"{endpoint} provisioning is set to '{create}'",
                  endpoint,
                  debug)
-        info_msg(f"Swift update is set to '{update}'",
+        info_msg(f"{endpoint} update is set to '{update}'",
                  endpoint,
                  debug)
 
     else:
         error_msg(
-            "Please check the Swift provison and update parameters in globals.yaml",
+            f"Please check the {endpoint} provison and update parameters in globals.yaml",
             endpoint
         )
         return

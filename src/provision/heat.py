@@ -26,27 +26,28 @@ def provision(conn: object,
                  debug)
 
     # Set the create and update flags from the heat globals vars
-    elif isinstance(heat_globals['provision'], bool) and isinstance(heat_globals['update'], bool):
+    elif (isinstance(heat_globals['provision'], bool) and
+          isinstance(heat_globals['update'], bool)):
         create = heat_globals['provision']
         update = heat_globals['update']
 
         if not create and update:
             error_msg(
-                "Can't have provision: False, update: True in globals.yaml",
+                f"Can't have provision: False, update: True in {endpoint} globals.yaml",
                 endpoint
             )
             return
 
-        info_msg(f"provisioning is set to '{create}'",
+        info_msg(f"{endpoint} provisioning is set to '{create}'",
                  endpoint,
                  debug)
-        info_msg(f"update is set to '{update}'",
+        info_msg(f"{endpoint} update is set to '{update}'",
                  endpoint,
                  debug)
 
     else:
         error_msg(
-            "Please check the Heat provison and update parameters in globals.yaml",
+            f"Please check the {endpoint} provison and update parameters in globals.yaml",
             endpoint
         )
         return
