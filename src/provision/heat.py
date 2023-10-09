@@ -68,7 +68,7 @@ def provision(conn: object,
         }
 
     heat_params['container_name'] = globals['range_name']
-    heat_params['instance_name'] = globals['user_name']
+    heat_params['instance_id'] = globals['user_name']
     heat_params['count'] = globals['num_users']
     stack_names = generate_names(globals['num_ranges'],
                                  heat_params['container_name'])
