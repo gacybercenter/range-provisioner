@@ -14,6 +14,7 @@ from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
 def provision(gconn: object,
               guac_params: dict,
+              update: bool = False,
               debug: bool = False) -> bool:
     """
     Provisions Guacamole with the given parameters.
@@ -21,6 +22,7 @@ def provision(gconn: object,
     Args:
         gconn (object): Connection to the Guacamole server.
         guac_params (dict): Parameters for provisioning Guacamole.
+        update (bool, optional): Whether to update existing connections and users.
         debug (bool, optional): Whether to enable debug mode.
 
     Returns:
@@ -32,43 +34,23 @@ def provision(gconn: object,
     general_msg("Provisioning Guacamole",
                 endpoint)
 
-    # Generate the create data
-    create_vars, guacd_ips = create_data(guac_params)
-
-    # Create connection groups
-    conn_groups = create_conn_groups(gconn,
-                                     create_vars['groups'],
-                                     guac_params['parent_group_id'],
-                                     guac_params['org_name'],
-                                     debug)
-
-    # Create user accounts
-    create_user_accts(gconn,
-                      create_vars['users'],
-                      guac_params['org_name'],
-                      debug)
-
-    # Create user connections
-    conns = create_user_conns(gconn,
-                              create_vars['conns'],
-                              conn_groups,
-                              guacd_ips,
-                              debug)
-
-    # Create sharing profiles
-    create_sharing_profiles(gconn,
-                            create_vars['sharings'],
-                            conns,
+    # Generate the connections
+    conns_to_make, current_conns = create_conn_data(guac_params)
+    # Create the connections
+    conn_ids = create_conns(gconn,
+                            conns_to_make,
+                            current_conns,
+                            update,
                             debug)
-
-
-    # Associate user connections
-    associate_user_conns(gconn,
-                         create_vars['mappings'],
-                         guac_params['org_name'],
-                         conn_groups,
-                         conns,
-                         debug)
+    # Generate the users
+    users_to_make, current_users = create_user_data(guac_params,
+                                                    conn_ids)
+    # Create the users
+    create_users(gconn,
+                 users_to_make,
+                 current_users,
+                 update,
+                 debug)
 
     success_msg("Provisioned Guacamole",
                 endpoint)
@@ -90,109 +72,26 @@ def deprovision(gconn: object,
     """
 
     endpoint = 'Guacamole'
-
     general_msg("Deprovisioning Guacamole",
                 endpoint)
 
-    # Generate the delete data
-    delete_vars = delete_data(guac_params)
+    conns_to_delete = delete_conn_data(guac_params)
 
-    # Delete connection groups
-    delete_conn_groups(gconn,
-                       delete_vars['groups'],
-                       debug)
+    delete_conns(gconn,
+                 conns_to_delete,
+                 debug)
 
-    # Delete user accounts
-    delete_user_accts(gconn,
-                      delete_vars['users'],
-                      debug)
+    users_to_delete = delete_user_data(guac_params)
 
-    # Delete user connections
-    delete_user_conns(gconn,
-                      delete_vars['conns'],
-                      debug)
+    delete_users(gconn,
+                 users_to_delete,
+                 debug)
 
     success_msg("Deprovisioned Guacamole",
                 endpoint)
 
 
-def reprovision(gconn: object,
-                guac_params: dict,
-                debug: bool = False) -> bool:
-    """
-    Reprovisions Guacamole connections and users.
-
-    Args:
-        gconn (object): The Guacamole connection object.
-        guac_params (dict): The parameters for Guacamole connections and users.
-        debug (bool, optional): Whether to run in debug mode. Defaults to False.
-
-    Returns:
-        None
-    """
-
-    endpoint = 'Guacamole'
-
-    general_msg("Updating Guacamole",
-                endpoint)
-
-    # Generate the update data
-    create_vars, delete_vars, guacd_ips = update_data(guac_params)
-
-    # Delete connection groups
-    delete_conn_groups(gconn,
-                       delete_vars['groups'],
-                       debug)
-
-    # Delete user accounts
-    delete_user_accts(gconn,
-                      delete_vars['users'],
-                      debug)
-
-    # Delete user connections
-    delete_user_conns(gconn,
-                      delete_vars['conns'],
-                      debug)
-
-    # Create connection groups
-    conn_groups = create_conn_groups(gconn,
-                                     create_vars['groups'],
-                                     guac_params['parent_group_id'],
-                                     guac_params['org_name'],
-                                     debug)
-
-    # Create user accounts
-    create_user_accts(gconn,
-                      create_vars['users'],
-                      guac_params['org_name'],
-                      debug)
-
-    # Create user connections
-    conns = create_user_conns(gconn,
-                              create_vars['conns'],
-                              conn_groups,
-                              guacd_ips,
-                              debug)
-
-    # Create sharing profiles
-    create_sharing_profiles(gconn,
-                            create_vars['sharings'],
-                            conns,
-                            debug)
-
-    # Associate user connections with user accounts and connection groups
-    associate_user_conns(gconn,
-                         create_vars['mappings'],
-                         guac_params['org_name'],
-                         conn_groups,
-                         conns,
-                         debug)
-
-    success_msg("Updated Guacamole",
-                endpoint)
-
-
-def create_data(guac_params: dict) -> tuple:
+def create_conn_data(guac_params: dict) -> tuple:
     """
     Create data for Guacamole API based on given parameters.
 
@@ -204,108 +103,157 @@ def create_data(guac_params: dict) -> tuple:
     """
 
     # Extract parameters from guac_params
-    new_users = guac_params['new_users']
+    org_name = guac_params['org_name']
     new_groups = guac_params['new_groups']
     instances = guac_params['instances']
     recording = guac_params['recording']
     sharing = guac_params['sharing']
+    current_object = guac_params['conns']
+
+    if sharing and sharing not in ['read', 'write']:
+        error_msg(
+            f"The Guacamole sharing parameter is set to '{sharing}'"
+        )
+        general_msg(
+            "It must be either 'read', 'write', or 'False'"
+        )
+
     guacd_ips = {}
+
+    # Filter instances by guacd
+    for instance in instances.copy():
+        if "guacd" in instance['name']:
+            guacd_org = instance['name'].split('.')[0]
+            guacd_ips[guacd_org] = instance['hostname']
+            instances.remove(instance)
+
+    conn_objects = []
 
     # Process each instance
     for instance in instances:
-        # Set protocol and params for the instance
-        instance['protocol'] = guac_params['protocol']
-        instance['params'] = {
-            'hostname': instance['hostname'],
-            'username': guac_params['username'],
-            'password': guac_params['password'],
-            "domain": guac_params['domain_name'],
-            "port": "3389" if instance['protocol'] == "rdp" else "22",
-            "security": "any" if instance['protocol'] == "rdp" else "",
-            "ignore-cert": "true" if instance['protocol'] == "rdp" else "",
-            "create-recording-path": "true" if recording else "",
-            "recording-name": "${GUAC_USERNAME}-${GUAC_DATE}-${GUAC_TIME}" if recording else "",
-            "recording-path": "${HISTORY_PATH}/${HISTORY_UUID}" if recording else "",
+        group = instance['name'].split('.')[0]
+        conn_objects.append({
+            'name': instance['name'],
+            'protocol': guac_params['protocol'],
+            'attributes': {
+                'max-connections': '1',
+                'guacd-hostname': guacd_ips[group],
+                'max-connections-per-user': '1'
+            },
+            'sharingProfiles': {
+                'attributes': {},
+                'name': f"{instance['name']}.{sharing}",
+                'parameters': {
+                    "read-only": 'true' if sharing == 'read' else ''
+                }
+            },
+            'parameters': {
+                'hostname': instance['hostname'],
+                'username': guac_params['username'],
+                'password': guac_params['password'],
+                "domain": guac_params['domain_name'],
+                "port": "3389" if guac_params['protocol'] == "rdp" else "22",
+                "security": "any" if guac_params['protocol'] == "rdp" else "",
+                "ignore-cert": "true" if guac_params['protocol'] == "rdp" else "",
+                "create-recording-path": "true" if recording else "",
+                "recording-name": "${GUAC_USERNAME}-${GUAC_DATE}-${GUAC_TIME}" if recording else "",
+                "recording-path": "${HISTORY_PATH}/${HISTORY_UUID}" if recording else "",
+            }
+        })
+
+    # Generate the create data
+    create_object = {
+        'name': org_name,
+        'type': 'ORGANIZATIONAL',
+        'childConnectionGroups': [
+            {
+                'name': group,
+                'type': 'ORGANIZATIONAL',
+                'childConnections': [
+                    conn
+                    for conn in conn_objects
+                    if conn['name'].split('.')[0] == group
+                ],
+                'attributes': {
+                    'max-connections': '50',
+                    'max-connections-per-user': '10'
+                }
+            }
+            for group in new_groups
+        ],
+        'attributes': {
+            'max-connections': '50',
+            'max-connections-per-user': '10'
         }
-        # Remove hostname from instance
-        del instance['hostname']
+    }
+    create_object = remove_empty(create_object)
 
-        # Remove empty values from params
-        for key, value in instance['params'].copy().items():
-            if not value:
-                del instance['params'][key]
+    conns_to_create = extract_connections(create_object)
+    current_conns = extract_connections(current_object)
 
-        # Extract guacd IPs
-        if "guacd" in instance['name']:
-            guacd_org = instance['name'].split('.')[0]
-            guacd_ips[guacd_org] = instance['params']['hostname']
+    return conns_to_create, current_conns
 
-    # Initialize variables
-    create_groups = new_groups
-    create_users = []
-    create_conns = []
-    create_sharings = []
-    create_mappings = []
+
+def create_user_data(guac_params: dict,
+                     conn_ids: dict) -> tuple:
+    """
+    Create data for Guacamole API based on given parameters.
+
+    Args:
+        guac_params (dict): Parameters for creating the data.
+
+    Returns:
+        tuple: A tuple containing the create data and the Guacd IPs.
+    """
+
+    # Extract parameters from guac_params
+    org_name = guac_params['org_name']
+    new_users = guac_params['new_users']
+    sharing = guac_params['sharing']
+
+    users_to_make = []
 
     # Generate the create data based on the new user mapping data
     for username, data in new_users.items():
         # Create user dictionary
-        create_users.append(
+        groups = {}
+        instances = {}
+        sharings = {}
+        org_id = conn_ids.get(org_name)
+        if org_id:
+            groups[org_id] = ['READ']
+        for instance in data['instances']:
+            group = instance.split('.')[0]
+            group_id = conn_ids.get(group)
+            conn_id = conn_ids.get(instance)
+            sharing_id = conn_ids.get(f"{instance}.{sharing}")
+            if group_id:
+                groups[group_id] = ['READ']
+            if conn_id:
+                instances[conn_id] = ['READ']
+            if sharing_id:
+                sharings[sharing_id] = ['READ']
+
+        users_to_make.append(
             {
                 'username': username,
-                'password': data['password']
-            }
-        )
-        # Create mapping dictionary
-        create_mappings.append(
-            {
-                username: [instance['name'] for instance in instances
-                           if instance['name'] in data['instances']]
-            }
-        )
-        # Get instances for user connections
-        conn_instances = [instance for instance in instances
-                          if instance['name'] in data['instances']]
-        # Add creates the connection if not already created
-        for instance in conn_instances:
-            if instance not in create_conns:
-                create_conns.append(instance)
-
-    if sharing and sharing not in ['read', 'write']:
-        error_msg(
-            f"The Guacamole sharing parameter is set to {sharing}."
-        )
-        general_msg(
-            "It must be either 'read', 'write', or False."
-        )
-
-    elif sharing in ['read', 'write']:
-        for conn in create_conns:
-            create_sharings.append(
-                {
-                    # 'primaryConnectionIdentifier': '',
-                    'name': conn['name'],
-                    'parameters': {
-                        "read-only": 'true' if sharing == 'read' else 'false'
-                    }
+                'password': data['password'],
+                'attributes': {
+                    'guac-organization': org_name
+                },
+                'permissions': {
+                    'connectionPermissions': instances,
+                    'connectionGroupPermissions': groups,
+                    'sharingProfilePermissions': sharings
                 }
-            )
-
+            }
+        )
 
     # Return the created data and guacd IPs
-    return (
-        {
-            'groups': create_groups,
-            'users': create_users,
-            'conns': create_conns,
-            'sharings': create_sharings,
-            'mappings': create_mappings
-        },
-        guacd_ips
-    )
+    return users_to_make, guac_params['users']
 
 
-def delete_data(guac_params: object) -> dict:
+def delete_conn_data(guac_params: object) -> dict:
     """
     Create data for Guacamole API based on given parameters.
 
@@ -313,31 +261,17 @@ def delete_data(guac_params: object) -> dict:
         guac_params (dict): Parameters for creating the data.
 
     Returns:
-        dict: A dictionary containing the delete data.
+        list: A dictionary containing the connection to be deleted.
 
     """
 
     # Get the group IDs, users, and connections to be deleted
-    delete_group_ids = guac_params['conn_group_ids']
-    delete_users = guac_params['conn_users']
-    delete_conns = guac_params['conn_list']
+    current_conns = guac_params['conns']
 
-    # Remove connections that belong to the specified group IDs
-    delete_conns = [conn for conn in delete_conns
-                    if conn['parentIdentifier'] not in delete_group_ids]
-
-    # Get the connection IDs of the remaining connections
-    delete_conn_ids = [conn['identifier'] for conn in delete_conns]
-
-    # Return the deleted group IDs, users, and connection IDs
-    return {
-        'groups': delete_group_ids,
-        'users': delete_users,
-        'conns': delete_conn_ids,
-    }
+    return [current_conns]
 
 
-def update_data(guac_params: dict) -> tuple:
+def delete_user_data(guac_params: object) -> dict:
     """
     Create data for Guacamole API based on given parameters.
 
@@ -345,125 +279,146 @@ def update_data(guac_params: dict) -> tuple:
         guac_params (dict): Parameters for creating the data.
 
     Returns:
-        tuple: A tuple containing the create data, delete data, and the Guacd IPs.
+        dict: A dictionary containing the users to be deleted.
+
     """
 
-    # Extract necessary data from guac_params
-    create_vars, guacd_ips = create_data(guac_params)
+    # Get the group IDs, users, and connections to be deleted
+    current_users = guac_params['users']
 
-    # Extract necessary data from guac_params
-    conn_groups = guac_params['conn_groups']
-    conn_users = guac_params['conn_users']
-    conn_list = guac_params['conn_list']
+    usernames = [
+        user['username']
+        for user in current_users
+    ]
 
-    # Get the name: id pairs of current groups and connections
-    current_group_ids = {
-        group['name']: group['identifier']
-        for group in conn_groups
-    }
-    current_conn_ids = {
-        conn['name']: conn['identifier']
-        for conn in conn_list
-    }
-
-    # Initialize lists to store IDs of items to delete
-    delete_group_ids = []
-    delete_conn_ids = []
-    delete_users = []
-
-    # Get the names of users and connections to create
-    create_usernames = [user['username'] for user in create_vars['users']]
-
-    # Check if any groups need to be deleted
-    for group in conn_groups:
-        if group['name'] not in create_vars['groups']:
-            delete_group_ids.append(current_group_ids[group['name']])
-
-    # Remove connections that belong to groups to be deleted
-    current_conns = [conn for conn in conn_list
-                     if conn['parentIdentifier'] not in delete_group_ids]
-
-    # Check if any users need to be deleted
-    for user in conn_users:
-        if user not in create_usernames:
-            delete_users.append(user)
-
-    # Remove keys and only delete conns with existing parent groups
-    for conn in current_conns:
-        del conn['identifier']
-        del conn['parentIdentifier']
-        if conn not in create_vars['conns']:
-            delete_conn_ids.append(current_conn_ids[conn['name']])
-
-    # Return the formatted data
-    return (
-        create_vars,
-        {
-            'groups': delete_group_ids,
-            'users': delete_users,
-            'conns': delete_conn_ids
-        },
-        guacd_ips
-    )
+    return usernames
 
 
-def create_conn_groups(gconn: object,
-                       create_groups: list,
-                       conn_group_id: str,
-                       org_name: str,
-                       debug: bool = False) -> dict:
+def create_conns(gconn: object,
+                 conns_to_make: dict,
+                 current_conns: dict = None,
+                 update: bool = False,
+                 debug: bool = False) -> dict:
     """
-    Create connection groups in Guacamole.
-
-    Args:
-        gconn (object): The Guacamole connection object.
-        create_groups (list): A list of connection groups to create.
-        conn_group_id (str): The ID of the parent connection group.
-        org_name (str): The name of the organization.
-        debug (bool, optional): Whether to print debug messages. Defaults to False.
-
-    Returns:
-        dict: A dictionary containing the created connection groups.
+    Create connections
     """
 
     endpoint = 'Guacamole'
+    operation = "Updated" if update else "Created"
+    current_names = []
+    conn_ids = {'ROOT': 'ROOT'}
 
-    general_msg("Creating Connection Groups",
+    for conn in current_conns:
+        current_names.append(conn['name'])
+        conn_ids[conn['name']] = conn['identifier']
+
+    if not conns_to_make:
+        general_msg("There are no new connections",
+                    endpoint)
+        return conn_ids
+
+    for conn in conns_to_make:
+        if conn['name'] in current_names:
+            if update:
+                parent_id = conn_ids[conn['parent']]
+                conn_id = conn_ids[conn['name']]
+                create_conn(gconn,
+                            parent_id,
+                            conn,
+                            conn_id,
+                            debug)
+            else:
+                general_msg(f"Connection '{conn['name']}' already exists",
+                            endpoint)
+            continue
+        parent_id = conn_ids[conn['parent']]
+        conn_ids[conn['name']] = create_conn(gconn,
+                                             parent_id,
+                                             conn,
+                                             None,
+                                             debug)
+    success_msg(f"{operation} Connections",
                 endpoint)
 
-    # Create the parent connection group
-    conn_groups = create_parent_group(gconn,
-                                      conn_group_id,
-                                      org_name,
-                                      debug)
-    parent_id = conn_groups[org_name]
+    return conn_ids
 
-    if not create_groups:
-        general_msg("No Connection Groups to Create",
-                    endpoint)
-        return conn_groups
 
-    # Create each connection group in the list
-    for group in create_groups:
-        conn_groups[group] = create_group(gconn,
-                                          parent_id,
-                                          group,
-                                          False,
-                                          debug)
+def create_conn(gconn: object,
+                parent_id: str,
+                conn_data: dict,
+                conn_id: str | None = None,
+                debug: bool = False) -> str:
+
+    endpoint = 'Guacamole'
+    operation = "Updated" if conn_id else "Created"
+
+    if conn_data.get('type'):
+        conn_type = "group"
+    elif conn_data.get('protocol'):
+        conn_type = "connection"
+    else:
+        conn_type = "sharing profile"
+
+    if conn_type == "group":
+        if conn_id:
+            response = gconn.update_connection_group(conn_id,
+                                                     conn_data['name'],
+                                                     conn_data['type'],
+                                                     parent_id,
+                                                     conn_data['attributes'])
+        else:
+            response = gconn.create_connection_group(conn_data['name'],
+                                                     conn_data['type'],
+                                                     parent_id,
+                                                     conn_data['attributes'])
+    elif conn_type == "connection":
+        req_type = "put" if conn_id else "post"
+        response = gconn.manage_connection(req_type,
+                                           conn_data['protocol'],
+                                           conn_data['name'],
+                                           parent_id,
+                                           conn_id,
+                                           conn_data['parameters'],
+                                           conn_data['attributes'])
+    else:
+        if conn_id:
+            response = gconn.update_sharing_profile(parent_id,
+                                                    conn_data['name'],
+                                                    conn_id,
+                                                    conn_data['parameters'])
+        else:
+            response = gconn.create_sharing_profile(parent_id,
+                                                    conn_data['name'],
+                                                    conn_data['parameters'])
     time.sleep(0.1)
 
-    return conn_groups
+    if not conn_id:
+        conn_id = get_conn_id(gconn,
+                              conn_data['name'],
+                              parent_id,
+                              conn_type,
+                              debug)
+
+    message = f"{operation} {conn_type} '{conn_data['name']}' ({conn_id}) under ID '{parent_id}'"
+    response_message(response,
+                     message,
+                     endpoint)
+    info_msg(conn_data,
+             endpoint,
+             debug)
+
+    return conn_id
 
 
-def delete_conn_groups(gconn: object,
-                       group_ids: list,
-                       debug: bool = False) -> None:
+def delete_conns(gconn: object,
+                 conns: list,
+                 debug: bool = False) -> None:
     """
     Delete connection groups in Guacamole.
 
     Args:
         gconn (object): The connection object.
-        group_ids (list): List of group IDs to delete.
+        conn_ids (list): List of group IDs to delete.
         debug (bool, optional): Flag to enable debug mode. Defaults to False.
     Returns:
         None
@@ -472,142 +427,30 @@ def delete_conn_groups(gconn: object,
     endpoint = 'Guacamole'
 
     # Check if there are no group IDs to delete
-    if not group_ids:
+    if not conns:
         general_msg("No Connection Groups to Delete",
                     endpoint)
         return
 
-    general_msg("Deleting Connection Groups",
-                endpoint)
-
     # Iterate over the group IDs and delete each group
-    for group_id in group_ids:
-        delete_group(gconn,
-                     group_id,
-                     debug)
-        time.sleep(0.1)
-
-
-def create_parent_group(gconn: object,
-                        conn_group_id: str | None,
-                        org_name: str,
-                        debug: bool = False) -> dict:
-    """
-    Creates the parent connection group in Guacamole.
-
-    Args:
-        gconn (object): The Guacamole connection object.
-        conn_group_id (str | None): The ID of the connection group, if it already exists.
-        org_name (str): The name of the organization.
-        debug (bool, optional): Whether to enable debug mode. Defaults to False.
-
-    Returns:
-        dict: A dictionary containing the parent connection group.
-    """
-
-    endpoint = 'Guacamole'
-    conn_groups = {}
-
-    # Check if the parent connection group already exists
-    if conn_group_id:
-        general_msg(F"The parent group '{org_name}' already exists.",
-                    endpoint)
-        conn_groups[org_name] = conn_group_id
-    else:
-        # Create the parent connection group
-        general_msg(f"Creating Organization '{org_name}'",
-                    endpoint)
-        conn_groups[org_name] = create_group(gconn,
-                                             'ROOT',
-                                             org_name,
-                                             False,
-                                             debug)
-        time.sleep(0.1)
-
-    return conn_groups
-
-
-def create_group(gconn: object,
-                 parent_id: str,
-                 child_name: str,
-                 child_id: str | None,
-                 debug: bool = False) -> str:
-    """
-    Create or update a group in Guacamole.
-
-    Args:
-        gconn (object): The connection object.
-        parent_id (str): The ID of the parent group.
-        child_name (str): The name of the child group.
-        child_id (str | None): The ID of the child group, if it already exists.
-        debug (bool): Enable debug mode.
-
-    Returns:
-        str: The ID of the child group.
-
-    """
-
-    endpoint = 'Guacamole'
-
-    # Check if child_id is provided
-    if child_id:
-        # Update the connection group
-        response = gconn.update_connection_group(
-            child_id,
-            child_name,
-            "ORGANIZATIONAL",
-            parent_id,
-            {
-                'max-connections': '50',
-                'max-connections-per-user': '10',
-                'enable-session-affinity': ''
-            }
-        )
-        time.sleep(0.1)
-        message = parse_response(response)
-        if message:
-            info_msg(f"{message}",
-                     endpoint,
-                     debug)
+    for conn in conns:
+        conn_id = conn['identifier']
+        if conn.get('type'):
+            delete_group(gconn,
+                         conn_id)
+        elif conn.get('protocol'):
+            delete_conn(gconn,
+                        conn_id)
         else:
-            info_msg(f"Updated Group '{child_name}' under group ID '{parent_id}'",
-                     endpoint,
-                     debug)
-    else:
-        # Create the connection group
-        response = gconn.create_connection_group(
-            child_name,
-            "ORGANIZATIONAL",
-            parent_id,
-            {
-                'max-connections': '50',
-                'max-connections-per-user': '10',
-                'enable-session-affinity': ''
-            }
-        )
-        time.sleep(0.1)
-        # Manage the response
-        message = parse_response(response)
-        if message:
-            info_msg(f"{message}",
-                     endpoint,
-                     debug)
-        else:
-            info_msg(f"Created Group '{child_name}' under group ID '{parent_id}'",
-                     endpoint,
-                     debug)
-        # Get the connection group ID
-        child_id = get_conn_group_id(gconn,
-                                     child_name,
-                                     debug)
-        time.sleep(0.1)
+            delete_sharing(gconn,
+                           conn_id)
 
-    return child_id
+    success_msg("Deleted Connection Groups",
+                endpoint)
 
 
 def delete_group(gconn: object,
-                 group_id: str,
-                 debug: bool = False) -> None:
+                 group_id: str) -> None:
     """
     Deletes a connection group from Guacamole.
 
@@ -626,55 +469,168 @@ def delete_group(gconn: object,
     response = gconn.delete_connection_group(group_id)
 
     # Parse the response message
-    message = parse_response(response)
-
-    # Check if there is a message and print it
-    if message:
-        info_msg(f"{message}",
-                 endpoint,
-                 debug)
-    else:
-        # If no message, print the deleted group ID
-        info_msg(f"Deleted Group ID '{group_id}'",
-                 endpoint,
-                 debug)
+    message = f"Deleted group ID '{group_id}'"
+    response_message(response,
+                     message,
+                     endpoint)
+    time.sleep(0.1)
 
 
-def create_user_accts(gconn: object,
-                      create_users: list,
-                      user_org: str,
-                      debug: bool = False) -> None:
+def delete_conn(gconn: object,
+                conn_id: str) -> None:
     """
-    Create user accounts in Guacamole.
+    Delete a user connection.
 
     Args:
-        gconn (object): The Guacamole connection object.
-        create_users (list): List of user accounts to create.
-        user_org (str): The user organization.
-        debug (bool, optional): Enable debug mode. Defaults to False.
+        gconn (object): The guacamole connection object
+        conn_id (str): The ID of the connection to be deleted
+        debug (bool, optional): Whether to print debug messages. Defaults to False.
+
+    Returns:
+        None
     """
 
     endpoint = 'Guacamole'
 
-    # Check if there are no users to create
-    if not create_users:
-        general_msg("No Users Accounts to Create",
+    # Delete the connection using the guacamole connection object
+    response = gconn.delete_connection(conn_id)
+
+    # Parse the response to extract any error message
+    message = f"Deleted connection ID '{conn_id}'"
+    response_message(response,
+                     message,
+                     endpoint)
+    time.sleep(0.1)
+
+
+def delete_sharing(gconn: object,
+                   conn_id: str) -> None:
+    """
+    Delete a user connection.
+
+    Args:
+        gconn (object): The guacamole connection object
+        conn_id (str): The ID of the connection to be deleted
+        debug (bool, optional): Whether to print debug messages. Defaults to False.
+
+    Returns:
+        None
+    """
+
+    endpoint = 'Guacamole'
+
+    # Delete the connection using the guacamole connection object
+    response = gconn.delete_sharing_profile(conn_id)
+
+    # Parse the response to extract any error message
+    message = f"Deleted sharing profile ID '{conn_id}'"
+    response_message(response,
+                     message,
+                     endpoint)
+    time.sleep(0.1)
+
+
+def create_users(gconn: object,
+                 users_to_make: dict,
+                 current_users: dict = None,
+                 update: bool = False,
+                 debug: bool = False) -> dict:
+    """
+    Create users
+    """
+
+    endpoint = 'Guacamole'
+    operation = "Updated" if update else "Created"
+
+    if not users_to_make:
+        general_msg("There are no new users",
                     endpoint)
         return
 
-    general_msg("Creating User Accounts",
-                endpoint)
-    # Create user accounts
-    for user in create_users:
+    current_names = [
+        user['username']
+        for user in current_users
+    ]
+
+    for user in users_to_make:
+        if user['username'] in current_names:
+            if update:
+                create_user(gconn,
+                            user,
+                            True,
+                            debug)
+            else:
+                general_msg(f"User account '{user['username']}' already exists",
+                            endpoint)
+            continue
         create_user(gconn,
                     user,
-                    user_org,
+                    False,
                     debug)
 
+    success_msg(f"{operation} User Accounts",
+                endpoint)
 
-def delete_user_accts(gconn: object,
-                      delete_users: list,
-                      debug: bool = False) -> None:
+    return
+
+
+def create_user(gconn: object,
+                user: dict,
+                update: bool = False,
+                debug: bool = False) -> None:
+    """
+    Create a user in Guacamole with the given username, password, and organization.
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        user (dict): A dictionary containing the username and password.
+        debug (bool, optional): Enable debug mode. Defaults to False.
+
+    Returns:
+        None
+    """
+
+    endpoint = 'Guacamole'
+    operation = "Updated" if update else "Created"
+
+    if update:
+        response = gconn.update_user(user['username'],
+                                     user['attributes'])
+    else:
+        response = gconn.create_user(user['username'],
+                                     user['password'],
+                                     user['attributes'])
+    time.sleep(0.1)
+    message = f"{operation} user account '{user['username']}' ({user['password']})"
+    response_message(response,
+                     message,
+                     endpoint)
+    info_msg(user,
+             endpoint,
+             debug)
+
+    connection_ids = {
+        'group': user['permissions']['connectionGroupPermissions'].keys(),
+        'connection': user['permissions']['connectionPermissions'].keys(),
+        'sharing profile': user['permissions']['sharingProfilePermissions'].keys()
+    }
+
+    for conn_type, conn_ids in connection_ids.items():
+        for conn_id in conn_ids:
+            response = gconn.update_user_connection(user['username'],
+                                                    conn_id,
+                                                    'add',
+                                                    conn_type)
+            time.sleep(0.1)
+            message = f"Associated user '{user['username']}' with {conn_type} '{conn_id}'"
+            response_message(response,
+                             message,
+                             endpoint)
+
+
+def delete_users(gconn: object,
+                 users_to_delete: list,
+                 debug: bool = False) -> None:
     """
     Delete user accounts
 
@@ -690,7 +646,7 @@ def delete_user_accts(gconn: object,
     endpoint = 'Guacamole'
 
     # Check if there are any user accounts to delete
-    if not delete_users:
+    if not users_to_delete:
         general_msg("No User Accounts to Delete",
                     endpoint)
         return
@@ -700,53 +656,10 @@ def delete_user_accts(gconn: object,
                 endpoint)
 
     # Delete each user account in the list
-    for user in delete_users:
+    for user in users_to_delete:
         delete_user(gconn,
                     user,
                     debug)
-
-
-def create_user(gconn: object,
-                user: dict,
-                user_org: str,
-                debug: bool = False) -> None:
-    """
-    Create a user in Guacamole with the given username, password, and organization.
-
-    Args:
-        gconn (object): The Guacamole connection object.
-        user (dict): A dictionary containing the username and password.
-        user_org (str): The organization associated with the user.
-        debug (bool, optional): Enable debug mode. Defaults to False.
-
-    Returns:
-        None
-    """
-
-    endpoint = 'Guacamole'
-
-    # Extract the username and password from the user dictionary
-    username = user['username']
-    password = user['password']
-
-    # Call the create_user method of the gconn object
-    response = gconn.create_user(username,
-                                 password,
-                                 {"guac-organization": user_org})
-
-    # Parse the response message
-    message = parse_response(response)
-
-    # Print the appropriate message based on the response
-    if message:
-        info_msg(f"{message}",
-                 endpoint,
-                 debug)
-    else:
-        info_msg(f"Created User '{username}', Password '{password}'",
-                 endpoint,
-                 debug)
-    time.sleep(0.1)
 
 
 def delete_user(gconn: object,
@@ -770,531 +683,18 @@ def delete_user(gconn: object,
     response = gconn.delete_user(user)
 
     # Print the appropriate message based on the response
-    message = parse_response(response)
-    if message:
-        info_msg(f"{message}",
-                 endpoint,
-                 debug)
-    else:
-        info_msg(f"Deleted Account '{user}'",
-                 endpoint,
-                 debug)
+    message = f"Deleted user account '{user}'"
+    response_message(response,
+                     message,
+                     endpoint)
     time.sleep(0.1)
-
-
-def create_user_conns(gconn: object,
-                      create_conns: list,
-                      conn_groups: dict,
-                      guacd_ips: dict,
-                      debug: bool = False):
-    """
-    Create user connections.
-
-    Args:
-        gconn (object): The gconn object.
-        create_conns (list): List of connections to create.
-        conn_groups (dict): Dictionary of connection groups.
-        guacd_ips (dict): Dictionary of guacd servers.
-        debug (bool, optional): If True, enable debug mode. Defaults to False.
-
-    Returns:
-        dict: Dictionary of created connections.
-    """
-
-    endpoint = 'Guacamole'
-
-    # Check if there are no connections to create
-    if not create_conns:
-        general_msg("No User Connections to Create",
-                    endpoint)
-        return
-
-    # Print a message indicating if there are guacd servers
-    if guacd_ips:
-        general_msg("Found Guacd servers. ",
-                    endpoint)
-        info_msg(guacd_ips,
-                 endpoint,
-                 debug)
-    else:
-        general_msg("No Guacd servers found",
-                    endpoint)
-
-    conns = {}
-    general_msg("Creating User Connections",
-                endpoint)
-    # Create connections and store their ids in the conns dictionary
-    for conn in create_conns:
-        conn_name = conn['name']
-        conns[conn_name] = create_conn(gconn,
-                                       conn,
-                                       conn_groups,
-                                       guacd_ips,
-                                       None,
-                                       debug)
-
-    return conns
-
-
-def delete_user_conns(gconn: object,
-                      delete_conn_ids: list,
-                      debug: bool = False) -> None:
-    """
-    Delete user connections.
-
-    Args:
-        gconn (object): The Guacamole connection object.
-        delete_conn_ids (list): List of connection IDs to delete.
-        debug (bool, optional): Whether to enable debug mode. Defaults to False.
-    """
-
-    endpoint = 'Guacamole'
-
-    # Check if there are any connection IDs to delete
-    if not delete_conn_ids:
-        general_msg("No User Connections to Delete",
-                    endpoint)
-        return
-
-    general_msg("Deleting User Connections",
-                endpoint)
-
-    # Delete each connection ID
-    for conn_id in delete_conn_ids:
-        delete_conn(gconn,
-                    conn_id,
-                    debug)
-
-
-def create_conn(gconn: object,
-                conn: dict,
-                conn_groups: dict,
-                guacd_ips: dict,
-                conn_id: str | None,
-                debug: bool = False) -> None:
-    """Create a user connection.
-
-    Args:
-        gconn (object): The connection object.
-        conn (dict): The connection details.
-        conn_groups (dict): The connection groups.
-        guacd_ips (dict): The guacd IPs.
-        conn_id (str | None): The connection ID.
-        debug (bool, optional): Whether to enable debug mode. Defaults to False.
-
-    Returns:
-        str: The connection ID
-    """
-
-    endpoint = 'Guacamole'
-
-    # Extract necessary information from the connection details
-    conn_proto = conn['protocol']
-    conn_name = conn['name']
-    conn_org = conn_name.split('.')[0]
-    conn_group_id = conn_groups[conn_org]
-
-    # Determine the type of request based on whether a connection ID is provided
-    req_type = "put" if conn_id else "post"
-
-    # Manage the connection using the connection object
-    response = gconn.manage_connection(
-        req_type, conn_proto, conn_name,
-        conn_group_id, conn_id,
-        conn['params'],
-        {
-            "max-connections": "1",
-            "max-connections-per-user": "1",
-            "guacd-hostname": guacd_ips.get(conn_org, "")
-        }
-    )
-
-    # Parse the response message
-    message = parse_response(response)
-
-    if message:
-        # Handle message if present
-        info_msg(f"{message}",
-                 endpoint,
-                 debug)
-        time.sleep(0.1)
-        conn_id = get_conn_id(gconn,
-                              conn_name,
-                              conn_group_id,
-                              debug)
-    elif conn_id:
-        # Print the update case
-        info_msg(f"Updated User Connection '{conn_name}'. "
-                 f"User '{conn['params']['username']}', "
-                 f"Pass '{conn['params']['password']}', "
-                 f"IP '{conn['params']['hostname']}'",
-                 endpoint,
-                 debug)
-    else:
-        # Print the create case
-        info_msg(f"Created User Connection '{conn_name}'. "
-                 f"User '{conn['params']['username']}', "
-                 f"Pass '{conn['params']['password']}', "
-                 f"IP '{conn['params']['hostname']}'",
-                 endpoint,
-                 debug)
-        time.sleep(0.1)
-        conn_id = get_conn_id(gconn,
-                              conn_name,
-                              conn_group_id,
-                              debug)
-    time.sleep(0.1)
-
-    return conn_id
-
-
-def delete_conn(gconn: object,
-                conn_id: str,
-                debug: bool = False) -> None:
-    """
-    Delete a user connection.
-
-    Args:
-        gconn (object): The guacamole connection object
-        conn_id (str): The ID of the connection to be deleted
-        debug (bool, optional): Whether to print debug messages. Defaults to False.
-
-    Returns:
-        None
-    """
-
-    endpoint = 'Guacamole'
-
-    # Delete the connection using the guacamole connection object
-    response = gconn.delete_connection(conn_id)
-
-    # Parse the response to extract any error message
-    message = parse_response(response)
-
-    # If there is an error message, print it
-    if message:
-        info_msg(f"{message}",
-                 endpoint,
-                 debug)
-    else:
-        # If no error message, print the deleted connection ID
-        info_msg(f"Deleted Connection ID '{conn_id}'",
-                 endpoint,
-                 debug)
-    time.sleep(0.1)
-
-
-def create_sharing_profiles(gconn: object,
-                            sharings: list,
-                            conns: dict,
-                            debug: bool = False) -> None:
-    """
-    Create sharing profiles in Guacamole.
-
-    Args:
-        gconn (object): The Guacamole connection object.
-        sharings (list): List of sharing profiles to create.
-        conns (dict): Dictionary of connections.
-        debug (bool, optional): Enable debug mode. Defaults to False.
-    """
-
-    endpoint = 'Guacamole'
-
-    # Check if there are no sharing profiles to create
-    if not sharings:
-        general_msg("No Sharing Profiles to Create",
-                    endpoint)
-        return
-
-    general_msg("Creating Sharing Profiles Accounts",
-                endpoint)
-
-    # Create sharing profiles
-    for sharing in sharings:
-        share_id = conns[sharing['name']]
-        share_name = f"{sharing['name']}.share"
-        parameters = sharing['parameters']
-
-        create_sharing(gconn,
-                       share_id,
-                       share_name,
-                       parameters,
-                       debug)
-
-
-def delete_sharing_profiles(gconn: object,
-                            sharing_ids: list,
-                            debug: bool = False) -> None:
-    """
-    Delete sharing profiles in Guacamole.
-
-    Args:
-        gconn (object): The Guacamole connection object.
-        sharing_ids (list): List of sharing profile IDs to delete.
-        debug (bool, optional): Enable debug mode. Defaults to False.
-    """
-
-    endpoint = 'Guacamole'
-
-    # Check if there are no sharing profiles to delete
-    if not sharing_ids:
-        general_msg("No Sharing IDs to Delete",
-                    endpoint)
-        return
-
-    general_msg("Deleting Sharing IDs",
-                endpoint)
-    # Delete sharing profiles
-    for share_id in sharing_ids:
-        delete_sharing(gconn,
-                       share_id,
-                       debug)
-
-
-def create_sharing(gconn: object,
-                   share_id: str,
-                   share_name: str,
-                   parameters: dict,
-                   debug: bool = False) -> None:
-    """
-    Create a share connection.
-
-    Args:
-        gconn (object): The guacamole connection object
-        sharing (dict): sharing profile object to be created
-        conns (dict): Dictionary of connections
-        debug (bool, optional): Whether to print debug messages. Defaults to False.
-
-    Returns:
-        None
-    """
-
-    endpoint = 'Guacamole'
-
-    # Delete the connection using the guacamole connection object
-    response = gconn.create_sharing_profile(share_id,
-                                            share_name,
-                                            parameters)
-
-    # Parse the response to extract any error message
-    message = parse_response(response)
-
-    # If there is an error message, print it
-    if message:
-        info_msg(f"{message}",
-                 endpoint,
-                 debug)
-    else:
-        # If no error message, print the deleted connection ID
-        info_msg(f"Created Sharing Profile '{share_name}' (Under {share_id})",
-                 endpoint,
-                 debug)
-    time.sleep(0.1)
-
-
-def delete_sharing(gconn: object,
-                   share_id: str,
-                   debug: bool = False) -> None:
-    """
-    Delete a share connection.
-
-    Args:
-        gconn (object): The guacamole connection object
-        share_id (str): The ID of the share object to be deleted
-        debug (bool, optional): Whether to print debug messages. Defaults to False.
-
-    Returns:
-        None
-    """
-
-    endpoint = 'Guacamole'
-
-    # Delete the connection using the guacamole connection object
-    response = gconn.delete_sharing_profile(share_id)
-
-    # Parse the response to extract any error message
-    message = parse_response(response)
-
-    # If there is an error message, print it
-    if message:
-        info_msg(f"{message}",
-                 endpoint,
-                 debug)
-    else:
-        # If no error message, print the deleted connection ID
-        info_msg(f"Deleted Sharing Profile ID '{share_id}'",
-                 endpoint,
-                 debug)
-    time.sleep(0.1)
-
-
-def associate_user_conns(gconn: object,
-                         mappings: dict,
-                         org_name: str,
-                         conn_groups: dict,
-                         conn_ids: dict,
-                         debug: bool = False) -> None:
-    """
-    Associate user connections with the given Guacamole connection objects.
-
-    Args:
-        gconn (object): The Guacamole connection object.
-        mappings (dict): A dictionary containing user connection mappings.
-        org_name (str): The name of the organization.
-        conn_groups (dict): A dictionary mapping connection group names to their IDs.
-        conn_ids (dict): A dictionary mapping connection names to their IDs.
-        debug (bool, optional): Whether to enable debug mode. Defaults to False.
-
-    Returns:
-        None
-    """
-
-    endpoint = 'Guacamole'
-
-    # Check if there are no mappings
-    if not mappings:
-        general_msg("No User Connections to Associate",
-                    endpoint)
-        return
-
-    general_msg("Associating User Connections",
-                endpoint)
-
-    # Associate user connections for each mapping
-    for mapping in mappings:
-        user_name = list(mapping.keys())[0]
-        conn_names = list(mapping.values())[0]
-        parent_id = conn_groups[org_name]
-        groups = []
-
-        # Associate user with parent connection group
-        associate_conn(gconn,
-                       user_name,
-                       parent_id,
-                       True,
-                       org_name,
-                       debug)
-
-        # Associate user with each connection group and connection
-        for conn_name in conn_names:
-            group = conn_name.split('.')[0]
-            conn_group_id = conn_groups[group]
-            # Associate user to the group if they are not already
-            if group not in groups:
-                groups.append(group)
-                associate_conn(gconn,
-                               user_name,
-                               conn_group_id,
-                               True,
-                               group,
-                               debug)
-            # Associate user with connection
-            conn_id = conn_ids[conn_name]
-            associate_conn(gconn,
-                           user_name,
-                           conn_id,
-                           False,
-                           conn_name,
-                           debug)
-
-
-def associate_conn(gconn: object,
-                   user_name: str,
-                   conn_id: str,
-                   is_group: bool,
-                   conn_name: str | None = None,
-                   debug: bool = False) -> None:
-    """
-    Associates a user with a connection in Guacamole.
-
-    Args:
-        gconn (object): The Guacamole connection object.
-        user_name (str): The name of the user.
-        conn_id (str): The ID of the connection.
-        is_group (bool): Whether the connection is a group connection.
-        conn_name (str, optional): The name of the connection. Defaults to None.
-        debug (bool, optional): Whether to print debug messages. Defaults to False.
-
-    Returns:
-        None
-    """
-
-    endpoint = 'Guacamole'
-
-    # Associate the user with the group or connection
-    response = gconn.update_user_connection(user_name,
-                                            conn_id,
-                                            "add",
-                                            is_group)
-    # Parse the response to extract any error message
-    message = parse_response(response)
-
-    # Handle message if present
-    if message:
-        info_msg(f"{message}",
-                 endpoint,
-                 debug)
-    # Print feedback with connection name if present
-    elif conn_name:
-        conn_type = 'group' if is_group else 'connection'
-        info_msg(f"Associated '{user_name}' to {conn_type} '{conn_name}' ({conn_id})",
-                 endpoint,
-                 debug)
-    # Print feedback with message without connection name
-    else:
-        info_msg(f"Associated '{user_name}' to connection id '{conn_id}'",
-                 endpoint,
-                 debug)
-    time.sleep(0.1)
-
-
-def get_conn_group_id(gconn: object,
-                      org_name: str,
-                      debug: bool = False) -> str:
-    """
-    Retrieve the connection group ID for a given organization name.
-
-    Args:
-        gconn (object): The Guacamole connection object.
-        org_name (str): The name of the organization.
-        debug (bool, optional): Flag to enable debugging. Defaults to False.
-
-    Returns:
-        str: The connection group ID for the organization.
-
-    Raises:
-        IndexError: If the organization has no connection group IDs.
-    """
-
-    endpoint = 'Guacamole'
-
-    # Retrieve the connection groups as a dictionary
-    conn_groups = json.loads(gconn.list_connection_groups())
-
-    try:
-        # Find the group ID for the given organization name
-        group_id = [key for key in conn_groups.keys()
-                    if conn_groups[key]['name'] == org_name]
-        return_id = group_id[0]
-
-        # Log the retrieval of the group ID
-        info_msg(f"Retrieved {org_name}'s group ID '{return_id}'",
-                 endpoint,
-                 debug)
-
-    except IndexError as error:
-        # Log an error if the organization has no connection group IDs
-        error_msg(f"{org_name} has no connection group ID. {error}",
-                  endpoint)
-        return_id = None
-
-    return return_id
 
 
 def get_conn_id(gconn: object,
                 conn_name: str,
-                conn_group_id: str,
-                debug: bool = False) -> str:
+                parent_id: str,
+                conn_type: str = 'any',
+                debug: bool = False) -> str | None:
     """
     Retrieves the connection ID for a given connection name and group ID from Guacamole.
 
@@ -1302,42 +702,68 @@ def get_conn_id(gconn: object,
         gconn (object): The Guacamole connection object.
         conn_name (str): The name of the connection.
         conn_group_id (str): The ID of the connection group.
+        conn_type (str, optional): The type of connection. Defaults to 'any'.
         debug (bool, optional): Whether to enable debug mode. Defaults to False.
 
     Returns:
-        str: The connection ID.
+        str: The connection ID. If the connection is not found, None is returned.
 
-    Raises:
-        IndexError: If the connection is not found.
     """
 
     endpoint = 'Guacamole'
 
-    # Retrieve the connection list
-    conn_list = json.loads(gconn.list_connections())
-
-    try:
-        # Find the connection with the given name and group ID
-        conn_id = [conn['identifier'] for conn in conn_list.values()
-                   if conn['parentIdentifier'] == conn_group_id
-                   and conn['name'] == conn_name][0]
-
-        info_msg(f"Retrieved {conn_name}'s connection ID '{conn_id}'",
-                 endpoint,
-                 debug)
-
-    except IndexError as error:
-        # Handle the case when the connection is missing from the list
-        error_msg(f"{conn_name} has no connection ID. {error}",
+    if conn_type not in ['any', 'group', 'connection', 'sharing profile']:
+        error_msg(f"Invalid connection type '{conn_type}'",
                   endpoint)
-        conn_id = None
+        return None
 
-    return conn_id
+    if conn_type in ['any', 'group']:
+        groups = json.loads(gconn.list_connection_groups()).values()
+        for group in groups:
+            # Find the group with the given name and parent ID
+            if (group['parentIdentifier'] == parent_id and
+                    group['name'] == conn_name):
+                conn_id = group['identifier']
+                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
+                         endpoint,
+                         debug)
+                return conn_id
+
+    if conn_type in ['any', 'connection']:
+        conns = json.loads(gconn.list_connections()).values()
+        for conn in conns:
+            # Find the connection with the given name and parent ID
+            if (conn['parentIdentifier'] == parent_id and
+                    conn['name'] == conn_name):
+                conn_id = conn['identifier']
+                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
+                         endpoint,
+                         debug)
+                return conn_id
+
+    if conn_type in ['any', 'sharing profile']:
+        sharings = json.loads(gconn.list_sharing_profile()).values()
+        for sharing in sharings:
+            # Find the connection with the given name and parent ID
+            if (sharing['primaryConnectionIdentifier'] == parent_id and
+                    sharing['name'] == conn_name):
+                conn_id = sharing['identifier']
+                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
+                         endpoint,
+                         debug)
+                return conn_id
+
+    general_msg(
+        f"{conn_name} has no connection ID under '{parent_id}'",
+        endpoint
+    )
+
+    return None
 
 
-def get_groups(gconn: object,
-               parent_id: str,
-               debug: bool = False) -> dict:
+def get_conns(gconn: object,
+              parent_id: str,
+              debug: bool = False) -> dict:
     """
     Retrieves connection groups from a Guacamole connection.
 
@@ -1352,63 +778,26 @@ def get_groups(gconn: object,
 
     endpoint = 'Guacamole'
 
-    # Retrieve all connection groups
-    all_conn_groups = json.loads(gconn.list_connection_groups())
+    if not parent_id:
+        general_msg("There are no current connections",
+                    endpoint)
+        return {}
 
     # Filter connection groups by parent identifier
-    conn_groups = [group for group in all_conn_groups.values()
-                   if group['parentIdentifier'] == parent_id]
+    conn_groups = json.loads(
+        gconn.details_connection_group_connections(parent_id)
+    )
 
-    general_msg("Retrieved connection groups",
+    conn_groups = detail_conns(gconn,
+                               conn_groups)
+
+    general_msg("Retrieved current connections",
                 endpoint)
     info_msg(conn_groups,
              endpoint,
              debug)
 
     return conn_groups
-
-
-def get_conns(gconn: object,
-              conn_group_ids: dict,
-              debug: bool = False) -> dict:
-    """
-    Retrieves connections from Guacamole client using the provided connection group IDs.
-
-    Args:
-        gconn (object): Guacamole client object.
-        conn_group_ids (dict): Dictionary of connection group IDs.
-        debug (bool, optional): Flag to enable debug mode. Defaults to False.
-
-    Returns:
-        dict: List of connections retrieved from Guacamole.
-    """
-
-    endpoint = 'Guacamole'
-
-    # Retrieve the connections from Guacamole client
-    conns = [
-        {
-            'name': conn['name'],
-            'identifier': conn['identifier'],
-            'parentIdentifier': conn['parentIdentifier'],
-            'protocol': conn['protocol']
-        }
-        for conn in json.loads(gconn.list_connections()).values()
-        if conn['parentIdentifier'] in conn_group_ids
-    ]
-
-    # Retrieve params for each connection
-    for conn in conns:
-        conn['params'] = json.loads(
-            gconn.detail_connection(conn['identifier'], "params")
-        )
-
-    general_msg("Retrieved connections",
-                endpoint)
-    info_msg(conns,
-             endpoint,
-             debug)
-    return conns
 
 
 def get_users(gconn: object,
@@ -1429,62 +818,31 @@ def get_users(gconn: object,
 
     endpoint = 'Guacamole'
 
-    # Load all users from the Guacamole connection object
-    all_users = json.loads(gconn.list_users())
-
     # Filter the users based on the organization name
-    users = [user['username'] for user in all_users.values()
-             if user['attributes']['guac-organization'] == org_name]
+    users = [
+        user
+        for user in json.loads(gconn.list_users()).values()
+        if user['attributes']['guac-organization'] == org_name
+    ]
 
-    general_msg("Retrieved users accounts",
+    if not users:
+        general_msg("There are no current user accounts",
+                    endpoint)
+        return []
+
+    for user in users:
+        user['permissions'] = json.loads(
+            gconn.detail_user_permissions(user['username'])
+        )
+        time.sleep(0.1)
+
+    general_msg("Retrieved current users accounts",
                 endpoint)
     info_msg(users,
              endpoint,
              debug)
 
     return users
-
-
-def get_sharing(gconn: object,
-                conns: list,
-                debug: bool = False) -> dict:
-    """
-    Retrieves connections from Guacamole client using the provided connection group IDs.
-
-    Args:
-        gconn (object): Guacamole client object.
-        debug (bool, optional): Flag to enable debug mode. Defaults to False.
-
-    Returns:
-        dict: List of connections retrieved from Guacamole.
-    """
-
-    endpoint = 'Guacamole'
-
-    conn_ids = [conn['identifier'] for conn in conns]
-
-    sharings = [
-        share
-        for share in json.loads(gconn.list_sharing_profile()).values()
-        if share['primaryConnectionIdentifier'] in conn_ids
-    ]
-
-    # Retrieve params for each connection
-    for share in sharings:
-        share['params'] = json.loads(
-            gconn.details_sharing_profile(share['identifier'], "params")
-        )
-
-    # Retrieve the connections from Guacamole client
-    sharing = json.loads(gconn.list_sharing_profile())
-
-    general_msg("Retrieved sharing profiles",
-                endpoint)
-    info_msg(sharing,
-             endpoint,
-             debug)
-
-    return sharing
 
 
 def find_domain_name(heat_params: dict,
@@ -1522,83 +880,6 @@ def find_domain_name(heat_params: dict,
     return domain_name
 
 
-def find_group_ids(conn_list: list,
-                   debug: bool = False) -> dict:
-    """
-    Locates the child groups and their connection ids.
-
-    Args:
-        conn_list (list): A list of connection dictionaries.
-        debug (bool, optional): Flag to enable debug mode. Defaults to False.
-
-    Returns:
-        dict: A dictionary containing the connection group IDs.
-    """
-
-    endpoint = 'Guacamole'
-
-    # Extract the connection group IDs from the list of connections
-    conn_group_ids = [
-        conn['identifier']
-        for conn in conn_list
-    ]
-
-    if conn_group_ids:
-        general_msg("Found connection group IDs",
-                    endpoint)
-        info_msg(conn_group_ids,
-                 endpoint,
-                 debug)
-    else:
-        error_msg("Did not find connection group IDs",
-                  endpoint)
-
-    return conn_group_ids
-
-
-def find_conn_id(conn_list: list,
-                 conn_name: str,
-                 conn_group_id: str,
-                 debug: bool = False) -> str | None:
-    """
-    Find the connection ID for a given connection name and group ID in a list of connections.
-
-    Args:
-        conn_list (list): List of connections.
-        conn_name (str): Name of the connection to find.
-        conn_group_id (str): Group ID of the connection to find.
-        debug (bool, optional): Flag indicating whether to enable debug mode. Defaults to False.
-
-    Returns:
-        str | None: The connection ID of the found connection.
-
-    Raises:
-        KeyError: If the connection name is missing from the connection list.
-    """
-
-    endpoint = 'Guacamole'
-
-    try:
-        # Find the connection ID in the connection list
-        conn_id = [conn['identifier'] for conn in conn_list.values()
-                   if conn['parentIdentifier'] == conn_group_id
-                   and conn['name'] == conn_name][0]
-
-    except KeyError as error:
-        error_msg(f"'{conn_name}' is missing from connection list. {error}")
-        return None
-
-    if conn_id:
-        info_msg(f"Found {conn_name}'s connection ID '{conn_id}'",
-                 endpoint,
-                 debug)
-    else:
-        error_msg(f"'{conn_name}' has no connection ID",
-                  endpoint)
-
-    return conn_id
-
-
 def parse_response(response: object) -> str:
     """
     Parses the response object and returns the message from the JSON payload.
@@ -1616,7 +897,145 @@ def parse_response(response: object) -> str:
     try:
         # Extract the message from the response
         message = json.loads(response.text).get('message', '')
+
     except json.decoder.JSONDecodeError:
         return ''
 
     return message
+
+
+def response_message(response: object,
+                     default='',
+                     endpoint='') -> None:
+    """
+    Generate a response message based on the given response object.
+
+    Parameters:
+        response (object): The response object.
+        default (str, optional): The default message to print if the response is empty.
+            Defaults to ''.
+        endpoint (str, optional): The endpoint to include in the message.
+            Defaults to ''.
+        debug (bool, optional): Whether to enable debug mode.
+            Defaults to False.
+
+    Returns:
+        None: This function does not return anything.
+    """
+    # Parse the response message
+    message = parse_response(response)
+    # Print the appropriate message based on the response
+    if message:
+        general_msg(message,
+                    endpoint)
+    # Print the default message
+    elif default:
+        general_msg(default,
+                    endpoint)
+
+
+def remove_empty(obj: object) -> object:
+    """
+    Recursively removes None and empty values from a dictionary or a list.
+
+    obj:
+    dictionary (dict or list): The dictionary or list to remove None and empty values from.
+
+    Returns:
+    dict or list: The dictionary or list with None and empty values removed.
+    """
+    if isinstance(obj, dict):
+        return {
+            key: remove_empty(value)
+            for key, value in obj.items()
+            if value
+        }
+    elif isinstance(obj, list):
+        return [
+            remove_empty(item)
+            for item in obj
+            if item
+        ]
+    return obj
+
+
+def detail_conns(gconn: object,
+                 obj: object) -> (object, dict):
+    """
+    Recursively removes None and empty values from a dictionary or a list.
+
+    Parameters:
+    obj (dict or list): The dictionary or list to remove None and empty values from.
+
+    Returns:
+    (object, dict): The modified dictionary or list and the current_conns variable.
+    """
+    if isinstance(obj, dict):
+        if obj.get('childConnections'):
+            for conn in obj['childConnections']:
+                conn['parameters'] = json.loads(
+                    gconn.detail_connection(conn['identifier'],
+                                            "params")
+                )
+        return {
+            key: detail_conns(gconn,
+                              value)
+            for key, value in obj.items()
+            if value
+        }
+
+    if isinstance(obj, list):
+        return [
+            detail_conns(gconn,
+                         item)
+            for item in obj
+            if item
+        ]
+
+    return obj
+
+
+def extract_connections(obj: dict,
+                        parent='ROOT') -> (list, dict):
+    """
+    Recursively walks through an object and extracts connection groups,
+    connections, and sharing groups.
+
+    Parameters:
+    obj (dict): The object to extract groups and connections from.
+
+    Returns:
+    list: The extracted connection groups, connections, and sharing groups.
+    """
+
+    conns = []
+
+    if isinstance(obj, dict):
+        if obj.get('name'):
+            conn = obj.copy()
+            conn['parent'] = parent
+            if conn.get('childConnectionGroups'):
+                del conn['childConnectionGroups']
+            elif conn.get('childConnections'):
+                del conn['childConnections']
+            elif conn.get('sharingProfiles'):
+                del conn['sharingProfiles']
+            conns.append(conn)
+            parent = obj['name']
+
+        for value in obj.values():
+            if isinstance(value, (dict, list)):
+                child_conns = extract_connections(value,
+                                                  parent)
+                conns.extend(child_conns)
+
+    elif isinstance(obj, list):
+        for item in obj:
+            if isinstance(item, (dict, list)):
+                child_conns = extract_connections(item,
+                                                  parent)
+                conns.extend(child_conns)
+
+    conns.sort(key=lambda x: x.get('parent'))
+
+    return conns

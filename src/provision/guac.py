@@ -77,15 +77,19 @@ def provision(conn,
     guac_params = {}
 
     guac_params['org_name'] = globals['org_name']
-    guac_params['parent_group_id'] = guac.get_conn_group_id(gconn,
-                                                            guac_params['org_name'],
-                                                            debug)
+    guac_params['parent_group_id'] = guac.get_conn_id(gconn,
+                                                      guac_params['org_name'],
+                                                      'ROOT',
+                                                      'group',
+                                                      debug)
 
     # Populate the guac_params for provision or reprovision
     if create or update:
         guac_params['protocol'] = heat_params['conn_proto']['default']
         guac_params['password'] = heat_params['password']['default']
         guac_params['username'] = heat_params['username']['default']
+        guac_params['domain_name'] = guac.find_domain_name(heat_params,
+                                                           debug)
         guac_params['recording'] = guacamole_globals['recording']
         guac_params['sharing'] = guacamole_globals['sharing']
         # Format the users.yaml data into groups and users data
@@ -101,8 +105,6 @@ def provision(conn,
             guac_params['new_users'] = generate_users(globals,
                                                       guacamole_globals,
                                                       debug)
-        guac_params['domain_name'] = guac.find_domain_name(heat_params,
-                                                           debug)
         # Get the ostack instances, wait for them to get IP addresses if necessary
         ostack_complete = False
         while not ostack_complete:
@@ -118,34 +120,20 @@ def provision(conn,
 
             ostack_complete = True
 
-    # Populate the guac_params for deprovision or reprovision
-    if not create or update:
-        guac_params['conn_groups'] = guac.get_groups(gconn,
-                                                     guac_params['parent_group_id'],
-                                                     debug)
-        guac_params['conn_group_ids'] = guac.find_group_ids(guac_params['conn_groups'],
-                                                            debug)
-        guac_params['conn_users'] = guac.get_users(gconn,
-                                                   guac_params['org_name'],
-                                                   debug)
-        guac_params['conn_list'] = guac.get_conns(gconn,
-                                                  guac_params['conn_group_ids'],
-                                                  debug)
+    # Populate the guac_params with current connection and user data
+    guac_params['conns'] = guac.get_conns(gconn,
+                                          guac_params['parent_group_id'],
+                                          debug)
 
-    # Populate the guac_params for sharing
-    if update:
-        guac_params['conn_sharing'] = guac.get_sharing(gconn,
-                                                       guac_params['conn_list'],
-                                                       debug)
+    guac_params['users'] = guac.get_users(gconn,
+                                          guac_params['org_name'],
+                                          debug)
 
     # Provision, deprovision, or reprovision
-    if update:
-        guac.reprovision(gconn,
-                         guac_params,
-                         debug)
-    elif create:
+    if create:
         guac.provision(gconn,
                        guac_params,
+                       update,
                        debug)
     else:
         guac.deprovision(gconn,
