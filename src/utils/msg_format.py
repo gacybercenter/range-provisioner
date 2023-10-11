@@ -2,8 +2,8 @@
 Contains all the main functions for message formatting
 """
 
-from colorama import Fore
 from pprint import pprint
+from colorama import Fore
 
 
 def error_msg(text: str | list | dict,
@@ -28,7 +28,9 @@ def error_msg(text: str | list | dict,
         print(text)
     else:
         print()
-        pprint(text, indent=4)
+        pprint(text,
+               indent=1,
+               sort_dicts=False)
 
 
 def info_msg(text: str | list | dict,
@@ -57,8 +59,11 @@ def info_msg(text: str | list | dict,
     if isinstance(text, str):
         print(text)
     else:
+        text = remove_none_and_empty(text)
         print()
-        pprint(text, indent=4)
+        pprint(text,
+               indent=1,
+               sort_dicts=False)
 
 
 def success_msg(text: str | list | dict,
@@ -83,7 +88,9 @@ def success_msg(text: str | list | dict,
         print(text)
     else:
         print()
-        pprint(text, indent=4)
+        pprint(text,
+               indent=1,
+               sort_dicts=False)
 
 
 def general_msg(text: str | list | dict,
@@ -108,4 +115,32 @@ def general_msg(text: str | list | dict,
         print(text)
     else:
         print()
-        pprint(text, indent=4)
+        pprint(text,
+               indent=1,
+               sort_dicts=False)
+
+
+def remove_none_and_empty(obj: object) -> object:
+    """
+    Recursively removes None and empty values from a dictionary or a list.
+
+    Parameters:
+    dictionary (dict or list): The dictionary or list to remove None and empty values from.
+
+    Returns:
+    dict or list: The dictionary or list with None and empty values removed.
+    """
+    if isinstance(obj, dict):
+        return {
+            key: remove_none_and_empty(value)
+            for key, value in obj.items()
+            if value not in (None, '')
+        }
+    elif isinstance(obj, list):
+        return [
+            remove_none_and_empty(item)
+            for item in obj
+            if item not in (None, '')
+        ]
+    else:
+        return obj
