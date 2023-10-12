@@ -128,6 +128,7 @@ def provision(conn,
                 instance
                 for instance in guac_params['instances']
                 if instance['name'] in mapped_instances
+                or 'guacd' in instance['name']
             ]
 
     # Populate the guac_params with current connection and user data

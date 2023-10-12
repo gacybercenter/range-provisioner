@@ -44,13 +44,13 @@ def provision(gconn: object,
                             update,
                             debug)
 
-    users_to_make, current_users = create_user_data(guac_params,
+    users_to_create, current_users = create_user_data(guac_params,
                                                     conn_ids,
                                                     update,
                                                     debug)
 
     create_users(gconn,
-                 users_to_make,
+                 users_to_create,
                  current_users,
                  update,
                  debug)
@@ -204,6 +204,7 @@ def create_conn_data(guac_params: dict,
     current_conns = extract_connections(current_object)
 
     if update:
+        conns_to_create = remove_empty(conns_to_create)
         compare_conns = remove_empty(current_conns)
         for conn in compare_conns:
             del conn['identifier']
@@ -243,8 +244,9 @@ def create_user_data(guac_params: dict,
     org_name = guac_params['org_name']
     new_users = guac_params['new_users']
     sharing = guac_params['sharing']
+    current_users = guac_params['users']
 
-    users_to_make = []
+    users_to_create = []
     passwords = {}
 
     # Generate the create data based on the new user mapping data
@@ -268,7 +270,7 @@ def create_user_data(guac_params: dict,
             if sharing_id:
                 sharings[sharing_id] = ['READ']
 
-        users_to_make.append(
+        users_to_create.append(
             {
                 'username': username,
                 'attributes': {
@@ -283,7 +285,8 @@ def create_user_data(guac_params: dict,
         )
 
     if update:
-        compare_users = remove_empty(guac_params['users'])
+        users_to_create = remove_empty(users_to_create)
+        compare_users = remove_empty(current_users)
         for user in compare_users:
             if user['permissions'].get('activeConnectionPermissions'):
                 del user['permissions']['activeConnectionPermissions']
@@ -294,18 +297,18 @@ def create_user_data(guac_params: dict,
             if user['permissions'].get('systemPermissions'):
                 del user['permissions']['systemPermissions']
 
-            if user in users_to_make:
-                users_to_make.remove(user)
+            if user in users_to_create:
+                users_to_create.remove(user)
                 general_msg(f"No changes needed for user '{user['username']}'",
                             endpoint)
                 info_msg(user,
                          endpoint,
                          debug)
 
-    for user in users_to_make:
+    for user in users_to_create:
         user['password'] = passwords[user['username']]
 
-    return users_to_make, guac_params['users']
+    return users_to_create, current_users
 
 
 def delete_conn_data(guac_params: object) -> dict:
@@ -433,12 +436,12 @@ def create_conn(gconn: object,
                                                      conn_data['name'],
                                                      conn_data['type'],
                                                      parent_id,
-                                                     conn_data['attributes'])
+                                                     conn_data.get('attributes', {}))
         else:
             response = gconn.create_connection_group(conn_data['name'],
                                                      conn_data['type'],
                                                      parent_id,
-                                                     conn_data['attributes'])
+                                                     conn_data.get('attributes', {}))
     elif conn_type == "connection":
         req_type = "put" if conn_id else "post"
         response = gconn.manage_connection(req_type,
@@ -446,18 +449,18 @@ def create_conn(gconn: object,
                                            conn_data['name'],
                                            parent_id,
                                            conn_id,
-                                           conn_data['parameters'],
-                                           conn_data['attributes'])
+                                           conn_data.get('parameters', {}),
+                                           conn_data.get('attributes', {}))
     else:
         if conn_id:
             response = gconn.update_sharing_profile(parent_id,
                                                     conn_data['name'],
                                                     conn_id,
-                                                    conn_data['parameters'])
+                                                    conn_data.get('parameters', {}))
         else:
             response = gconn.create_sharing_profile(parent_id,
                                                     conn_data['name'],
-                                                    conn_data['parameters'])
+                                                    conn_data.get('parameters', {}))
     time.sleep(0.1)
 
     if not conn_id:
@@ -589,7 +592,7 @@ def remove_children(connections: list) -> list:
 
 
 def create_users(gconn: object,
-                 users_to_make: dict,
+                 users_to_create: dict,
                  current_users: dict = None,
                  update: bool = False,
                  debug: bool = False) -> dict:
@@ -600,7 +603,7 @@ def create_users(gconn: object,
     endpoint = 'Guacamole'
     operation = "Updated" if update else "Created"
 
-    if not users_to_make:
+    if not users_to_create:
         general_msg("There are no new users",
                     endpoint)
         return
@@ -610,7 +613,7 @@ def create_users(gconn: object,
         for user in current_users
     ]
 
-    for user in users_to_make:
+    for user in users_to_create:
         if user['username'] in current_names:
             if update:
                 create_user(gconn,
@@ -658,11 +661,11 @@ def create_user(gconn: object,
 
     if update:
         response = gconn.update_user(user['username'],
-                                     user['attributes'])
+                                     user.get('attributes', {}))
     else:
         response = gconn.create_user(user['username'],
                                      user['password'],
-                                     user['attributes'])
+                                     user.get('attributes', {}))
     time.sleep(0.1)
     message = f"{operation} user account '{user['username']}' ({user['password']})"
     response_message(response,
