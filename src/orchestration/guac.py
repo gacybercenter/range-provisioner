@@ -200,14 +200,11 @@ def create_conn_data(guac_params: dict,
         }
     }
 
-    if update:
-        create_object = remove_empty(create_object)
-
     conns_to_create = extract_connections(create_object)
     current_conns = extract_connections(current_object)
 
     if update:
-        compare_conns = extract_connections(current_object)
+        compare_conns = remove_empty(current_conns)
         for conn in compare_conns:
             del conn['identifier']
             if conn.get('parentIdentifier'):
@@ -217,7 +214,7 @@ def create_conn_data(guac_params: dict,
 
             if conn in conns_to_create:
                 conns_to_create.remove(conn)
-                general_msg(f"No changes needed for '{conn['name']}'",
+                general_msg(f"No changes needed for connection '{conn['name']}'",
                             endpoint)
                 info_msg(conn,
                          endpoint,
@@ -299,7 +296,7 @@ def create_user_data(guac_params: dict,
 
             if user in users_to_make:
                 users_to_make.remove(user)
-                general_msg(f"No changes needed for '{user['username']}'",
+                general_msg(f"No changes needed for user '{user['username']}'",
                             endpoint)
                 info_msg(user,
                          endpoint,
@@ -308,7 +305,6 @@ def create_user_data(guac_params: dict,
     for user in users_to_make:
         user['password'] = passwords[user['username']]
 
-    # Return the created data and guacd IPs
     return users_to_make, guac_params['users']
 
 
