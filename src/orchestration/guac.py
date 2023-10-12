@@ -34,18 +34,21 @@ def provision(gconn: object,
     general_msg("Provisioning Guacamole",
                 endpoint)
 
-    # Generate the connections
-    conns_to_make, current_conns = create_conn_data(guac_params)
-    # Create the connections
+    conns_to_make, current_conns = create_conn_data(guac_params,
+                                                    update,
+                                                    debug)
+
     conn_ids = create_conns(gconn,
                             conns_to_make,
                             current_conns,
                             update,
                             debug)
-    # Generate the users
+
     users_to_make, current_users = create_user_data(guac_params,
-                                                    conn_ids)
-    # Create the users
+                                                    conn_ids,
+                                                    update,
+                                                    debug)
+
     create_users(gconn,
                  users_to_make,
                  current_users,
@@ -57,8 +60,7 @@ def provision(gconn: object,
 
 
 def deprovision(gconn: object,
-                guac_params: dict,
-                debug: bool = False) -> bool:
+                guac_params: dict) -> bool:
     """
     Deprovision Guacamole connections and users.
 
@@ -77,7 +79,7 @@ def deprovision(gconn: object,
                 endpoint)
 
     delete_conn(gconn,
-                 guac_params['conns'])
+                guac_params['conns'])
 
     delete_users(gconn,
                  guac_params['users'])
@@ -86,7 +88,9 @@ def deprovision(gconn: object,
                 endpoint)
 
 
-def create_conn_data(guac_params: dict) -> tuple:
+def create_conn_data(guac_params: dict,
+                     update: bool = False,
+                     debug: bool = False) -> tuple:
     """
     Create data for Guacamole API based on given parameters.
 
@@ -96,6 +100,8 @@ def create_conn_data(guac_params: dict) -> tuple:
     Returns:
         tuple: A tuple containing the create data and the Guacd IPs.
     """
+
+    endpoint = 'Guacamole'
 
     # Extract parameters from guac_params
     org_name = guac_params['org_name']
@@ -107,10 +113,12 @@ def create_conn_data(guac_params: dict) -> tuple:
 
     if sharing and sharing not in ['read', 'write']:
         error_msg(
-            f"The Guacamole sharing parameter is set to '{sharing}'"
+            f"The Guacamole sharing parameter is set to '{sharing}'",
+            endpoint
         )
         general_msg(
-            "It must be either 'read', 'write', or 'False'"
+            "It must be either 'read', 'write', or 'False'",
+            endpoint
         )
 
     guacd_ips = {}
@@ -139,8 +147,8 @@ def create_conn_data(guac_params: dict) -> tuple:
                 'attributes': {},
                 'name': f"{instance['name']}.{sharing}",
                 'parameters': {
-                    "read-only": 'true' if sharing == 'read' else ''
-                }
+                    "read-only": 'true'
+                } if sharing == 'read' else {}
             },
             'parameters': {
                 'hostname': instance['hostname'],
@@ -191,16 +199,37 @@ def create_conn_data(guac_params: dict) -> tuple:
             'max-connections-per-user': '10'
         }
     }
-    create_object = remove_empty(create_object)
+
+    if update:
+        create_object = remove_empty(create_object)
 
     conns_to_create = extract_connections(create_object)
     current_conns = extract_connections(current_object)
+
+    if update:
+        compare_conns = extract_connections(current_object)
+        for conn in compare_conns:
+            del conn['identifier']
+            if conn.get('parentIdentifier'):
+                del conn['parentIdentifier']
+            if conn.get('primaryConnectionIdentifier'):
+                del conn['primaryConnectionIdentifier']
+
+            if conn in conns_to_create:
+                conns_to_create.remove(conn)
+                general_msg(f"No changes needed for '{conn['name']}'",
+                            endpoint)
+                info_msg(conn,
+                         endpoint,
+                         debug)
 
     return conns_to_create, current_conns
 
 
 def create_user_data(guac_params: dict,
-                     conn_ids: dict) -> tuple:
+                     conn_ids: dict,
+                     update: bool = False,
+                     debug: bool = False) -> tuple:
     """
     Create data for Guacamole API based on given parameters.
 
@@ -211,16 +240,19 @@ def create_user_data(guac_params: dict,
         tuple: A tuple containing the create data and the Guacd IPs.
     """
 
+    endpoint = 'Guacamole'
+
     # Extract parameters from guac_params
     org_name = guac_params['org_name']
     new_users = guac_params['new_users']
     sharing = guac_params['sharing']
 
     users_to_make = []
+    passwords = {}
 
     # Generate the create data based on the new user mapping data
     for username, data in new_users.items():
-        # Create user dictionary
+        passwords[username] = data['password']
         groups = {}
         instances = {}
         sharings = {}
@@ -242,7 +274,6 @@ def create_user_data(guac_params: dict,
         users_to_make.append(
             {
                 'username': username,
-                'password': data['password'],
                 'attributes': {
                     'guac-organization': org_name
                 },
@@ -253,6 +284,29 @@ def create_user_data(guac_params: dict,
                 }
             }
         )
+
+    if update:
+        compare_users = remove_empty(guac_params['users'])
+        for user in compare_users:
+            if user['permissions'].get('activeConnectionPermissions'):
+                del user['permissions']['activeConnectionPermissions']
+            if user['permissions'].get('userPermissions'):
+                del user['permissions']['userPermissions']
+            if user['permissions'].get('userGroupPermissions'):
+                del user['permissions']['userGroupPermissions']
+            if user['permissions'].get('systemPermissions'):
+                del user['permissions']['systemPermissions']
+
+            if user in users_to_make:
+                users_to_make.remove(user)
+                general_msg(f"No changes needed for '{user['username']}'",
+                            endpoint)
+                info_msg(user,
+                         endpoint,
+                         debug)
+
+    for user in users_to_make:
+        user['password'] = passwords[user['username']]
 
     # Return the created data and guacd IPs
     return users_to_make, guac_params['users']
@@ -516,22 +570,24 @@ def remove_children(connections: list) -> list:
         connections (list): A list of connection groups.
 
     Returns:
-        list: A list of connection groups to be deleted.
+        list: The reduced list of connection groups to be deleted.
     """
 
-    def find_descendants(connection: dict) -> list:
-        descendants = []
+    def find_descendants(connection: dict, descendants: list) -> None:
         for child in connections:
-            if (child.get('parentIdentifier') == connection['identifier'] or
-                    child.get('primaryConnectionIdentifier') == connection['identifier']):
+            if (
+                child.get('parentIdentifier') == connection['identifier']
+                or child.get('primaryConnectionIdentifier') == connection['identifier']
+            ):
                 descendants.append(child)
-                descendants.extend(find_descendants(child))
-        return descendants
+                find_descendants(child, descendants)
 
-    connections_to_delete = [
-        connection for connection in connections
-        if find_descendants(connection)
-    ]
+    connections_to_delete = []
+    for connection in connections:
+        descendants = []
+        find_descendants(connection, descendants)
+        if descendants:
+            connections_to_delete.append(connection)
 
     return connections_to_delete
 
@@ -665,6 +721,9 @@ def delete_users(gconn: object,
     for user in users_to_delete:
         delete_user(gconn,
                     user)
+
+    success_msg("Deleted User Accounts",
+                endpoint)
 
 
 def delete_user(gconn: object,
@@ -957,12 +1016,13 @@ def remove_empty(obj: object) -> object:
             for key, value in obj.items()
             if value
         }
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [
             remove_empty(item)
             for item in obj
             if item
         ]
+
     return obj
 
 
