@@ -122,12 +122,12 @@ def main():
         # Connect to Guacamole
         general_msg("Connecting to Guacamole...",
                     endpoint)
-        info_msg(f"Endpoint: {guacamole_globals['guac_host']}",
+        info_msg(f"Endpoint: {guacamole_clouds['host']}",
                  endpoint,
                  debug)
-        guacamole_connect = session(guacamole_globals['guac_host'],
-                                    'mysql',
-                                    guacamole_clouds['user'],
+        guacamole_connect = session(guacamole_clouds['host'],
+                                    guacamole_clouds['data_source'],
+                                    guacamole_clouds['username'],
                                     guacamole_clouds['password'])
         if guacamole_connect:
             success_msg("Connected to Guacamole",

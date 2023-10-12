@@ -86,8 +86,8 @@ def provision(conn,
     # Populate the guac_params for provision or reprovision
     if create or update:
         guac_params['protocol'] = heat_params['conn_proto']['default']
-        guac_params['password'] = heat_params['password']['default']
         guac_params['username'] = heat_params['username']['default']
+        guac_params['password'] = heat_params['password']['default']
         guac_params['domain_name'] = guac.find_domain_name(heat_params,
                                                            debug)
         guac_params['recording'] = guacamole_globals['recording']
@@ -103,7 +103,6 @@ def provision(conn,
             guac_params['new_groups'] = generate_groups(globals,
                                                         debug)
             guac_params['new_users'] = generate_users(globals,
-                                                      guacamole_globals,
                                                       debug)
         # Get the ostack instances, wait for them to get IP addresses if necessary
         ostack_complete = False
@@ -117,8 +116,19 @@ def provision(conn,
                                 endpoint)
                     time.sleep(5)
                     continue
-
             ostack_complete = True
+
+        if guacamole_globals.get('mapped_only'):
+            mapped_instances = []
+            for data in guac_params['new_users'].values():
+                mapped_instances.extend(data['instances'])
+            mapped_instances = set(mapped_instances)
+
+            guac_params['instances'] = [
+                instance
+                for instance in guac_params['instances']
+                if instance['name'] in mapped_instances
+            ]
 
     # Populate the guac_params with current connection and user data
     guac_params['conns'] = guac.get_conns(gconn,
