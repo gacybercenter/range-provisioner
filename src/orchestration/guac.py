@@ -76,15 +76,11 @@ def deprovision(gconn: object,
     general_msg("Deprovisioning Guacamole",
                 endpoint)
 
-    conns_to_delete = delete_conn_data(guac_params)
-
-    delete_conns(gconn,
-                 conns_to_delete)
-
-    users_to_delete = delete_user_data(guac_params)
+    delete_conn(gconn,
+                 guac_params['conns'])
 
     delete_users(gconn,
-                 users_to_delete)
+                 guac_params['users'])
 
     success_msg("Deprovisioned Guacamole",
                 endpoint)
@@ -437,6 +433,7 @@ def delete_conns(gconn: object,
         gconn (object): The connection object.
         conn_ids (list): List of group IDs to delete.
         debug (bool, optional): Flag to enable debug mode. Defaults to False.
+
     Returns:
         None
     """
@@ -504,7 +501,6 @@ def delete_conn(gconn: object,
                   endpoint)
         return
 
-    # Parse the response message
     message = f"Deleted {conn_type} ID '{conn_id}'"
     response_message(response,
                      message,
@@ -672,7 +668,7 @@ def delete_users(gconn: object,
 
 
 def delete_user(gconn: object,
-                user: str) -> None:
+                user: dict | str) -> None:
     """
     Delete a user from the Guacamole system.
 
@@ -686,6 +682,9 @@ def delete_user(gconn: object,
     """
 
     endpoint = 'Guacamole'
+
+    if isinstance(user, dict):
+        user = user['username']
 
     # Call the delete_user method of the gconn object
     response = gconn.delete_user(user)
