@@ -147,5 +147,4 @@ def provision(conn,
                        debug)
     else:
         guac.deprovision(gconn,
-                         guac_params,
-                         debug)
+                         guac_params)
