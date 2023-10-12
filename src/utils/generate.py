@@ -74,7 +74,6 @@ def generate_instance_names(params: dict,
 
 
 def generate_users(params: dict,
-                   guac_params: dict,
                    debug) -> dict | None:
     """Create a user list based on given ranges"""
 
@@ -82,7 +81,6 @@ def generate_users(params: dict,
     num_users = params.get('num_users')
     range_name = params.get('range_name')
     user_name = params.get('user_name')
-    secure = guac_params.get('secure')
     endpoint = 'Generate'
 
     general_msg(f"Generating user names for {range_name}",
@@ -99,14 +97,13 @@ def generate_users(params: dict,
     users_list = {
         user:
             {
-                'password': generate_password() if secure
-                else {user: range_name, 'instances': user},
+                'password': generate_password(),
                 'instances': [user]
             } for user in user_names
     }
     info_msg(users_list,
-                endpoint,
-                debug)
+             endpoint,
+             debug)
 
     return users_list
 
@@ -122,13 +119,13 @@ def generate_groups(params: dict,
     general_msg(f"Generating group names for {range_name}",
                 endpoint)
 
-    instance_names = generate_names(num_ranges,
-                                    range_name)
-    info_msg(range_name,
-                endpoint,
-                debug)
+    group_names = generate_names(num_ranges,
+                                 range_name)
+    info_msg(group_names,
+             endpoint,
+             debug)
 
-    return instance_names
+    return group_names
 
 
 def format_groups(user_params: dict,
