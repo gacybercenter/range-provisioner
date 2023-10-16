@@ -34,39 +34,30 @@ directory structure and HOT parameters required for use of Range Provisioner.
 DIR
 |___ assets
 |       |___ config.sh
-|
 |___ example
 |       |___ globals.yaml
-|
 |___ scr
 |       |___ orchestration
 |       |       |___ guac.py
 |       |       |___ heat.py
 |       |       |___ swift.py
-|       |
 |       |___ provision
 |       |       |___ guac.py
 |       |       |___ heat.py
 |       |       |___ swift.py
-|       |
 |       |___ utils
 |       |       |___ generate.py
 |       |       |___ load_template.py
 |       |       |___ manage_ids.py
 |       |       |___ msg_format.py
-|       |
 |       |___ provisioner.py
-|
 |___ templates
 |       |___ main.yaml
 |       |___ sec.yaml     (Optional)
 |       |___ env.yaml     (Optional)
 |       |___ users.yaml   (Optional)
-|
 |___ globals.yaml
-|
 |___ README.md
-|
 |___ requirements.txt
 ```
 _This provides the foundational directory structure for storing Heat Orchestration 
@@ -119,43 +110,54 @@ parameters:
 _Expected parameters within the `users.yaml`_
 ```yaml
 parameters:
-  username:
-    password: password
+  Alice:
+    password: password1
+    sharing: write
+    permissions:
+      - CREATE_USER
+      - CREATE_USER_GROUP
+      - CREATE_CONNECTION
+      - CREATE_CONNECTION_GROUP
+      - CREATE_SHARING_PROFILE
+      - ADMINISTER
     instances:
-      - instance_1
-      - instance_2
+      - Test_Range.Test_Name.1
+      - Test_Range.Test_Name.2
+      - Test_Range.Test_Name.3
 ```
+#### Note: Part of a stack name in the instances section maps all stacks containing the entry. <sub><i>Your welcome Brent</i></sub>
+
 
 #### Mappings to `globals.yaml`
 ```yaml
 globals:
-  debug: True # debug mode (True) or not (False)
-  cloud: cloud_name # name of cloud to use
-  num_users: 3 # number of user systems to provision
-  num_ranges: 1 # number of ranges to provision
-  user_name: user_name # user name prefix
-  range_name: range_name # range name prefix
-  org_name: org_name # name of organization
-  artifacts: True # artifacts (True) or not (False)
-  provision: # provision range (True) or not (False) or None
+  debug: True             # debug mode (True) or not (False)
+  cloud: cloud_name       # name of cloud to use
+  num_users: 3            # number of user systems to provision
+  num_ranges: 1           # number of ranges to provision
+  user_name: user_name    # user name prefix
+  range_name: range_name  # range name prefix
+  org_name: org_name      # name of organization
+  artifacts: True         # artifacts (True) or not (False)
+  provision:              # provision range (True) or not (False) or None
 
 guacamole:
-  provision: True # provision guacamole (True) or not (False)
-  update: False # update guacamole users (True) or not (False)
-  mapped_only: True # only create connections for user mapped instances (True) or not (False)
-  recording: True # enable session recording (True) or not (False)
-  sharing: write # enable link sharing read (read), write (write) or not (False)
+  provision: True         # provision guacamole (True) or not (False)
+  update: False           # update guacamole users (True) or not (False)
+  mapped_only: True       # only create connections for user mapped instances (True) or not (False)
+  recording: True         # enable session recording (True) or not (False)
+  sharing: write          # enable link sharing read (read), write (write) or not (False)
 
 heat:
-  provision: True # provision heat (True) or not (False)
-  update: True # update heat (True) or not (False)
+  provision: True         # provision heat (True) or not (False)
+  update: True            # update heat (True) or not (False)
   template_dir: templates # directory containing heat templates
-  pause: 2 # pause between each heat stack action
+  pause: 2                # pause between each heat stack action
 
 swift:
-  provision: True # provision swift (True) or not (False)
-  update: True # update swift (True) or not (False)
-  asset_dir: assets # directory containing swift assets
+  provision: True         # provision swift (True) or not (False)
+  update: True            # update swift (True) or not (False)
+  asset_dir: assets       # directory containing swift assets
 ```
 ### Usage Example
 To ensure easy of use the following provides an example CI/CD implementation utilizing Range
@@ -173,21 +175,10 @@ stages:
   - Heat
   - Guacamole
 
-guac_deprovision:
-  stage: Guacamole
-  script: |
-      python3 /range-provisioner/manage_guac.py
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: $CI_COMMIT_MESSAGE =~ /\[delete]/
-      allow_failure: true
-      when: always
-
 object_upload:
   stage: Swift
   script: |
-      python3 /range-provisioner/manage_objects.py
+      python3 /range-provisioner/src/provisioner.py swift
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -197,7 +188,7 @@ object_upload:
 heat_deploy:
   stage: Heat
   script: |
-      python3 /range-provisioner/manage_heat.py
+      python3 /range-provisioner/src/provisioner.py swift
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -207,7 +198,7 @@ heat_deploy:
 guac_provision:
   stage: Guacamole
   script: |
-      python3 /range-provisioner/manage_guac.py
+      python3 /range-provisioner/src/provisioner.py swift
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
