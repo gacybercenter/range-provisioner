@@ -618,7 +618,7 @@ def remove_children(connections: list) -> list:
 
 def create_users(gconn: object,
                  users_to_create: dict,
-                 current_users: list = [],
+                 current_users: list | None = None,
                  update: bool = False,
                  debug: bool = False) -> dict:
     """
@@ -627,7 +627,7 @@ def create_users(gconn: object,
     Args:
         gconn (object): The Guacamole connection object.
         users_to_create (dict): List of users to create.
-        current_users (list, optional): List of current users.
+        current_users (list | None, optional): List of current users.
         update (bool, optional): Whether to update users.
         debug (bool, optional): Whether to enable debug mode.
 
@@ -646,7 +646,7 @@ def create_users(gconn: object,
     current_names = [
         user['username']
         for user in current_users
-    ]
+    ] if current_users else []
 
     if update:
         current_user_data = {
@@ -896,8 +896,7 @@ def update_user_perms(gconn: object,
             update_user_perm(gconn,
                              user,
                              remove_system_perms,
-                             'remove',
-                             debug)
+                             'remove')
 
     if not system_perms:
         info_msg(
@@ -909,15 +908,13 @@ def update_user_perms(gconn: object,
     update_user_perm(gconn,
                      user,
                      system_perms,
-                     'add',
-                     debug)
+                     'add')
 
 
 def update_user_perm(gconn: object,
                      user: dict | str,
                      system_perms: list,
-                     operation: str = 'add',
-                     debug: bool = False) -> None:
+                     operation: str = 'add') -> None:
     """
     Updates user accounts with connection groups
 
@@ -963,9 +960,6 @@ def update_user_perm(gconn: object,
     response_message(response,
                      message,
                      endpoint)
-    info_msg(system_perms,
-             endpoint,
-             debug)
 
 
 def delete_users(gconn: object,
