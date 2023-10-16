@@ -9,7 +9,6 @@ Description:
 """
 import time
 from orchestration import guac
-from orchestration import heat
 from utils.generate import generate_groups, generate_users, format_users, format_groups
 from utils.msg_format import error_msg, info_msg, general_msg
 
@@ -96,41 +95,22 @@ def provision(conn,
         if user_params:
             guac_params['new_groups'] = format_groups(user_params,
                                                       debug)
+            guac_params['instances'] = guac.get_heat_instances(conn,
+                                                               guac_params,
+                                                               debug)
             guac_params['new_users'] = format_users(user_params,
+                                                    guac_params,
                                                     debug)
         # If no users are specified, generate the groups and users data
         else:
             guac_params['new_groups'] = generate_groups(globals,
                                                         debug)
+            guac_params['instances'] = guac.get_heat_instances(conn,
+                                                               guac_params,
+                                                               debug)
             guac_params['new_users'] = generate_users(globals,
+                                                      guac_params,
                                                       debug)
-        # Get the ostack instances, wait for them to get IP addresses if necessary
-        ostack_complete = False
-        while not ostack_complete:
-            guac_params['instances'] = heat.get_ostack_instances(conn,
-                                                                 guac_params['new_groups'],
-                                                                 debug)
-            for instance in guac_params['instances']:
-                if not instance['hostname']:
-                    general_msg(f"Waiting for '{instance['name']}' to get an IP address",
-                                endpoint)
-                    time.sleep(5)
-                    continue
-            ostack_complete = True
-        # Only create connections for mapped instances
-        if guacamole_globals.get('mapped_only'):
-            mapped_instances = []
-            for data in guac_params['new_users'].values():
-                mapped_instances.extend(data['instances'])
-            mapped_instances = set(mapped_instances)
-
-            guac_params['instances'] = [
-                instance
-                for instance in guac_params['instances']
-                if instance['name'] in mapped_instances
-                or 'guacd' in instance['name']
-            ]
-
     # Populate the guac_params with current connection and user data
     guac_params['conns'] = guac.get_conns(gconn,
                                           guac_params['parent_group_id'],

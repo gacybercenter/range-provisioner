@@ -9,6 +9,7 @@ Description:
 """
 import json
 import time
+from orchestration.heat import get_ostack_instances
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
 
@@ -35,8 +36,8 @@ def provision(gconn: object,
                 endpoint)
 
     conns_to_create, conns_to_delete, current_conns = create_conn_data(guac_params,
-                                                                        update,
-                                                                        debug)
+                                                                       update,
+                                                                       debug)
 
     conn_ids = create_conns(gconn,
                             conns_to_create,
@@ -49,9 +50,9 @@ def provision(gconn: object,
                      conns_to_delete)
 
     users_to_create, users_to_delete, current_users = create_user_data(guac_params,
-                                                                        conn_ids,
-                                                                        update,
-                                                                        debug)
+                                                                       conn_ids,
+                                                                       update,
+                                                                       debug)
 
     create_users(gconn,
                  users_to_create,
@@ -261,7 +262,6 @@ def create_user_data(guac_params: dict,
     # Extract parameters from guac_params
     org_name = guac_params['org_name']
     new_users = guac_params['new_users']
-    sharing = guac_params['sharing']
     current_users = guac_params['users']
 
     users_to_create = []
@@ -270,24 +270,7 @@ def create_user_data(guac_params: dict,
     # Generate the create data based on the new user mapping data
     for username, data in new_users.items():
         passwords[username] = data['password']
-        groups = {}
-        instances = {}
-        sharings = {}
-        org_id = conn_ids.get(org_name)
-        if org_id:
-            groups[org_id] = ['READ']
-        for instance in data['instances']:
-            group = instance.split('.')[0]
-            group_id = conn_ids.get(group)
-            conn_id = conn_ids.get(instance)
-            sharing_id = conn_ids.get(f"{instance}.{sharing}")
-            if group_id:
-                groups[group_id] = ['READ']
-            if conn_id:
-                instances[conn_id] = ['READ']
-            if sharing_id:
-                sharings[sharing_id] = ['READ']
-
+        permissions = data['permissions']
         users_to_create.append(
             {
                 'username': username,
@@ -295,9 +278,21 @@ def create_user_data(guac_params: dict,
                     'guac-organization': org_name
                 },
                 'permissions': {
-                    'connectionPermissions': instances,
-                    'connectionGroupPermissions': groups,
-                    'sharingProfilePermissions': sharings
+                    'connectionPermissions': {
+                        conn_ids[conn_name]: ['READ']
+                        for conn_name in permissions['connectionPermissions']
+                    },
+                    'connectionGroupPermissions': {
+                        conn_ids[conn_name]: ['READ']
+                        for conn_name in permissions['connectionGroupPermissions']
+                    },
+                    'sharingProfilePermissions': {
+                        conn_ids[conn_name]: ['READ']
+                        for conn_name in permissions['sharingProfilePermissions']
+                    },
+                    'userPermissions': permissions['userPermissions'],
+                    'userGroupPermissions': permissions['userGroupPermissions'],
+                    'systemPermissions': permissions['systemPermissions']
                 }
             }
         )
@@ -318,12 +313,6 @@ def create_user_data(guac_params: dict,
         for user in compare_users:
             if user['permissions'].get('activeConnectionPermissions'):
                 del user['permissions']['activeConnectionPermissions']
-            if user['permissions'].get('userPermissions'):
-                del user['permissions']['userPermissions']
-            if user['permissions'].get('userGroupPermissions'):
-                del user['permissions']['userGroupPermissions']
-            if user['permissions'].get('systemPermissions'):
-                del user['permissions']['systemPermissions']
 
             if user in users_to_create:
                 users_to_create.remove(user)
@@ -386,7 +375,17 @@ def create_conns(gconn: object,
                  update: bool = False,
                  debug: bool = False) -> dict:
     """
-    Create connections
+    Create Guacamole connections
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        conns_to_make (dict): List of connections to create.
+        current_conns (dict, optional): List of current connections.
+        update (bool, optional): Whether to update connections.
+        debug (bool, optional): Whether to enable debug mode.
+
+    Returns:
+        dict: A dictionary containing the connection IDs.
     """
 
     endpoint = 'Guacamole'
@@ -432,7 +431,17 @@ def create_conn(gconn: object,
                 conn_id: str | None = None,
                 debug: bool = False) -> str:
     """
-    Create connections
+    Creates a Guacamole connection
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        parent_id (str): The parent identifier of the connection.
+        conn_data (dict): The connection data.
+        conn_id (str, optional): The ID of the connection.
+        debug (bool, optional): Whether to enable debug mode.
+
+    Returns:
+        str: The connection ID
     """
 
     endpoint = 'Guacamole'
@@ -508,7 +517,7 @@ def delete_conns(gconn: object,
 
     # Check if there are no connections to delete
     if not conns:
-        general_msg("No Connection Groups to Delete",
+        general_msg("No Connections to Delete",
                     endpoint)
         return
 
@@ -585,19 +594,22 @@ def remove_children(connections: list) -> list:
         list: The reduced list of connection groups to be deleted.
     """
 
-    def find_descendants(connection: dict, descendants: list) -> None:
+    def find_descendants(connection: dict,
+                         descendants: list) -> None:
         for child in connections:
             if (
                 child.get('parentIdentifier') == connection['identifier']
                 or child.get('primaryConnectionIdentifier') == connection['identifier']
             ):
                 descendants.append(child)
-                find_descendants(child, descendants)
+                find_descendants(child,
+                                 descendants)
 
     connections_to_delete = []
     for connection in connections:
         descendants = []
-        find_descendants(connection, descendants)
+        find_descendants(connection,
+                         descendants)
         if descendants:
             connections_to_delete.append(connection)
 
@@ -610,7 +622,17 @@ def create_users(gconn: object,
                  update: bool = False,
                  debug: bool = False) -> dict:
     """
-    Create users
+    Creates Guacamole users
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        users_to_create (dict): List of users to create.
+        current_users (list, optional): List of current users.
+        update (bool, optional): Whether to update users.
+        debug (bool, optional): Whether to enable debug mode.
+
+    Returns:
+        dict: A dictionary of user objects.
     """
 
     endpoint = 'Guacamole'
@@ -648,9 +670,14 @@ def create_users(gconn: object,
                     user,
                     update_user,
                     debug)
-        associate_user_conns(gconn,
-                             user,
-                             current_user)
+        update_user_conns(gconn,
+                          user,
+                          current_user,
+                          debug)
+        update_user_perms(gconn,
+                          user,
+                          current_user,
+                          debug)
 
     success_msg(f"{operation} User Accounts",
                 endpoint)
@@ -694,16 +721,19 @@ def create_user(gconn: object,
              debug)
 
 
-def associate_user_conns(gconn: object,
-                         user: dict,
-                         current_user: dict = {},
-                         debug: bool = False) -> None:
+def update_user_conns(gconn: object,
+                      user: dict,
+                      current_user: dict | None = None,
+                      debug: bool = False) -> None:
     """
-    Associate user accounts with connection groups
+    Updates user accounts with connection groups
 
     Args:
         gconn (object): The Guacamole connection object.
         user (dict): A dictionary containing the username and password.
+        current_user (dict | None, optional): A dictionary containing the current user.
+            Determines whether to create or update. Defaults to None.
+        debug (bool, optional): Enable debug mode. Defaults to False.
 
     Returns:
         None
@@ -712,15 +742,22 @@ def associate_user_conns(gconn: object,
     endpoint = 'Guacamole'
 
     connection_ids = {
-        'group': user['permissions']['connectionGroupPermissions'].keys(),
-        'connection': user['permissions']['connectionPermissions'].keys(),
+        'group': user['permissions']['connectionGroupPermissions'].keys()
+            if user['permissions'].get('connectionGroupPermissions') else [],
+        'connection': user['permissions']['connectionPermissions'].keys()
+            if user['permissions'].get('connectionPermissions') else [],
         'sharing profile': user['permissions']['sharingProfilePermissions'].keys()
+            if user['permissions'].get('sharingProfilePermissions') else []
     }
+
     if current_user:
         current_connection_ids = {
-            'group': current_user['permissions']['connectionGroupPermissions'].keys(),
-            'connection': current_user['permissions']['connectionPermissions'].keys(),
+            'group': current_user['permissions']['connectionGroupPermissions'].keys()
+                if current_user['permissions'].get('connectionGroupPermissions') else [],
+            'connection': current_user['permissions']['connectionPermissions'].keys()
+                if current_user['permissions'].get('connectionPermissions') else [],
             'sharing profile': current_user['permissions']['sharingProfilePermissions'].keys()
+                if current_user['permissions'].get('sharingProfilePermissions') else []
         }
         connection_ids, remove_ids = get_id_difference(connection_ids,
                                                        current_connection_ids)
@@ -733,32 +770,202 @@ def associate_user_conns(gconn: object,
                     debug
                 )
                 continue
-            response = gconn.update_connection_permissions(user['username'],
-                                                           conn_ids,
-                                                           'remove',
-                                                           conn_type)
-            time.sleep(0.1)
-            message = f"Removed '{user['username']}' {conn_type} permissions {conn_ids}"
-            response_message(response,
-                             message,
-                             endpoint)
+            update_user_conn(gconn,
+                             user['username'],
+                             conn_ids,
+                             conn_type,
+                             'remove')
 
     for conn_type, conn_ids in connection_ids.items():
         if not conn_ids:
-            general_msg(
-                f"No {conn_type} permissions to add to {user['username']}"
+            info_msg(
+                f"No {conn_type} permissions to add to '{user['username']}'",
+                endpoint,
+                debug
             )
             continue
         conn_ids = list(conn_ids)
-        response = gconn.update_connection_permissions(user['username'],
-                                                       conn_ids,
-                                                       'add',
-                                                       conn_type)
-        time.sleep(0.1)
-        message = f"Added '{user['username']}' {conn_type} permissions {conn_ids}"
-        response_message(response,
-                         message,
-                         endpoint)
+        update_user_conn(gconn,
+                         user['username'],
+                         conn_ids,
+                         conn_type,
+                         'add')
+
+
+def update_user_conn(gconn: object,
+                     user: dict | str,
+                     conn_ids: list,
+                     conn_type: str = 'connection',
+                     operation: str = 'add') -> None:
+    """
+    Updates user accounts with connection groups
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        user (dict | str): A dictionary or string containing the username
+        conn_ids (list): A list of connection IDs.
+        conn_type (str, optional): The type of connection. Defaults to 'connection'.
+        operation (str, optional): The operation to perform. Defaults to 'add'.
+
+    Returns:
+        None
+    """
+
+    endpoint = 'Guacamole'
+
+    if isinstance(user, dict):
+        user = user['username']
+
+    if conn_type not in ['group', 'connection', 'sharing profile']:
+        error_msg(
+            f"Invalid connection type '{conn_type}'",
+            endpoint
+        )
+        general_msg(
+            "Use 'group', 'connection', or 'sharing profile'",
+            endpoint
+        )
+        return
+
+    if operation not in ['add', 'remove']:
+        error_msg(
+            f"Invalid connection operation '{operation}'",
+            endpoint
+        )
+        general_msg(
+            "Use 'add' or 'remove'",
+            endpoint
+        )
+        return
+
+    action = 'Added' if operation == 'add' else 'Removed'
+
+    response = gconn.update_connection_permissions(user,
+                                                   conn_ids,
+                                                   operation,
+                                                   conn_type)
+    time.sleep(0.1)
+    message = f"{action} '{user}' {conn_type} permissions"
+    response_message(response,
+                     message,
+                     endpoint)
+
+
+def update_user_perms(gconn: object,
+                      user: dict,
+                      current_user: dict | None = None,
+                      debug: bool = False) -> None:
+    """
+    Updates user accounts with connection groups
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        user (dict): A dictionary containing the username and password.
+        current_user (dict | None, optional): A dictionary containing the current user.
+            Determines whether to create or update. Defaults to None.
+        debug (bool, optional): Enable debug mode. Defaults to False.
+
+    Returns:
+        None
+    """
+
+    endpoint = 'Guacamole'
+
+    system_perms = user['permissions']['systemPermissions']
+
+    if current_user:
+        current_system_perms = current_user['permissions']['systemPermissions']
+        remove_system_perms = list(
+            filter(
+                lambda x: x not in system_perms, current_system_perms
+            )
+        )
+        system_perms = list(
+            filter(
+                lambda x: x not in current_system_perms, system_perms
+            )
+        )
+
+        if not remove_system_perms:
+            info_msg(
+                f"No system permissions to remove from '{user['username']}'",
+                endpoint,
+                debug
+            )
+        else:
+            update_user_perm(gconn,
+                             user,
+                             remove_system_perms,
+                             'remove',
+                             debug)
+
+    if not system_perms:
+        info_msg(
+            f"No system permissions to add to '{user['username']}'",
+            endpoint,
+            debug
+        )
+        return
+    update_user_perm(gconn,
+                     user,
+                     system_perms,
+                     'add',
+                     debug)
+
+
+def update_user_perm(gconn: object,
+                     user: dict | str,
+                     system_perms: list,
+                     operation: str = 'add',
+                     debug: bool = False) -> None:
+    """
+    Updates user accounts with connection groups
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        user (dict): A dictionary containing the username and password.
+        conn_ids (list): A list of connection IDs.
+        conn_type (str, optional): The type of connection. Defaults to 'connection'.
+        operation (str, optional): The operation to perform. Defaults to 'add'.
+
+    Returns:
+        None
+    """
+
+    endpoint = 'Guacamole'
+
+    if isinstance(user, dict):
+        user = user['username']
+
+    if operation not in ['add', 'remove']:
+        error_msg(
+            f"Invalid connection operation '{operation}'",
+            endpoint
+        )
+        general_msg(
+            "Use 'add' or 'remove'",
+            endpoint
+        )
+        return
+
+    action = 'Added' if operation == 'add' else 'Removed'
+
+    response = gconn.update_user_permissions(user,
+                                             operation,
+                                             'CREATE_USER' in system_perms,
+                                             'CREATE_USER_GROUP' in system_perms,
+                                             'CREATE_CONNECTION' in system_perms,
+                                             'CREATE_CONNECTION_GROUP' in system_perms,
+                                             'CREATE_SHARING_PROFILE' in system_perms,
+                                             'ADMINISTER' in system_perms,)
+    time.sleep(0.1)
+    message = f"{action} '{user}' system permissions {system_perms}"
+    response_message(response,
+                     message,
+                     endpoint)
+    info_msg(system_perms,
+             endpoint,
+             debug)
 
 
 def delete_users(gconn: object,
@@ -769,7 +976,6 @@ def delete_users(gconn: object,
     Args:
         gconn (object): The Guacamole connection object.
         delete_users (list): A list of user accounts to delete.
-        debug (bool, optional): Enable debug mode. Defaults to False.
 
     Returns:
         None
@@ -800,7 +1006,6 @@ def delete_user(gconn: object,
     Args:
         gconn (object): A connection object to the Guacamole system.
         user (str): The username of the user to be deleted.
-        debug (bool, optional): Enable debug mode. Defaults to False.
 
     Returns:
         None
@@ -1176,15 +1381,78 @@ def extract_connections(obj: dict,
 
 def get_id_difference(connection_ids: dict,
                       current_connection_ids: dict) -> (dict, dict):
+    """
+    Gets the difference between two connection ids.
+
+    Parameters:
+        connection_ids (dict): The current connection ids.
+        current_connection_ids (dict): The new connection ids.
+
+    Returns:
+        (dict, dict): The added and removed connection ids.
+    """
+
     added_ids = {}
     removed_ids = {}
 
     for category in connection_ids:
         added_ids[category] = list(
-            set(connection_ids[category]) - set(current_connection_ids[category])
+            set(connection_ids[category]) -
+            set(current_connection_ids[category])
         )
         removed_ids[category] = list(
-            set(current_connection_ids[category]) - set(connection_ids[category])
+            set(current_connection_ids[category]) -
+            set(connection_ids[category])
         )
 
     return added_ids, removed_ids
+
+
+def get_heat_instances(conn: object,
+                       guac_params: dict,
+                       debug: bool = False) -> list:
+    """
+    Get the stack instances from heat
+
+    Parameters:
+        conn (object): The guacamole connection.
+        guac_params (dict): The guacamole parameters.
+        debug (bool): The debug flag. Defaults to False.
+        
+    Returns:
+        list: The stack instances.
+    """
+    endpoint = 'Guacamole'
+
+    # Get the stack instances from heat
+    ostack_complete = False
+    while not ostack_complete:
+        instances = get_ostack_instances(conn,
+                                         guac_params['new_groups'],
+                                         debug)
+        # Wait for the stacks to get IP addresses
+        for instance in instances:
+            if not instance['hostname']:
+                general_msg(f"Waiting for '{instance['name']}' to get an IP address",
+                            endpoint)
+                time.sleep(5)
+                continue
+        ostack_complete = True
+
+    # Only create connections for mapped instances
+    if guac_params.get('mapped_only'):
+        mapped_instances = []
+        for data in guac_params['new_users'].values():
+            mapped_instances.extend(
+                data['permissions']['connectionPermissions']
+            )
+        mapped_instances = set(mapped_instances)
+
+        instances = [
+            instance
+            for instance in instances
+            if instance['name'] in mapped_instances
+            or 'guacd' in instance['name']
+        ]
+
+    return instances

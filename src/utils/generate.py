@@ -3,7 +3,7 @@ Handles the logic for generating Heat and Guacamole data
 """
 import secrets
 import string
-from utils.msg_format import info_msg, general_msg
+from utils.msg_format import info_msg, general_msg, error_msg
 
 
 def generate_password() -> str:
@@ -74,14 +74,17 @@ def generate_instance_names(params: dict,
 
 
 def generate_users(params: dict,
+                   guac_params: dict,
                    debug) -> dict | None:
     """Create a user list based on given ranges"""
 
+    endpoint = 'Generate'
     num_ranges = params.get('num_ranges')
     num_users = params.get('num_users')
     range_name = params.get('range_name')
     user_name = params.get('user_name')
-    endpoint = 'Generate'
+    sharing = guac_params.get('sharing')
+    org_name = guac_params['org_name']
 
     general_msg(f"Generating user names for {range_name}",
                 endpoint)
@@ -98,7 +101,15 @@ def generate_users(params: dict,
         user:
             {
                 'password': generate_password(),
-                'instances': [user]
+                'permissions': {
+                    'connectionPermissions': [user],
+                    'connectionGroupPermissions': [org_name, user.split('.')[0]],
+                    'sharingProfilePermissions': [f"{user}.{sharing}"] if sharing else [],
+                    'userPermissions': {
+                        user: ['READ']
+                    },
+                    'systemPermissions': []
+                }
             } for user in user_names
     }
     info_msg(users_list,
@@ -160,6 +171,7 @@ def format_groups(user_params: dict,
 
 
 def format_users(user_params: dict,
+                 guac_params: dict,
                  debug=False) -> dict:
     """
     Format the users.yaml data into a dictionary of user objects.
@@ -172,13 +184,62 @@ def format_users(user_params: dict,
     """
 
     endpoint = 'Generate'
+    org_name = guac_params['org_name']
+    instance_names = [
+        instance_name['name']
+        for instance_name in guac_params['instances']
+    ]
     users = {}
 
     for username, data in user_params.items():
+        sharing = guac_params.get('sharing')
+        sharing = data.get('sharing', sharing)
+        if sharing and sharing not in ['read', 'write']:
+            error_msg(
+                f"The Guacamole sharing parameter is set to '{sharing}'",
+                endpoint
+            )
+            general_msg(
+                "It must be either 'read', 'write'",
+                endpoint
+            )
+            sharing = None
+
+        # If a user has an instance not in the heat_instances list, pattern match
+        for instance in data.get('instances', []):
+            if instance not in instance_names:
+                heat_instances = [
+                    heat_instance
+                    for heat_instance in instance_names
+                    if instance in heat_instance
+                ]
+                info_msg(
+                    f"Turned '{instance}' into {heat_instances}",
+                    endpoint,
+                    debug
+                )
+                data['instances'].remove(instance)
+                data['instances'].extend(heat_instances)
+
         user = {
             username: {
                 'password': data['password'],
-                'instances': data['instances']
+                'permissions': {
+                    'connectionPermissions': data.get('instances', []),
+                    'connectionGroupPermissions': set(
+                        instance.split('.')[0]
+                        for instance in [org_name] + data.get('instances')
+                    ),
+                    'sharingProfilePermissions': [
+                        f"{instance}.{sharing}"
+                        for instance in data.get('instances')
+                    ] if sharing else [],
+                    'userPermissions': {
+                        username: ['READ']
+                    },
+                    'userGroupPermissions': data.get('groups', {}),
+                    'systemPermissions': data.get('permissions', [])
+                }
             }
         }
         users.update(user)
