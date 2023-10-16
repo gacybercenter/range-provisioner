@@ -34,26 +34,34 @@ def provision(gconn: object,
     general_msg("Provisioning Guacamole",
                 endpoint)
 
-    conns_to_make, current_conns = create_conn_data(guac_params,
-                                                    update,
-                                                    debug)
+    conns_to_create, conns_to_delete, current_conns = create_conn_data(guac_params,
+                                                                        update,
+                                                                        debug)
 
     conn_ids = create_conns(gconn,
-                            conns_to_make,
+                            conns_to_create,
                             current_conns,
                             update,
                             debug)
 
-    users_to_create, current_users = create_user_data(guac_params,
-                                                    conn_ids,
-                                                    update,
-                                                    debug)
+    if update:
+        delete_conns(gconn,
+                     conns_to_delete)
+
+    users_to_create, users_to_delete, current_users = create_user_data(guac_params,
+                                                                        conn_ids,
+                                                                        update,
+                                                                        debug)
 
     create_users(gconn,
                  users_to_create,
                  current_users,
                  update,
                  debug)
+
+    if update:
+        delete_users(gconn,
+                     users_to_delete)
 
     success_msg("Provisioned Guacamole",
                 endpoint)
@@ -203,7 +211,17 @@ def create_conn_data(guac_params: dict,
     conns_to_create = extract_connections(create_object)
     current_conns = extract_connections(current_object)
 
+    conns_to_delete = []
+
     if update:
+        create_names = [
+            conn['name']
+            for conn in conns_to_create
+        ]
+        for conn in current_conns:
+            if conn['name'] not in create_names:
+                conns_to_delete.append(conn)
+
         conns_to_create = remove_empty(conns_to_create)
         compare_conns = remove_empty(current_conns)
         for conn in compare_conns:
@@ -221,7 +239,7 @@ def create_conn_data(guac_params: dict,
                          endpoint,
                          debug)
 
-    return conns_to_create, current_conns
+    return conns_to_create, conns_to_delete, current_conns
 
 
 def create_user_data(guac_params: dict,
@@ -284,7 +302,17 @@ def create_user_data(guac_params: dict,
             }
         )
 
+    users_to_delete = []
+
     if update:
+        create_names = [
+            user['username']
+            for user in users_to_create
+        ]
+        for user in current_users:
+            if user['username'] not in create_names:
+                users_to_delete.append(user)
+
         users_to_create = remove_empty(users_to_create)
         compare_users = remove_empty(current_users)
         for user in compare_users:
@@ -308,7 +336,7 @@ def create_user_data(guac_params: dict,
     for user in users_to_create:
         user['password'] = passwords[user['username']]
 
-    return users_to_create, current_users
+    return users_to_create, users_to_delete, current_users
 
 
 def delete_conn_data(guac_params: object) -> dict:
@@ -376,34 +404,21 @@ def create_conns(gconn: object,
         return conn_ids
 
     for conn in conns_to_make:
+        conn_id = None
         if conn['name'] in current_names:
             if update:
-                parent_id = conn_ids[conn['parent']]
                 conn_id = conn_ids[conn['name']]
-                create_conn(gconn,
-                            parent_id,
-                            conn,
-                            conn_id,
-                            debug)
                 current_names.remove(conn['name'])
             else:
                 general_msg(f"Connection '{conn['name']}' already exists",
                             endpoint)
-            continue
+                continue
         parent_id = conn_ids[conn['parent']]
         conn_ids[conn['name']] = create_conn(gconn,
                                              parent_id,
                                              conn,
-                                             None,
+                                             conn_id,
                                              debug)
-    if update:
-        residual_conns = [
-            conn
-            for conn in current_conns
-            if conn['name'] in current_names
-        ]
-        delete_conns(gconn,
-                     residual_conns)
 
     success_msg(f"{operation} Connections",
                 endpoint)
@@ -443,9 +458,7 @@ def create_conn(gconn: object,
                                                      parent_id,
                                                      conn_data.get('attributes', {}))
     elif conn_type == "connection":
-        req_type = "put" if conn_id else "post"
-        response = gconn.manage_connection(req_type,
-                                           conn_data['protocol'],
+        response = gconn.manage_connection(conn_data['protocol'],
                                            conn_data['name'],
                                            parent_id,
                                            conn_id,
@@ -593,7 +606,7 @@ def remove_children(connections: list) -> list:
 
 def create_users(gconn: object,
                  users_to_create: dict,
-                 current_users: dict = None,
+                 current_users: list = [],
                  update: bool = False,
                  debug: bool = False) -> dict:
     """
@@ -613,26 +626,31 @@ def create_users(gconn: object,
         for user in current_users
     ]
 
+    if update:
+        current_user_data = {
+            user['username']: user
+            for user in current_users
+        }
+
     for user in users_to_create:
+        update_user = False
+        current_user = None
         if user['username'] in current_names:
             if update:
-                create_user(gconn,
-                            user,
-                            True,
-                            debug)
+                update_user = True
+                current_user = current_user_data[user['username']]
                 current_names.remove(user['username'])
             else:
                 general_msg(f"User account '{user['username']}' already exists",
                             endpoint)
-            continue
+                continue
         create_user(gconn,
                     user,
-                    False,
+                    update_user,
                     debug)
-
-    if update:
-        delete_users(gconn,
-                     current_names)
+        associate_user_conns(gconn,
+                             user,
+                             current_user)
 
     success_msg(f"{operation} User Accounts",
                 endpoint)
@@ -675,23 +693,72 @@ def create_user(gconn: object,
              endpoint,
              debug)
 
+
+def associate_user_conns(gconn: object,
+                         user: dict,
+                         current_user: dict = {},
+                         debug: bool = False) -> None:
+    """
+    Associate user accounts with connection groups
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        user (dict): A dictionary containing the username and password.
+
+    Returns:
+        None
+    """
+
+    endpoint = 'Guacamole'
+
     connection_ids = {
         'group': user['permissions']['connectionGroupPermissions'].keys(),
         'connection': user['permissions']['connectionPermissions'].keys(),
         'sharing profile': user['permissions']['sharingProfilePermissions'].keys()
     }
+    if current_user:
+        current_connection_ids = {
+            'group': current_user['permissions']['connectionGroupPermissions'].keys(),
+            'connection': current_user['permissions']['connectionPermissions'].keys(),
+            'sharing profile': current_user['permissions']['sharingProfilePermissions'].keys()
+        }
+        connection_ids, remove_ids = get_id_difference(connection_ids,
+                                                       current_connection_ids)
 
-    for conn_type, conn_ids in connection_ids.items():
-        for conn_id in conn_ids:
-            response = gconn.update_user_connection(user['username'],
-                                                    conn_id,
-                                                    'add',
-                                                    conn_type)
+        for conn_type, conn_ids in remove_ids.items():
+            if not conn_ids:
+                info_msg(
+                    f"No {conn_type} permissions to remove from '{user['username']}'",
+                    endpoint,
+                    debug
+                )
+                continue
+            response = gconn.update_connection_permissions(user['username'],
+                                                           conn_ids,
+                                                           'remove',
+                                                           conn_type)
             time.sleep(0.1)
-            message = f"Associated user '{user['username']}' with {conn_type} '{conn_id}'"
+            message = f"Removed '{user['username']}' {conn_type} permissions {conn_ids}"
             response_message(response,
                              message,
                              endpoint)
+
+    for conn_type, conn_ids in connection_ids.items():
+        if not conn_ids:
+            general_msg(
+                f"No {conn_type} permissions to add to {user['username']}"
+            )
+            continue
+        conn_ids = list(conn_ids)
+        response = gconn.update_connection_permissions(user['username'],
+                                                       conn_ids,
+                                                       'add',
+                                                       conn_type)
+        time.sleep(0.1)
+        message = f"Added '{user['username']}' {conn_type} permissions {conn_ids}"
+        response_message(response,
+                         message,
+                         endpoint)
 
 
 def delete_users(gconn: object,
@@ -1105,3 +1172,19 @@ def extract_connections(obj: dict,
     conns.sort(key=lambda x: x.get('parent'))
 
     return conns
+
+
+def get_id_difference(connection_ids: dict,
+                      current_connection_ids: dict) -> (dict, dict):
+    added_ids = {}
+    removed_ids = {}
+
+    for category in connection_ids:
+        added_ids[category] = list(
+            set(connection_ids[category]) - set(current_connection_ids[category])
+        )
+        removed_ids[category] = list(
+            set(current_connection_ids[category]) - set(connection_ids[category])
+        )
+
+    return added_ids, removed_ids
