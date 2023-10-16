@@ -7,10 +7,9 @@ Version: 1.0
 Description:
     Handles the logic for provisioning Guacamole
 """
-import time
 from orchestration import guac
 from utils.generate import generate_groups, generate_users, format_users, format_groups
-from utils.msg_format import error_msg, info_msg, general_msg
+from utils.msg_format import error_msg, info_msg
 
 
 def provision(conn,
