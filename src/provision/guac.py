@@ -76,13 +76,13 @@ def provision(conn,
 
     guac_params = {}
 
+    # Populate the guac_params
     guac_params['org_name'] = globals['org_name']
     guac_params['parent_group_id'] = guac.get_conn_id(gconn,
                                                       guac_params['org_name'],
                                                       'ROOT',
                                                       'group',
                                                       debug)
-
     # Populate the guac_params for provision or reprovision
     if create or update:
         guac_params['protocol'] = heat_params['conn_proto']['default']
@@ -112,12 +112,12 @@ def provision(conn,
                                                                  debug)
             for instance in guac_params['instances']:
                 if not instance['hostname']:
-                    general_msg(f"Waiting for {instance['name']} to get an IP address",
+                    general_msg(f"Waiting for '{instance['name']}' to get an IP address",
                                 endpoint)
                     time.sleep(5)
                     continue
             ostack_complete = True
-
+        # Only create connections for mapped instances
         if guacamole_globals.get('mapped_only'):
             mapped_instances = []
             for data in guac_params['new_users'].values():
