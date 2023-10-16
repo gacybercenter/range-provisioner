@@ -20,19 +20,19 @@ def provision(conn: object,
 
     if update_stack:
         update(conn,
-                stack,
-                template,
-                parameters,
-                last_stack,
-                debug)
+               stack,
+               template,
+               parameters,
+               last_stack,
+               debug)
     else:
         create(conn,
-                stack,
-                template,
-                parameters,
-                last_stack,
-                debug)
-        
+               stack,
+               template,
+               parameters,
+               last_stack,
+               debug)
+
     success_msg("Provisioned Heat",
                 endpoint)
 
@@ -49,9 +49,9 @@ def deprovision(conn: object,
                 endpoint)
 
     delete(conn,
-            stack,
-            wait,
-            debug)
+           stack,
+           wait,
+           debug)
 
     success_msg("Deprovisioned Heat",
                 endpoint)
@@ -219,4 +219,5 @@ def get_ostack_instances(conn: object,
     info_msg(instances,
              endpoint,
              debug)
+
     return instances
