@@ -309,8 +309,8 @@ def create_user_data(guac_params: dict,
                 users_to_delete.append(user)
 
         users_to_create = remove_empty(users_to_create)
-        compare_users = remove_empty(current_users)
-        for user in compare_users:
+        current_users = remove_empty(current_users)
+        for user in current_users:
             if user['permissions'].get('activeConnectionPermissions'):
                 del user['permissions']['activeConnectionPermissions']
 
@@ -398,7 +398,7 @@ def create_conns(gconn: object,
         conn_ids[conn['name']] = conn['identifier']
 
     if not conns_to_make:
-        general_msg("There are no new connections",
+        general_msg("There Are No New Connections",
                     endpoint)
         return conn_ids
 
@@ -655,11 +655,9 @@ def create_users(gconn: object,
         }
 
     for user in users_to_create:
-        update_user = False
         current_user = None
         if user['username'] in current_names:
             if update:
-                update_user = True
                 current_user = current_user_data[user['username']]
                 current_names.remove(user['username'])
             else:
@@ -668,7 +666,7 @@ def create_users(gconn: object,
                 continue
         create_user(gconn,
                     user,
-                    update_user,
+                    current_user,
                     debug)
         update_user_conns(gconn,
                           user,
@@ -687,7 +685,7 @@ def create_users(gconn: object,
 
 def create_user(gconn: object,
                 user: dict,
-                update: bool = False,
+                current_user: dict | None = None,
                 debug: bool = False) -> None:
     """
     Create a user in Guacamole with the given username, password, and organization.
@@ -702,21 +700,35 @@ def create_user(gconn: object,
     """
 
     endpoint = 'Guacamole'
-    operation = "Updated" if update else "Created"
 
-    if update:
-        response = gconn.update_user(user['username'],
-                                     user.get('attributes', {}))
+    new_data = {
+        'username': user['username'],
+        'attributes': user.get('attributes', {})
+    }
+    if current_user:
+        current_data = {
+            'username': current_user['username'],
+            'attributes': current_user.get('attributes', {})
+        }
+        if current_data == new_data:
+            info_msg(f"No changes needed for user account '{new_data['username']}'",
+                     endpoint,
+                     debug)
+            return
+
+        response = gconn.update_user(new_data['username'],
+                                     new_data['attributes'])
+        message = f"Updated user account '{new_data['username']}'"
     else:
-        response = gconn.create_user(user['username'],
+        response = gconn.create_user(new_data['username'],
                                      user['password'],
-                                     user.get('attributes', {}))
+                                     new_data['attributes'])
+        message = f"Created user account '{new_data['username']}' ({user['password']})"
     time.sleep(0.1)
-    message = f"{operation} user account '{user['username']}' ({user['password']})"
     response_message(response,
                      message,
                      endpoint)
-    info_msg(user,
+    info_msg(user.get('attributes', {}),
              endpoint,
              debug)
 
@@ -743,21 +755,21 @@ def update_user_conns(gconn: object,
 
     connection_ids = {
         'group': user['permissions']['connectionGroupPermissions'].keys()
-            if user['permissions'].get('connectionGroupPermissions') else [],
+        if user['permissions'].get('connectionGroupPermissions') else [],
         'connection': user['permissions']['connectionPermissions'].keys()
-            if user['permissions'].get('connectionPermissions') else [],
+        if user['permissions'].get('connectionPermissions') else [],
         'sharing profile': user['permissions']['sharingProfilePermissions'].keys()
-            if user['permissions'].get('sharingProfilePermissions') else []
+        if user['permissions'].get('sharingProfilePermissions') else []
     }
 
     if current_user:
         current_connection_ids = {
             'group': current_user['permissions']['connectionGroupPermissions'].keys()
-                if current_user['permissions'].get('connectionGroupPermissions') else [],
+            if current_user['permissions'].get('connectionGroupPermissions') else [],
             'connection': current_user['permissions']['connectionPermissions'].keys()
-                if current_user['permissions'].get('connectionPermissions') else [],
+            if current_user['permissions'].get('connectionPermissions') else [],
             'sharing profile': current_user['permissions']['sharingProfilePermissions'].keys()
-                if current_user['permissions'].get('sharingProfilePermissions') else []
+            if current_user['permissions'].get('sharingProfilePermissions') else []
         }
         connection_ids, remove_ids = get_id_difference(connection_ids,
                                                        current_connection_ids)
@@ -871,10 +883,11 @@ def update_user_perms(gconn: object,
 
     endpoint = 'Guacamole'
 
-    system_perms = user['permissions']['systemPermissions']
+    system_perms = user['permissions'].get('systemPermissions', [])
 
     if current_user:
-        current_system_perms = current_user['permissions']['systemPermissions']
+        current_system_perms = current_user['permissions'].get(
+            'systemPermissions', [])
         remove_system_perms = list(
             filter(
                 lambda x: x not in system_perms, current_system_perms
@@ -1412,7 +1425,7 @@ def get_heat_instances(conn: object,
         conn (object): The guacamole connection.
         guac_params (dict): The guacamole parameters.
         debug (bool): The debug flag. Defaults to False.
-        
+
     Returns:
         list: The stack instances.
     """
