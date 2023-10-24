@@ -157,9 +157,9 @@ def format_groups(user_params: dict,
     for data in user_params.values():
         instances = data.get('instances', [])
         for instance in instances:
-            group = instance.split('.')[0]
-            if group not in groups:
-                groups.append(group)
+            group = instance.split('.')
+            if group and group[0] not in groups:
+                groups.append(group[0])
 
     general_msg("Retrieved groups from users.yaml",
                 endpoint)

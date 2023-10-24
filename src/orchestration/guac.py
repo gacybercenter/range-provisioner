@@ -310,6 +310,7 @@ def create_user_data(guac_params: dict,
 
         users_to_create = remove_empty(users_to_create)
         current_users = remove_empty(current_users)
+
         for user in current_users:
             if user['permissions'].get('activeConnectionPermissions'):
                 del user['permissions']['activeConnectionPermissions']
@@ -1380,8 +1381,6 @@ def extract_connections(obj: dict,
                 child_conns = extract_connections(item,
                                                   parent)
                 conns.extend(child_conns)
-
-    conns.sort(key=lambda x: x.get('parent'))
 
     return conns
 
