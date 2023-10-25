@@ -125,7 +125,7 @@ def remove_none_and_empty(obj: object) -> object:
     Recursively removes None and empty values from a dictionary or a list.
 
     Parameters:
-    dictionary (dict or list): The dictionary or list to remove None and empty values from.
+    obj (dict or list): The dictionary or list to remove None and empty values from.
 
     Returns:
     dict or list: The dictionary or list with None and empty values removed.
@@ -136,11 +136,10 @@ def remove_none_and_empty(obj: object) -> object:
             for key, value in obj.items()
             if value not in (None, '')
         }
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [
             remove_none_and_empty(item)
             for item in obj
             if item not in (None, '')
         ]
-    else:
-        return obj
+    return obj
