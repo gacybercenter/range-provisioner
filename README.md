@@ -125,7 +125,7 @@ parameters:
       - Test_Range.Test_Name.2
       - Test_Range.Test_Name.3
 ```
-#### Note: Part of a stack name in the instances section maps all stacks containing the entry. <sub><i>Your welcome Brent</i></sub>
+#### Note: Part of a stack name followed by a '*' maps all stacks containing the entry. <sub><i>Your welcome Brent</i></sub>
 
 
 #### Mappings to `globals.yaml`
