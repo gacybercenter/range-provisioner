@@ -57,15 +57,14 @@ def main():
             )
             return
 
-        if arg[1] == "--debug":
-            debug = True
-
         start = time.time()
 
         # Create dictionaries for parsing
         global_dict = load_global()
         globals = global_dict['globals']
         debug = globals['debug']
+        if arg[1] == "--debug":
+            debug = True
         guacamole_globals = global_dict['guacamole']
         heat_globals = global_dict['heat']
         swift_globals = global_dict['swift']
