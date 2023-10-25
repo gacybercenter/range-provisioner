@@ -57,6 +57,9 @@ def main():
             )
             return
 
+        if arg[1] == "--debug":
+            debug = True
+
         start = time.time()
 
         # Create dictionaries for parsing
