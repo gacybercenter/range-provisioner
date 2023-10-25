@@ -207,7 +207,8 @@ def format_users(user_params: dict,
 
         # If a user has an instance not in the heat_instances list, pattern match
         for instance in data.get('instances', []):
-            if instance not in instance_names:
+            if instance.endswith('*'):
+                instance = instance.removesuffix('*')
                 heat_instances = [
                     heat_instance
                     for heat_instance in instance_names
@@ -220,6 +221,13 @@ def format_users(user_params: dict,
                 )
                 data['instances'].remove(instance)
                 data['instances'].extend(heat_instances)
+            elif instance not in instance_names:
+                error_msg(
+                    f"The instance '{instance}' does not exist",
+                    endpoint
+                )
+                data['instances'].remove(instance)
+
 
         user = {
             username: {
