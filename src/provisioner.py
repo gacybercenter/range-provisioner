@@ -63,8 +63,8 @@ def main():
         global_dict = load_global()
         globals = global_dict['globals']
         debug = globals['debug']
-        if arg[1] == "--debug":
-            debug = True
+        # if arg[1] == "--debug":
+        #     debug = True
         guacamole_globals = global_dict['guacamole']
         heat_globals = global_dict['heat']
         swift_globals = global_dict['swift']
