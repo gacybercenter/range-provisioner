@@ -2,3 +2,5 @@ guacamole-api-wrapper
 openstacksdk
 requests
 pyyaml
+colorama
+munch
