@@ -88,6 +88,7 @@ def provision(conn,
         guac_params['password'] = heat_params['password']['default']
         guac_params['domain_name'] = guac.find_domain_name(heat_params,
                                                            debug)
+        guac_params['mapped_only'] = guacamole_globals['mapped_only']
         guac_params['recording'] = guacamole_globals['recording']
         guac_params['sharing'] = guacamole_globals['sharing']
         # Format the users.yaml data into groups and users data
@@ -110,6 +111,9 @@ def provision(conn,
             guac_params['new_users'] = generate_users(globals,
                                                       guac_params,
                                                       debug)
+        if guac_params['mapped_only']:
+            guac_params['instances'] = guac.reduce_heat_instances(guac_params,
+                                                                  debug)
     # Populate the guac_params with current connection and user data
     guac_params['conns'] = guac.get_conns(gconn,
                                           guac_params['parent_group_id'],
