@@ -7,7 +7,6 @@ Version: 1.0
 Description:
     Contains all the main functions for provisioning Guacamole
 """
-import json
 import time
 from orchestration.heat import get_ostack_instances
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
@@ -487,12 +486,17 @@ def create_conn(gconn: object,
     time.sleep(0.1)
 
     if not conn_id:
-        conn_id = response.json().get('identifier')
+        conn_id = response.get('identifier')
 
-    message = f"{operation} {conn_type} '{conn_data['name']}' ({conn_id}) under ID '{parent_id}'"
-    response_message(response,
-                     message,
-                     endpoint)
+    if isinstance(response, dict) and response.get('message'):
+        general_msg(response['message'],
+                    endpoint)
+    else:
+        general_msg(
+            f"{operation} {conn_type} '{conn_data['name']}' ({conn_id}) under ID '{parent_id}'",
+            endpoint
+        )
+
     info_msg(conn_data,
              endpoint,
              debug)
@@ -577,10 +581,14 @@ def delete_conn(gconn: object,
                   endpoint)
         return
 
-    message = f"Deleted {conn_type} ID '{conn_id}'"
-    response_message(response,
-                     message,
-                     endpoint)
+    if isinstance(response, dict) and response.get('message'):
+        general_msg(response['message'],
+                    endpoint)
+    else:
+        general_msg(
+            f"Deleted {conn_type} ID '{conn_id}'",
+            endpoint
+        )
     time.sleep(0.1)
 
 
@@ -725,10 +733,16 @@ def create_user(gconn: object,
                                      user['password'],
                                      new_data['attributes'])
         message = f"Created user account '{new_data['username']}' ({user['password']})"
+
+    if isinstance(response, dict) and response.get('message'):
+        general_msg(response['message'],
+                    endpoint)
+    else:
+        general_msg(message,
+                    endpoint)
+
     time.sleep(0.1)
-    response_message(response,
-                     message,
-                     endpoint)
+
     info_msg(user.get('attributes', {}),
              endpoint,
              debug)
@@ -857,11 +871,14 @@ def update_user_conn(gconn: object,
                                                    conn_ids,
                                                    operation,
                                                    conn_type)
+
+    if isinstance(response, dict) and response.get('message'):
+        general_msg(response['message'],
+                    endpoint)
+    else:
+        general_msg(f"{action} '{user}' {conn_type} permissions",
+                    endpoint)
     time.sleep(0.1)
-    message = f"{action} '{user}' {conn_type} permissions"
-    response_message(response,
-                     message,
-                     endpoint)
 
 
 def update_user_perms(gconn: object,
@@ -968,12 +985,15 @@ def update_user_perm(gconn: object,
                                              'CREATE_CONNECTION' in system_perms,
                                              'CREATE_CONNECTION_GROUP' in system_perms,
                                              'CREATE_SHARING_PROFILE' in system_perms,
-                                             'ADMINISTER' in system_perms,)
+                                             'ADMINISTER' in system_perms)
+
+    if isinstance(response, dict) and response.get('message'):
+        general_msg(response['message'],
+                    endpoint)
+    else:
+        general_msg(f"{action} '{user}' system permissions {system_perms}",
+                    endpoint)
     time.sleep(0.1)
-    message = f"{action} '{user}' system permissions {system_perms}"
-    response_message(response,
-                     message,
-                     endpoint)
 
 
 def delete_users(gconn: object,
@@ -1024,14 +1044,14 @@ def delete_user(gconn: object,
     if isinstance(user, dict):
         user = user['username']
 
-    # Call the delete_user method of the gconn object
     response = gconn.delete_user(user)
 
-    # Print the appropriate message based on the response
-    message = f"Deleted user account '{user}'"
-    response_message(response,
-                     message,
-                     endpoint)
+    if isinstance(response, dict) and response.get('message'):
+        general_msg(response['message'],
+                    endpoint)
+    else:
+        general_msg(f"Deleted user account '{user}'",
+                    endpoint)
     time.sleep(0.1)
 
 
@@ -1063,7 +1083,7 @@ def get_conn_id(gconn: object,
         return None
 
     if conn_type in ['any', 'group']:
-        groups = json.loads(gconn.list_connection_groups()).values()
+        groups = gconn.list_connection_groups().values()
         for group in groups:
             # Find the group with the given name and parent ID
             if (group['parentIdentifier'] == parent_id and
@@ -1075,7 +1095,7 @@ def get_conn_id(gconn: object,
                 return conn_id
 
     if conn_type in ['any', 'connection']:
-        conns = json.loads(gconn.list_connections()).values()
+        conns = gconn.list_connections().values()
         for conn in conns:
             # Find the connection with the given name and parent ID
             if (conn['parentIdentifier'] == parent_id and
@@ -1087,7 +1107,7 @@ def get_conn_id(gconn: object,
                 return conn_id
 
     if conn_type in ['any', 'sharing profile']:
-        sharings = json.loads(gconn.list_sharing_profile()).values()
+        sharings = gconn.list_sharing_profile().values()
         for sharing in sharings:
             # Find the connection with the given name and parent ID
             if (sharing['primaryConnectionIdentifier'] == parent_id and
@@ -1129,9 +1149,7 @@ def get_conns(gconn: object,
         return {}
 
     # Filter connection groups by parent identifier
-    conn_groups = json.loads(
-        gconn.details_connection_group_connections(parent_id)
-    )
+    conn_groups = gconn.detail_connection_group_connections(parent_id)
 
     conn_groups = detail_conns(gconn,
                                conn_groups)
@@ -1166,7 +1184,7 @@ def get_users(gconn: object,
     # Filter the users based on the organization name
     users = [
         user
-        for user in json.loads(gconn.list_users()).values()
+        for user in gconn.list_users().values()
         if user['attributes']['guac-organization'] == org_name
     ]
 
@@ -1176,9 +1194,7 @@ def get_users(gconn: object,
         return []
 
     for user in users:
-        user['permissions'] = json.loads(
-            gconn.detail_user_permissions(user['username'])
-        )
+        user['permissions'] = gconn.detail_user_permissions(user['username'])
         time.sleep(0.1)
 
     general_msg("Retrieved current users accounts",
@@ -1225,60 +1241,6 @@ def find_domain_name(heat_params: dict,
     return domain_name
 
 
-def parse_response(response: object) -> str:
-    """
-    Parses the response object and returns the message from the JSON payload.
-
-    Args:
-        response (object): The response object containing the JSON payload.
-
-    Returns:
-        str: The message extracted from the JSON payload.
-
-    Raises:
-        json.decoder.JSONDecodeError: If the response does not contain a JSON payload.
-    """
-
-    try:
-        # Extract the message from the response
-        message = json.loads(response.text).get('message', '')
-
-    except json.decoder.JSONDecodeError:
-        return ''
-
-    return message
-
-
-def response_message(response: object,
-                     default='',
-                     endpoint='') -> None:
-    """
-    Generate a response message based on the given response object.
-
-    Parameters:
-        response (object): The response object.
-        default (str, optional): The default message to print if the response is empty.
-            Defaults to ''.
-        endpoint (str, optional): The endpoint to include in the message.
-            Defaults to ''.
-        debug (bool, optional): Whether to enable debug mode.
-            Defaults to False.
-
-    Returns:
-        None: This function does not return anything.
-    """
-    # Parse the response message
-    message = parse_response(response)
-    # Print the appropriate message based on the response
-    if message:
-        general_msg(message,
-                    endpoint)
-    # Print the default message
-    elif default:
-        general_msg(default,
-                    endpoint)
-
-
 def remove_empty(obj: object) -> object:
     """
     Recursively removes None and empty values from a dictionary or a list.
@@ -1319,10 +1281,8 @@ def detail_conns(gconn: object,
     if isinstance(obj, dict):
         if obj.get('childConnections'):
             for conn in obj['childConnections']:
-                conn['parameters'] = json.loads(
-                    gconn.detail_connection(conn['identifier'],
-                                            "params")
-                )
+                conn['parameters'] = gconn.detail_connection(conn['identifier'],
+                                                             "parameters")
         return {
             key: detail_conns(gconn,
                               value)
@@ -1428,15 +1388,14 @@ def get_heat_instances(conn: object,
     Returns:
         list: The stack instances.
     """
+
     endpoint = 'Guacamole'
 
-    # Get the stack instances from heat
     ostack_complete = False
     while not ostack_complete:
         instances = get_ostack_instances(conn,
                                          guac_params['new_groups'],
                                          debug)
-        # Wait for the stacks to get IP addresses
         for instance in instances:
             if not instance['hostname']:
                 general_msg(f"Waiting for '{instance['name']}' to get an IP address",
@@ -1445,20 +1404,46 @@ def get_heat_instances(conn: object,
                 continue
         ostack_complete = True
 
-    # Only create connections for mapped instances
-    if guac_params.get('mapped_only'):
-        mapped_instances = []
-        for data in guac_params['new_users'].values():
-            mapped_instances.extend(
-                data['permissions']['connectionPermissions']
-            )
-        mapped_instances = set(mapped_instances)
+    return instances
 
-        instances = [
-            instance
-            for instance in instances
-            if instance['name'] in mapped_instances
-            or 'guacd' in instance['name']
-        ]
+
+def reduce_heat_instances(guac_params: dict,
+                          debug: bool = False) -> list:
+    """
+    Get the stack instances from heat
+
+    Parameters:
+        conn (object): The guacamole connection.
+        instances (dict): The openstack.
+        debug (bool): The debug flag. Defaults to False.
+
+    Returns:
+        list: The stack instances.
+    """
+
+    endpoint = 'Guacamole'
+
+    new_users = guac_params['new_users']
+    instances = guac_params['instances']
+
+    mapped_instances = []
+    for data in new_users.values():
+        mapped_instances.extend(
+            data['permissions'].get('connectionPermissions')
+        )
+    mapped_instances = set(mapped_instances)
+
+    instances = [
+        instance
+        for instance in instances
+        if instance['name'] in mapped_instances
+        or 'guacd' in instance['name']
+    ]
+
+    general_msg("Removed unmapped instances",
+                endpoint)
+    info_msg(instances,
+             endpoint,
+             debug)
 
     return instances
