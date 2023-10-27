@@ -1,88 +1,145 @@
+"""
+Contains all the main functions for message formatting
+"""
+
+from pprint import pprint
 from colorama import Fore
 
-def error_msg(error):
-    if isinstance(error, list):
-        # If error is a list, print each item separately
-        print(Fore.RED + "[ERROR]   " + Fore.RESET)
-        for item in error:
-            print(item)
-    elif isinstance(error, dict):
-        # If error is a dict, print each item separately
-        print(Fore.RED + "[ERROR]   " + Fore.RESET)
-        for key, value in error.items():
-            print(f"{key}: {value}")
-    elif '\n' in error:
-        # If error contains multiple lines, split it and print each line separately
-        error_lines = error.split('\n')
-        print(Fore.RED + "[ERROR]   " + Fore.RESET)
-        for line in error_lines:
-            print(line)
+
+def error_msg(text: str | list | dict,
+              endpoint='') -> None:
+    """
+    Prints an error message based on the input error.
+
+    Parameters:
+     - text (str | list | dict): The error message to be printed.
+     - endpoint (str): The endpoint where the error occurred
+
+    Returns:
+        None
+    """
+
+    if endpoint:
+        endpoint = endpoint.ljust(12)
+
+    print(Fore.RED + endpoint + "[ERROR]".ljust(12) + Fore.RESET, end='')
+
+    if isinstance(text, str):
+        print(text)
     else:
-        # If error is a single line, print it as is
-        print(Fore.RED + "[ERROR]   " + Fore.RESET + error)
+        print()
+        pprint(text,
+               indent=1,
+               sort_dicts=False)
 
 
-def info_msg(text, debug=False):
-    if debug:
-        if isinstance(text, list):
-            # If text is a list, print each item separately
-            print(Fore.BLUE + "[INFO]    " + Fore.RESET)
-            for item in text:
-                print(item)
-        elif isinstance(text, dict):
-            # If text is a dict, print each item separately
-            print(Fore.BLUE + "[INFO]    " + Fore.RESET)
-            for key, value in text.items():
-                print(f"{key}: {value}")
-        elif '\n' in text:
-            # If text contains multiple lines, split it and print each line separately
-            text_lines = text.split('\n')
-            print(Fore.BLUE + "[INFO]    " + Fore.RESET)
-            for line in text_lines:
-                print(line)
-        else:
-            # If text is a single line, print it as is
-            print(Fore.BLUE + "[INFO]    " + Fore.RESET + text)
+def info_msg(text: str | list | dict,
+             endpoint='',
+             debug=False):
+    """
+    Prints informational messages based on the type of input provided.
 
+    Parameters:
+    - text (str | list | dict): The info message(s) to be printed.
+    - endpoint (str): The endpoint where the message originated.
+    - debug (bool): A boolean indicating whether to print the message(s) or not.
 
-def success_msg(text):
-    if isinstance(text, list):
-        # If text is a list, print each item separately
-        print(Fore.GREEN + "[SUCCESS] " + Fore.RESET)
-        for item in text:
-            print(item)
-    elif isinstance(text, dict):
-        # If text is a dict, print each item separately
-        print(Fore.GREEN + "[SUCCESS] " + Fore.RESET)
-        for key, value in text.items():
-            print(f"{key}: {value}")
-    elif '\n' in text:
-        # If text contains multiple lines, split it and print each line separately
-        text_lines = text.split('\n')
-        print(Fore.GREEN + "[SUCCESS] " + Fore.RESET)
-        for line in text_lines:
-            print(line)
+    Returns:
+        None
+    """
+
+    if not debug:
+        return
+
+    if endpoint:
+        endpoint = endpoint.ljust(12)
+
+    print(Fore.BLUE + endpoint + "[INFO]".ljust(12) + Fore.RESET, end='')
+
+    if isinstance(text, str):
+        print(text)
     else:
-        # If text is a single line, print it as is
-        print(Fore.GREEN + "[SUCCESS] " + Fore.RESET + text)
+        text = remove_none_and_empty(text)
+        print()
+        pprint(text,
+               indent=1,
+               sort_dicts=False)
 
-def general_msg(text):
-    if isinstance(text, list):
-        # If text is a list, print each item separately
-        print(Fore.YELLOW + "[INFO]    " + Fore.RESET)
-        for item in text:
-            print(item)
-    elif isinstance(text, dict):
-        # If text is a dict, print each item separately
-        print(Fore.YELLOW + "[INFO]    " + Fore.RESET)
-        for key, value in text.items():
-            print(f"{key}: {value}")
-    elif '\n' in text:
-        # If text contains multiple lines, split it and print each line separately
-        text_lines = text.split('\n')
-        print(Fore.YELLOW + "[INFO]    " + Fore.RESET)
-        for line in text_lines:
-            print(line)
+
+def success_msg(text: str | list | dict,
+                endpoint='') -> None:
+    """
+    Prints a success message to the console with an optional endpoint prefix.
+
+    Parameters:
+    - text: A string, list, or dictionary containing the message(s) to be printed.
+    - endpoint: An optional string representing the endpoint prefix.
+
+    Returns:
+    None
+    """
+
+    if endpoint:
+        endpoint = endpoint.ljust(12)
+
+    print(Fore.GREEN + endpoint + "[SUCCESS]".ljust(12) + Fore.RESET, end='')
+
+    if isinstance(text, str):
+        print(text)
     else:
-        # If text is a single line, print it as is
-        print(Fore.YELLOW + "[INFO]    " + Fore.RESET + text)
+        print()
+        pprint(text,
+               indent=1,
+               sort_dicts=False)
+
+
+def general_msg(text: str | list | dict,
+                endpoint='') -> None:
+    """
+    Prints the given text or list or dictionary to the console with an optional endpoint prefix.
+
+    Parameters:
+        - text (str | list | dict): The text or list or dictionary to be printed.
+        - endpoint (str): The optional endpoint prefix to be added to the printed text.
+
+    Returns:
+        None
+    """
+
+    if endpoint:
+        endpoint = endpoint.ljust(12)
+
+    print(Fore.YELLOW + endpoint + "[INFO]".ljust(12) + Fore.RESET, end='')
+
+    if isinstance(text, str):
+        print(text)
+    else:
+        print()
+        pprint(text,
+               indent=1,
+               sort_dicts=False)
+
+
+def remove_none_and_empty(obj: object) -> object:
+    """
+    Recursively removes None and empty values from a dictionary or a list.
+
+    Parameters:
+    obj (dict or list): The dictionary or list to remove None and empty values from.
+
+    Returns:
+    dict or list: The dictionary or list with None and empty values removed.
+    """
+    if isinstance(obj, dict):
+        return {
+            key: remove_none_and_empty(value)
+            for key, value in obj.items()
+            if value not in (None, '')
+        }
+    if isinstance(obj, list):
+        return [
+            remove_none_and_empty(item)
+            for item in obj
+            if item not in (None, '')
+        ]
+    return obj

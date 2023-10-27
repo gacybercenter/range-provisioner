@@ -19,10 +19,11 @@ needs.
 - Create, Update, and Delete Heat Orchestration Stacks
 
 **Guacamole API Integration**  
-- Create and Delete Users
-- Create and Delete Connection Groups
-- Create and Delete SSH and RDP Connections
-- Associate Users and Connections 
+- Create, Update, and Delete Connection Groups
+- Create, Update, and Delete Connections
+- Create, Update, and Delete Sharing Profiles
+- Create, Update, and Delete Users
+- Update Connection Permissions for Users
 
 ## Requirements
 To ensure proper functionality and usage, identified below is the baseline
@@ -33,21 +34,44 @@ directory structure and HOT parameters required for use of Range Provisioner.
 DIR
 |___ assets
 |       |___ config.sh
-|       |___ config.ps1
-|
+|___ example
+|       |___ globals.yaml
+|___ scr
+|       |___ orchestration
+|       |       |___ guac.py
+|       |       |___ heat.py
+|       |       |___ swift.py
+|       |___ provision
+|       |       |___ guac.py
+|       |       |___ heat.py
+|       |       |___ swift.py
+|       |___ utils
+|       |       |___ generate.py
+|       |       |___ load_template.py
+|       |       |___ manage_ids.py
+|       |       |___ msg_format.py
+|       |___ provisioner.py
 |___ templates
 |       |___ main.yaml
-|       |___ sec.yaml
-|
+|       |___ sec.yaml     (Optional)
+|       |___ env.yaml     (Optional)
+|       |___ users.yaml   (Optional)
 |___ globals.yaml
+|___ README.md
+|___ requirements.txt
 ```
 _This provides the foundational directory structure for storing Heat Orchestration 
 Templates in `templates`, `assets` to be uploaded to the object store and the base `globals.yaml` which defines specifics for how to deploy the Cyber Range_
 
 ### **Heat Orchestration Templates** 
 
+_Expected parameters within the `env.yaml`_
+```yaml
+parameters: {}
+```
+
 _Expected parameters within the `main.yaml`_  
-```shell
+```yaml
 parameters:
   username: 
     type: string
@@ -57,13 +81,9 @@ parameters:
     type: string
     default: default_password
 
-  instance.num:
-    type: string
-    default: 2
-
   count:
     type: string
-    default: default_instance_name
+    default: 3
 
   tenant_id: 
     type: string
@@ -74,50 +94,77 @@ parameters:
     default: range_provisioner
 
   conn_proto:
-    type: comma_delimited_list
-    default: "ssh"
+    type: string
+    default: ssh
 
 ```
 
 _Expected parameters within the `sec.yaml`_
-```shell
+```yaml
 parameters:
   name: 
     type: string
     default: sec_group
 ```
 
+_Expected parameters within the `users.yaml`_
+```yaml
+parameters:
+  Alice:
+    password: password1
+    sharing: write
+    permissions:
+      - CREATE_USER
+      - CREATE_USER_GROUP
+      - CREATE_CONNECTION
+      - CREATE_CONNECTION_GROUP
+      - CREATE_SHARING_PROFILE
+      - ADMINISTER
+    instances:
+      - Test_Range.Test_Name.1
+      - Test_Range.Test_Name.2
+      - Test_Range.Test_Name.3
+```
+#### Note: Part of a stack name followed by a '*' maps all stacks containing the entry. <sub><i>Your welcome Brent</i></sub>
+
+
 #### Mappings to `globals.yaml`
-**username**
-- This maps to the `username_prefix` field
+```yaml
+globals:
+  debug: True             # debug mode (True) or not (False)
+  cloud: cloud_name       # name of cloud to use
+  num_users: 3            # number of user systems to provision
+  num_ranges: 1           # number of ranges to provision
+  user_name: user_name    # user name prefix
+  range_name: range_name  # range name prefix
+  org_name: org_name      # name of organization
+  artifacts: True         # artifacts (True) or not (False)
+  provision:              # provision range (True) or not (False) or None
 
-**password**
-- This maps to the `guac_user_password` field in the `clouds.yaml` file
+guacamole:
+  provision: True         # provision guacamole (True) or not (False)
+  update: False           # update guacamole users (True) or not (False)
+  mapped_only: True       # only create connections for user mapped instances (True) or not (False)
+  recording: True         # enable session recording (True) or not (False)
+  sharing: write          # enable link sharing read (read), write (write) or not (False)
 
-**count**
-- This maps to the `num_users` field
+heat:
+  provision: True         # provision heat (True) or not (False)
+  update: True            # update heat (True) or not (False)
+  template_dir: templates # directory containing heat templates
+  pause: 2                # pause between each heat stack action
 
-**tenant_id**
-- This maps to the `project_id` field in the `clouds.yaml` file
-
-**container_name**
-- This maps to the `container_name` field in the `main.yaml` file
-
-**conn_proto**
-- This defines the type of connections that will be created for the users. 
-  - `ssh` - This will create SSH connections for the users
-  - `rdp` - This will create RDP connections for the users
-  - `ssh,rdp` - This will create both SSH and RDP connections for the users
-
-**name**
-- This maps to the `sec_group_name` field in the `sec.yaml` file
-
+swift:
+  provision: True         # provision swift (True) or not (False)
+  update: True            # update swift (True) or not (False)
+  asset_dir: assets       # directory containing swift assets
+```
 ### Usage Example
 To ensure easy of use the following provides an example CI/CD implementation utilizing Range
 Provisioner to facilitate to creation and deletion of cyber range environments. The main source for the Docker Image is from `registry.gitlab.com/gacybercenter/gacyberrange/cloud-imaging/container-factory/range-provisioner:latest`, where you can also find previous versions.
 
 
-```shell
+```yaml
 default:
   image: registry.gitlab.com/gacybercenter/gacyberrange/cloud-imaging/container-factory/range-provisioner:latest
   before_script:
@@ -128,21 +175,10 @@ stages:
   - Heat
   - Guacamole
 
-guac_deprovision:
-  stage: Guacamole
-  script: |
-      python3 /range-provisioner/manage_guac.py
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    - if: $CI_COMMIT_MESSAGE =~ /\[delete]/
-      allow_failure: true
-      when: always
-
 object_upload:
   stage: Swift
   script: |
-      python3 /range-provisioner/manage_objects.py
+      python3 /range-provisioner/src/provisioner.py swift
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -152,7 +188,7 @@ object_upload:
 heat_deploy:
   stage: Heat
   script: |
-      python3 /range-provisioner/manage_heat.py
+      python3 /range-provisioner/src/provisioner.py swift
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -162,7 +198,7 @@ heat_deploy:
 guac_provision:
   stage: Guacamole
   script: |
-      python3 /range-provisioner/manage_guac.py
+      python3 /range-provisioner/src/provisioner.py swift
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -172,7 +208,7 @@ guac_provision:
 
 Within the `rules` portion, this ensures that you will not have a double
 pipeline trigger when you have an open merge request:
-```shell
+```yaml
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -181,7 +217,7 @@ pipeline trigger when you have an open merge request:
 This allows determines when specific jobs will trigger based on the `$CI_COMMIT_MESAGE`
 variable, as seen here by looking for `[build]` or `[delete]` at the beginning of a
 commit message:
-```shell
+```yaml
   rules:
     - if: ($CI_COMMIT_MESSAGE =~ /\[build]/ || $CI_COMMIT_MESSAGE =~ /\[delete]/)
       when: always

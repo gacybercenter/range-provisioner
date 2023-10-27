@@ -48,7 +48,7 @@ def upload_objs(container_name, dir):
     # Create directory markers for folder structure
     dir_markers = [
         conn.create_directory_marker_object(
-            container_name,d,) for d in dir_markers
+            container_name, d,) for d in dir_markers
         ]
 
     # Create objects
@@ -93,7 +93,7 @@ def main():
     global_params = load_template(globals_template)
 
     # Create dictionaries
-    global_dict = ([v for k, v in global_params.items() if k == "global"])[0]
+    global_dict = ([v for k, v in global_params.items() if k == "globals"])[0]
     swift_dict = ([v for k, v in global_params.items() if k == "swift"])[0]
 
     # Update main dictionary and update keys and values loaded from templates
@@ -136,8 +136,8 @@ if __name__ == '__main__':
     main_template = f'{template_dir}/main.yaml'
     config = config.loader.OpenStackConfig()
     conn = connect(cloud=load_template
-                   (globals_template)['global']['cloud'])
+                   (globals_template)['globals']['cloud'])
     enable_logging(debug=load_template
-                   (globals_template)['global']['debug'])
+                   (globals_template)['globals']['debug'])
     main()
     print("\n*** End Swift object storage script  ***")
