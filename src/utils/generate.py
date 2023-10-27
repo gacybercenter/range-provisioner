@@ -145,7 +145,7 @@ def format_groups(user_params: dict,
     Format the users.yaml data into a list of groups.
 
     Parameters:
-        user_params (dict): The usrs.yaml dictionary.
+        user_params (dict): The users.yaml dictionary.
 
     Returns:
         list: The group names present in the users.yaml
@@ -208,11 +208,11 @@ def format_users(user_params: dict,
         # If a user has an instance not in the heat_instances list, pattern match
         for instance in data.get('instances', []):
             if instance.endswith('*'):
-                instance = instance.removesuffix('*')
+                instance_pattern = instance.removesuffix('*')
                 heat_instances = [
                     heat_instance
                     for heat_instance in instance_names
-                    if instance in heat_instance
+                    if instance_pattern in heat_instance
                 ]
                 info_msg(
                     f"Turned '{instance}' into {heat_instances}",
