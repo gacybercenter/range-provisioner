@@ -89,7 +89,7 @@ def deprovision(gconn: object,
 
     conns_to_delete, users_to_delete = delete_data(guac_params)
 
-    delete_conns(gconn,
+    delete_conn(gconn,
                 conns_to_delete)
 
     delete_users(gconn,
@@ -344,7 +344,6 @@ def delete_data(guac_params: object) -> dict:
     """
 
     return guac_params['conns'], guac_params['users']
-
 
 
 def create_conns(gconn: object,
