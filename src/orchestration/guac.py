@@ -957,8 +957,8 @@ def update_user_perm(gconn: object,
     action = 'Added' if operation == 'add' else 'Removed'
 
     response = gconn.update_user_permissions(user,
-                                             operation,
-                                             system_perms)
+                                             system_perms,
+                                             operation)
 
     if isinstance(response, dict) and response.get('message'):
         general_msg(response['message'],
