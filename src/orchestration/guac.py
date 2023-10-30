@@ -68,7 +68,8 @@ def provision(gconn: object,
 
 
 def deprovision(gconn: object,
-                guac_params: dict) -> bool:
+                guac_params: dict,
+                debug: bool = False) -> bool:
     """
     Deprovision Guacamole connections and users.
 
@@ -86,11 +87,13 @@ def deprovision(gconn: object,
     general_msg("Deprovisioning Guacamole",
                 endpoint)
 
-    delete_conn(gconn,
-                guac_params['conns'])
+    conns_to_delete, users_to_delete = delete_data(guac_params)
+
+    delete_conns(gconn,
+                conns_to_delete)
 
     delete_users(gconn,
-                 guac_params['users'])
+                 users_to_delete)
 
     success_msg("Deprovisioned Guacamole",
                 endpoint)
@@ -117,7 +120,6 @@ def create_conn_data(guac_params: dict,
     instances = guac_params['instances']
     recording = guac_params['recording']
     sharing = guac_params['sharing']
-    current_object = guac_params['conns']
 
     if sharing and sharing not in ['read', 'write']:
         error_msg(
@@ -209,7 +211,7 @@ def create_conn_data(guac_params: dict,
     }
 
     conns_to_create = extract_connections(create_object)
-    current_conns = extract_connections(current_object)
+    current_conns = extract_connections(guac_params['conns'])
 
     conns_to_delete = []
 
@@ -328,45 +330,21 @@ def create_user_data(guac_params: dict,
     return users_to_create, users_to_delete, current_users
 
 
-def delete_conn_data(guac_params: object) -> dict:
+def delete_data(guac_params: object) -> dict:
     """
     Create data for Guacamole API based on given parameters.
 
     Args:
         guac_params (dict): Parameters for creating the data.
+        debug (bool, optional): Whether to enable debug mode.
 
     Returns:
         list: A dictionary containing the connection to be deleted.
 
     """
 
-    # Get the group IDs, users, and connections to be deleted
-    current_conns = guac_params['conns']
+    return guac_params['conns'], guac_params['users']
 
-    return [current_conns]
-
-
-def delete_user_data(guac_params: object) -> dict:
-    """
-    Create data for Guacamole API based on given parameters.
-
-    Args:
-        guac_params (dict): Parameters for creating the data.
-
-    Returns:
-        dict: A dictionary containing the users to be deleted.
-
-    """
-
-    # Get the group IDs, users, and connections to be deleted
-    current_users = guac_params['users']
-
-    usernames = [
-        user['username']
-        for user in current_users
-    ]
-
-    return usernames
 
 
 def create_conns(gconn: object,
@@ -980,12 +958,7 @@ def update_user_perm(gconn: object,
 
     response = gconn.update_user_permissions(user,
                                              operation,
-                                             'CREATE_USER' in system_perms,
-                                             'CREATE_USER_GROUP' in system_perms,
-                                             'CREATE_CONNECTION' in system_perms,
-                                             'CREATE_CONNECTION_GROUP' in system_perms,
-                                             'CREATE_SHARING_PROFILE' in system_perms,
-                                             'ADMINISTER' in system_perms)
+                                             system_perms)
 
     if isinstance(response, dict) and response.get('message'):
         general_msg(response['message'],
