@@ -89,8 +89,8 @@ def deprovision(gconn: object,
 
     conns_to_delete, users_to_delete = delete_data(guac_params)
 
-    delete_conn(gconn,
-                conns_to_delete)
+    delete_conns(gconn,
+                 conns_to_delete)
 
     delete_users(gconn,
                  users_to_delete)
@@ -343,7 +343,10 @@ def delete_data(guac_params: object) -> dict:
 
     """
 
-    return guac_params['conns'], guac_params['users']
+    conns_to_delete = [guac_params['conns']] if guac_params.get('conns') else []
+    users_to_delete = guac_params['users'] if guac_params.get('users') else []
+
+    return conns_to_delete, users_to_delete
 
 
 def create_conns(gconn: object,
@@ -503,7 +506,10 @@ def delete_conns(gconn: object,
                     endpoint)
         return
 
-    conns_to_delete = remove_children(conns)
+    if len(conns) > 1:
+        conns_to_delete = remove_children(conns)
+    else:
+        conns_to_delete = conns
 
     # Iterate over the connections and delete each connection
     for conn in conns_to_delete:
@@ -583,10 +589,10 @@ def remove_children(connections: list) -> list:
     def find_descendants(connection: dict,
                          descendants: list) -> None:
         for child in connections:
-            if (
-                child.get('parentIdentifier') == connection['identifier']
-                or child.get('primaryConnectionIdentifier') == connection['identifier']
-            ):
+            if (isinstance(child, dict) and
+                    (child.get('parentIdentifier') == connection['identifier'] or
+                     child.get('primaryConnectionIdentifier') == connection['identifier'])
+                ):
                 descendants.append(child)
                 find_descendants(child,
                                  descendants)
