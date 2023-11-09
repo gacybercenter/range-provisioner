@@ -35,7 +35,7 @@ def generate_names(ranges: int,
     if ranges == 1:
         return [prefix]
 
-    return [f"{prefix}{i+1}" for i in range(ranges)]
+    return [f"{prefix}.{i+1}" for i in range(ranges)]
 
 
 def generate_instance_names(params: dict,
