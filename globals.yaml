@@ -15,13 +15,16 @@ guacamole:
   update: True # update guacamole users (True) or not (False)
   mapped_only: True # only create connections for user mapped instances (True) or not (False)
   recording: True # enable session recording (True) or not (False)
-  sharing: write # enable link sharing read (read), write (write) or not (False)
+  sharing: False # enable link sharing read (read), write (write) or not (False)
 
 heat:
   provision: True # provision heat (True) or not (False)
   update: True # update heat (True) or not (False)
   template_dir: templates # directory containing heat templates
   pause: 2 # pause between each heat stack action
+  parameters: # Update existing heat parameters
+  - username: test
+  - instructor_count: 2
 
 swift:
   provision: True # provision swift (True) or not (False)
