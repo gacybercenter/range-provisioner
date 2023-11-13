@@ -60,6 +60,22 @@ def provision(conn: object,
             if 'default' in v
         }
 
+    if isinstance(heat_globals['parameters'], list):
+        for parameter in heat_globals['parameters']:
+            for key, value in parameter.items():
+                if key not in heat_params:
+                    error_msg(
+                        f"Did not update parameter '{key}'. Not found in the main.yaml file.",
+                        endpoint
+                    )
+                    continue
+                heat_params[key] = value
+                info_msg(
+                    f"Updated parameter '{key}' with value '{value}'.",
+                    endpoint,
+                    debug
+                )
+
     if sec_params:
         sec_params = {
             k: v['default']
