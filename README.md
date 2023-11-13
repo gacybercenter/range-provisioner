@@ -153,6 +153,8 @@ heat:
   update: True            # update heat (True) or not (False)
   template_dir: templates # directory containing heat templates
   pause: 2                # pause between each heat stack action
+  parameters:             # Update existing heat parameters (Optional)
+  - username: user
 
 swift:
   provision: True         # provision swift (True) or not (False)
