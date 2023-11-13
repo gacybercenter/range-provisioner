@@ -60,7 +60,7 @@ def provision(conn: object,
             if 'default' in v
         }
 
-    if isinstance(heat_globals['parameters'], list):
+    if 'parameters' in heat_globals and isinstance(heat_globals['parameters'], list):
         for parameter in heat_globals['parameters']:
             for key, value in parameter.items():
                 if key not in heat_params:
