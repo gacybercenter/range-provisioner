@@ -159,7 +159,7 @@ def create_conn_data(guac_params: dict,
                 'parameters': {
                     "read-only": 'true'
                 } if sharing == 'read' else {}
-            },
+            } if sharing else {},
             'parameters': {
                 'hostname': instance['hostname'],
                 'username': guac_params['username'],
@@ -282,14 +282,17 @@ def create_user_data(guac_params: dict,
                     'connectionPermissions': {
                         conn_ids[conn_name]: ['READ']
                         for conn_name in permissions['connectionPermissions']
+                        if conn_ids.get(conn_name)
                     },
                     'connectionGroupPermissions': {
                         conn_ids[conn_name]: ['READ']
                         for conn_name in permissions['connectionGroupPermissions']
+                        if conn_ids.get(conn_name)
                     },
                     'sharingProfilePermissions': {
                         conn_ids[conn_name]: ['READ']
                         for conn_name in permissions['sharingProfilePermissions']
+                        if conn_ids.get(conn_name)
                     },
                     'userPermissions': permissions['userPermissions'],
                     'userGroupPermissions': permissions['userGroupPermissions'],
