@@ -82,12 +82,6 @@ def provision(conn,
                                                       'group',
                                                       debug)
     # Populate the guac_params for provision or reprovision
-    if user_params:
-        guac_params['new_groups'] = format_groups(user_params,
-                                                  debug)
-    else:
-        guac_params['new_groups'] = generate_groups(globals,
-                                                    debug)
     if create or update:
         guac_params['protocol'] = heat_params['conn_proto']['default']
         guac_params['username'] = heat_params['username']['default']
@@ -97,25 +91,30 @@ def provision(conn,
         guac_params['mapped_only'] = guacamole_globals['mapped_only']
         guac_params['recording'] = guacamole_globals['recording']
         guac_params['sharing'] = guacamole_globals['sharing']
-        # Format the users.yaml data into groups and users data
-        if user_params:
-            guac_params['instances'] = guac.get_heat_instances(conn,
-                                                               guac_params,
-                                                               debug)
-            guac_params['new_users'] = format_users(user_params,
+
+    # Format the users.yaml data into groups and users data
+    if user_params:
+        guac_params['new_groups'] = format_groups(user_params,
+                                                    debug)
+        guac_params['instances'] = guac.get_heat_instances(conn,
+                                                            guac_params,
+                                                            debug) if create else []
+        guac_params['new_users'] = format_users(user_params,
+                                                guac_params,
+                                                debug)
+    # If no users are specified, generate the groups and users data
+    else:
+        guac_params['new_groups'] = generate_groups(globals,
+                                                    debug)
+        guac_params['instances'] = guac.get_heat_instances(conn,
+                                                            guac_params,
+                                                            debug) if create else []
+        guac_params['new_users'] = generate_users(globals,
                                                     guac_params,
                                                     debug)
-        # If no users are specified, generate the groups and users data
-        else:
-            guac_params['instances'] = guac.get_heat_instances(conn,
-                                                               guac_params,
-                                                               debug)
-            guac_params['new_users'] = generate_users(globals,
-                                                      guac_params,
-                                                      debug)
-        if guac_params['mapped_only']:
-            guac_params['instances'] = guac.reduce_heat_instances(guac_params,
-                                                                  debug)
+    if create and guac_params['mapped_only']:
+        guac_params['instances'] = guac.reduce_heat_instances(guac_params,
+                                                                debug)
     # Populate the guac_params with current connection and user data
     guac_params['conns'] = guac.get_conns(gconn,
                                           guac_params['parent_group_id'],

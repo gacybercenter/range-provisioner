@@ -231,7 +231,9 @@ def format_users(user_params: dict,
 
         user = {
             username: {
+                'username': username,
                 'password': data['password'],
+                'attributes': {'guac-organization': org_name},
                 'permissions': {
                     'connectionPermissions': data.get('instances', []),
                     'connectionGroupPermissions': set(
