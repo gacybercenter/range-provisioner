@@ -12,7 +12,7 @@ globals:
 
 guacamole:
   provision: True # provision guacamole (True) or not (False)
-  update: True # update guacamole users (True) or not (False)
+  update: False # update guacamole users (True) or not (False)
   mapped_only: True # only create connections for user mapped instances (True) or not (False)
   recording: True # enable session recording (True) or not (False)
   sharing: False # enable link sharing read (read), write (write) or not (False)

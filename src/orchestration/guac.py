@@ -89,11 +89,15 @@ def deprovision(gconn: object,
 
     conns_to_delete, users_to_delete = delete_data(guac_params)
 
-    delete_conns(gconn,
-                 conns_to_delete)
+    general_msg(conns_to_delete)
+    
+    general_msg(users_to_delete)
 
-    delete_users(gconn,
-                 users_to_delete)
+    # delete_conns(gconn,
+    #              conns_to_delete)
+
+    # delete_users(gconn,
+    #              users_to_delete)
 
     success_msg("Deprovisioned Guacamole",
                 endpoint)
@@ -330,7 +334,8 @@ def create_user_data(guac_params: dict,
     return users_to_create, users_to_delete, current_users
 
 
-def delete_data(guac_params: object) -> dict:
+def delete_data(guac_params: object,
+                debug: bool = False) -> dict:
     """
     Create data for Guacamole API based on given parameters.
 
@@ -343,7 +348,15 @@ def delete_data(guac_params: object) -> dict:
 
     """
 
-    conns_to_delete = [guac_params['conns']] if guac_params.get('conns') else []
+    conns_to_delete = []
+    for name in guac_params['new_groups']:
+        identifier = get_conn_id(name,
+                                 guac_params['parent_group_id'],
+                                 'group',
+                                 debug)
+        conns_to_delete.append(identifier)
+        time.sleep(0.1)
+
     users_to_delete = guac_params['users'] if guac_params.get('users') else []
 
     return conns_to_delete, users_to_delete
@@ -1046,6 +1059,7 @@ def get_conn_id(gconn: object,
         conn_name (str): The name of the connection.
         conn_group_id (str): The ID of the connection group.
         conn_type (str, optional): The type of connection. Defaults to 'any'.
+            Can be 'any', 'group', 'connection', or 'sharing profile'.
         debug (bool, optional): Whether to enable debug mode. Defaults to False.
 
     Returns:
