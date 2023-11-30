@@ -163,7 +163,7 @@ def create_conn_data(guac_params: dict,
                 'parameters': {
                     "read-only": 'true'
                 } if sharing == 'read' else {}
-            },
+            } if sharing else {},
             'parameters': {
                 'hostname': instance['hostname'],
                 'username': guac_params['username'],
