@@ -100,7 +100,7 @@ def provision(conn: object,
                            True,
                            update,
                            debug)
-            time.sleep(heat_globals['pause'])
+            time.sleep(heat_globals.get('pause', 0) * 60)
         else:
             general_msg("No security group parameters were provided",
                         endpoint)
@@ -113,7 +113,7 @@ def provision(conn: object,
                            last_stack,
                            update,
                            debug)
-            time.sleep(heat_globals['pause'])
+            time.sleep(heat_globals.get('pause', 0) * 60)
     else:
         for name in stack_names:
             last_stack = name == stack_names[-1]
@@ -121,4 +121,4 @@ def provision(conn: object,
                              name,
                              last_stack,
                              debug)
-            time.sleep(heat_globals['pause'])
+            time.sleep(heat_globals.get('pause', 0) * 60)
