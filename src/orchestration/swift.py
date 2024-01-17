@@ -20,12 +20,18 @@ def provision(conn: object,
     container = create(conn,
                        container_name,
                        debug)
+
     if container:
+        access(conn,
+                container,
+                debug)
         upload_objs(conn,
                     container_name,
                     asset_dir,
                     debug)
     else:
+        error_msg(f"Failed to create '{container_name}'",
+                   endpoint)
         return
 
     success_msg("Provisioned Swift",
@@ -99,9 +105,6 @@ def create(conn: object,
 
     success_msg(f"Container '{container_name}' has been created",
                 endpoint)
-    access(conn,
-           container_name,
-           debug)
 
     return container
 
@@ -139,25 +142,20 @@ def access(conn: object,
 
     endpoint = 'Swift'
 
-    container = search(conn,
-                       container_name,
-                       debug)
-    if container:
-        general_msg(f"Setting container '{container_name}' to public",
+    general_msg(f"Setting container '{container_name}' to public",
+                endpoint)
+    result = conn.set_container_access(name=container_name,
+                                        access="public")
+    if result:
+        success_msg(f"Container '{container_name}' is now public",
                     endpoint)
-        result = conn.set_container_access(name=container_name,
-                                           access="public")
-        if result:
-            success_msg(f"Container '{container_name}' is now public",
-                        endpoint)
-            info_msg(result,
-                     endpoint,
-                     debug)
-            return result
+        info_msg(result,
+                    endpoint,
+                    debug)
+        return result
 
     error_msg(f"Failed to set access for container '{container_name}'",
-              endpoint)
-
+                endpoint)
     return None
 
 

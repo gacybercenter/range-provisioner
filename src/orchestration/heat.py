@@ -211,7 +211,8 @@ def get_ostack_instances(conn: object,
             'hostname': instance['public_v4'] if instance['public_v4'] else instance['private_v4']
         }
         for instance in conn.list_servers(False)
-        if instance['name'].split('.')[0] in groups
+        for group in groups
+        if group in instance['name']
     ]
 
     general_msg(f"Retrieved stack instances in {groups}",
