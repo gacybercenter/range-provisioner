@@ -118,6 +118,7 @@ def create_conn_data(guac_params: dict,
 
     # Extract parameters from guac_params
     org_name = guac_params['org_name']
+    org_identifier = guac_params['parent_group_id']
     new_groups = guac_params['new_groups']
     instances = guac_params['instances']
     recording = guac_params['recording']
@@ -216,6 +217,11 @@ def create_conn_data(guac_params: dict,
     current_conns = extract_connections(guac_params['conns'])
 
     conns_to_delete = []
+    new_group_ids = [
+        conn["identifier"]
+        for conn in current_conns
+        if conn["name"] in new_groups
+    ] + [org_identifier]
 
     if update:
         create_names = [
@@ -223,7 +229,8 @@ def create_conn_data(guac_params: dict,
             for conn in conns_to_create
         ]
         for conn in current_conns:
-            if conn['name'] not in create_names:
+            if (conn['name'] not in create_names and
+                conn['parentIdentifier'] in new_group_ids):
                 conns_to_delete.append(conn)
 
         conns_to_create = remove_empty(conns_to_create)
@@ -350,15 +357,24 @@ def delete_data(gconn: object,
 
     """
 
+    new_groups = guac_params['new_groups']
+    new_users = guac_params['new_users']
     current_conns = extract_connections(guac_params['conns'])
+    current_users = guac_params['users']
 
     conns_to_delete = [
         conn
         for conn in current_conns
-        if conn['name'] in guac_params['new_groups']
+        if conn['name'] in new_groups
     ]
 
-    return conns_to_delete, guac_params['new_users']
+    users_to_delete = [
+        user
+        for user in current_users
+        if user['username'] in new_users
+    ]
+
+    return conns_to_delete, users_to_delete
 
 
 def create_conns(gconn: object,

@@ -108,6 +108,7 @@ def generate_users(params: dict,
                     'userPermissions': {
                         user: ['READ']
                     },
+                    'userGroupPermissions': [],
                     'systemPermissions': []
                 }
             } for user in user_names
