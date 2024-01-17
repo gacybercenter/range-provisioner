@@ -117,106 +117,14 @@ def create_conn_data(guac_params: dict,
     endpoint = 'Guacamole'
 
     # Extract parameters from guac_params
-    org_name = guac_params['org_name']
     org_identifier = guac_params['parent_group_id']
     new_groups = guac_params['new_groups']
-    instances = guac_params['instances']
-    recording = guac_params['recording']
-    sharing = guac_params['sharing']
 
-    if sharing and sharing not in ['read', 'write']:
-        error_msg(
-            f"The Guacamole sharing parameter is set to '{sharing}'",
-            endpoint
-        )
-        general_msg(
-            "It must be either 'read', 'write', or 'False'",
-            endpoint
-        )
-
-    guacd_ips = {}
-
-    # Filter instances by guacd
-    for instance in instances.copy():
-        if "guacd" in instance['name']:
-            guacd_org = instance['name'].split('.')[0]
-            guacd_ips[guacd_org] = instance['hostname']
-            instances.remove(instance)
-
-    conn_objects = []
-
-    # Process each instance
-    for instance in instances:
-        group = instance['name'].split('.')[0]
-        conn_objects.append({
-            'name': instance['name'],
-            'protocol': guac_params['protocol'],
-            'attributes': {
-                'max-connections': '1',
-                'max-connections-per-user': '1',
-                'guacd-hostname': guacd_ips.get(group, '')
-            },
-            'sharingProfiles': {
-                'attributes': {},
-                'name': f"{instance['name']}.{sharing}",
-                'parameters': {
-                    "read-only": 'true'
-                } if sharing == 'read' else {}
-            } if sharing else {},
-            'parameters': {
-                'hostname': instance['hostname'],
-                'username': guac_params['username'],
-                'password': guac_params['password'],
-                "domain": guac_params['domain_name'],
-                "port": "3389" if guac_params['protocol'] == "rdp" else "22",
-                "security": "any" if guac_params['protocol'] == "rdp" else "",
-                "ignore-cert": "true" if guac_params['protocol'] == "rdp" else "",
-                "enable-wallpaper": "true" if guac_params['protocol'] == "rdp" else "",
-                "enable-theming": "true" if guac_params['protocol'] == "rdp" else "",
-                "create-recording-path": "true" if recording else "",
-                "recording-name": "${GUAC_USERNAME}-${GUAC_DATE}-${GUAC_TIME}" if recording else "",
-                "recording-path": "${HISTORY_PATH}/${HISTORY_UUID}" if recording else "",
-            }
-        })
-
-    # Generate the create data
-    create_object = {
-        'name': org_name,
-        'type': 'ORGANIZATIONAL',
-        'childConnectionGroups': [
-            {
-                'name': group,
-                'type': 'ORGANIZATIONAL',
-                'childConnections': [
-                    conn
-                    for conn in conn_objects
-                    if conn['name'].split('.')[0] == group
-                ],
-                'attributes': {
-                    'max-connections': '50',
-                    'max-connections-per-user': '10'
-                }
-            }
-            for group in new_groups
-        ],
-        'attributes': {
-            'max-connections': '50',
-            'max-connections-per-user': '10'
-        }
-    } if org_name != new_groups[0] else {
-        'name': org_name,
-        'type': 'ORGANIZATIONAL',
-        'childConnections': conn_objects,
-        'attributes': {
-            'max-connections': '50',
-            'max-connections-per-user': '10'
-        }
-    }
-
-    conns_to_create = extract_connections(create_object)
+    conns_to_create = extract_connections(guac_params['new_conns'])
     current_conns = extract_connections(guac_params['conns'])
 
     conns_to_delete = []
+
     new_group_ids = [
         conn["identifier"]
         for conn in current_conns
@@ -535,12 +443,12 @@ def delete_conns(gconn: object,
         return
 
     if len(conns) > 1:
-        conns_to_delete = remove_children(conns)
-    else:
-        conns_to_delete = conns
+        conns = remove_children(conns)
+
+    print(conns)
 
     # Iterate over the connections and delete each connection
-    for conn in conns_to_delete:
+    for conn in conns:
         delete_conn(gconn,
                     conn)
 
@@ -605,33 +513,22 @@ def delete_conn(gconn: object,
 
 def remove_children(connections: list) -> list:
     """
-    Recursively delete connection groups in Guacamole.
+    Remove connection groups that are children of other connections in the list.
 
     Parameters:
         connections (list): A list of connection groups.
 
     Returns:
-        list: The reduced list of connection groups to be deleted.
+        list: The reduced list of connection groups with children removed.
     """
 
-    def find_descendants(connection: dict,
-                         descendants: list) -> None:
-        for child in connections:
-            if (isinstance(child, dict) and
-                    (child.get('parentIdentifier') == connection['identifier'] or
-                     child.get('primaryConnectionIdentifier') == connection['identifier'])
-                ):
-                descendants.append(child)
-                find_descendants(child,
-                                 descendants)
+    connections_to_delete = connections.copy()
+    parent_identifiers = {connection['identifier'] for connection in connections}
 
-    connections_to_delete = []
     for connection in connections:
-        descendants = []
-        find_descendants(connection,
-                         descendants)
-        if descendants:
-            connections_to_delete.append(connection)
+        if (connection.get('parentIdentifier') in parent_identifiers or
+            connection.get('primaryConnectionIdentifier') in parent_identifiers):
+            connections_to_delete.remove(connection)
 
     return connections_to_delete
 

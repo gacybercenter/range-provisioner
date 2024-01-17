@@ -73,6 +73,116 @@ def generate_instance_names(params: dict,
     return instance_names
 
 
+def generate_conns(params: dict,
+                   guac_params: dict,
+                   debug) -> dict | None:
+    """
+    Create a connection list based on given ranges
+    """
+
+    endpoint = 'Generate'
+
+    org_name = guac_params['org_name']
+    new_groups = guac_params['new_groups']
+    instances = guac_params['instances']
+    recording = guac_params['recording']
+    sharing = guac_params['sharing']
+
+    if sharing and sharing not in ['read', 'write']:
+        error_msg(
+            f"The Guacamole sharing parameter is set to '{sharing}'",
+            endpoint
+        )
+        general_msg(
+            "It must be either 'read', 'write', or 'False'",
+            endpoint
+        )
+
+    guacd_ips = {}
+
+    # Filter instances by guacd
+    for instance in instances.copy():
+        if "guacd" in instance['name']:
+            guacd_org = get_group_name(instance['name'])
+            guacd_ips[guacd_org] = instance['hostname']
+            instances.remove(instance)
+
+    conn_objects = []
+
+    # Process each instance
+    for instance in instances:
+        group = get_group_name(instance['name'])
+        conn_objects.append({
+            'name': instance['name'],
+            'protocol': guac_params['protocol'],
+            'attributes': {
+                'max-connections': '1',
+                'max-connections-per-user': '1',
+                'guacd-hostname': guacd_ips.get(group, '')
+            },
+            'sharingProfiles': {
+                'attributes': {},
+                'name': f"{instance['name']}.{sharing}",
+                'parameters': {
+                    "read-only": 'true'
+                } if sharing == 'read' else {}
+            } if sharing else {},
+            'parameters': {
+                'hostname': instance['hostname'],
+                'username': guac_params['username'],
+                'password': guac_params['password'],
+                "domain": guac_params['domain_name'],
+                "port": "3389" if guac_params['protocol'] == "rdp" else "22",
+                "security": "any" if guac_params['protocol'] == "rdp" else "",
+                "ignore-cert": "true" if guac_params['protocol'] == "rdp" else "",
+                "enable-wallpaper": "true" if guac_params['protocol'] == "rdp" else "",
+                "enable-theming": "true" if guac_params['protocol'] == "rdp" else "",
+                "create-recording-path": "true" if recording else "",
+                "recording-name": "${GUAC_USERNAME}-${GUAC_DATE}-${GUAC_TIME}" if recording else "",
+                "recording-path": "${HISTORY_PATH}/${HISTORY_UUID}" if recording else "",
+            }
+        })
+
+    # Generate the create data
+    conn_dict = {
+        'name': org_name,
+        'type': 'ORGANIZATIONAL',
+        'childConnectionGroups': [
+            {
+                'name': group,
+                'type': 'ORGANIZATIONAL',
+                'childConnections': [
+                    conn
+                    for conn in conn_objects
+                    if get_group_name(conn['name']) == group
+                ],
+                'attributes': {
+                    'max-connections': '50',
+                    'max-connections-per-user': '10'
+                }
+            }
+            for group in new_groups
+        ],
+        'attributes': {
+            'max-connections': '50',
+            'max-connections-per-user': '10'
+        }
+    } if org_name != new_groups[0] else {
+        'name': org_name,
+        'type': 'ORGANIZATIONAL',
+        'childConnections': conn_objects,
+        'attributes': {
+            'max-connections': '50',
+            'max-connections-per-user': '10'
+        }
+    }
+    info_msg(conn_dict,
+             endpoint,
+             debug)
+
+    return conn_dict
+
+
 def generate_users(params: dict,
                    guac_params: dict,
                    debug) -> dict | None:
@@ -86,7 +196,7 @@ def generate_users(params: dict,
     sharing = guac_params.get('sharing')
     org_name = guac_params['org_name']
 
-    general_msg(f"Generating user names for {range_name}",
+    general_msg(f"Generating user data for {range_name}",
                 endpoint)
 
     if num_users == 1:
@@ -97,13 +207,13 @@ def generate_users(params: dict,
             for name in generate_names(num_ranges, range_name)
             for u in range(num_users)
         ]
-    users_list = {
+    user_dict = {
         user:
             {
                 'password': generate_password(),
                 'permissions': {
-                    'connectionPermissions': [user],
-                    'connectionGroupPermissions': [org_name, user.split('.')[0]],
+                    'connectionPermissions': [user, f"{get_group_name(user)}.{user_name}"],
+                    'connectionGroupPermissions': [org_name, get_group_name(user)],
                     'sharingProfilePermissions': [f"{user}.{sharing}"] if sharing else [],
                     'userPermissions': {
                         user: ['READ']
@@ -113,11 +223,11 @@ def generate_users(params: dict,
                 }
             } for user in user_names
     }
-    info_msg(users_list,
+    info_msg(user_dict,
              endpoint,
              debug)
 
-    return users_list
+    return user_dict
 
 
 def generate_groups(params: dict,
@@ -262,3 +372,18 @@ def format_users(user_params: dict,
              debug)
 
     return users
+
+
+def get_group_name(name: str) -> str:
+    """
+    Generate a group name based on the given name.
+    """
+
+    parts = name.split('.')
+    if len(parts) == 1:
+        return parts[0]
+
+    if parts[1].isdigit():
+        return f"{parts[0]}.{parts[1]}"
+
+    return parts[0]
