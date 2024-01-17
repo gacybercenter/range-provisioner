@@ -8,7 +8,7 @@ Description:
     Handles the logic for provisioning Guacamole
 """
 from orchestration import guac
-from utils.generate import generate_groups, generate_users, format_users, format_groups
+from utils.generate import generate_groups, generate_users, format_users, format_groups, generate_conns
 from utils.msg_format import error_msg, info_msg
 
 
@@ -88,9 +88,9 @@ def provision(conn,
         guac_params['password'] = heat_params['password']['default']
         guac_params['domain_name'] = guac.find_domain_name(heat_params,
                                                            debug)
-        guac_params['mapped_only'] = guacamole_globals['mapped_only']
-        guac_params['recording'] = guacamole_globals['recording']
-        guac_params['sharing'] = guacamole_globals['sharing']
+    guac_params['mapped_only'] = guacamole_globals['mapped_only']
+    guac_params['recording'] = guacamole_globals['recording']
+    guac_params['sharing'] = guacamole_globals['sharing']
 
     # Format the users.yaml data into groups and users data
     if user_params:
@@ -116,6 +116,9 @@ def provision(conn,
         guac_params['instances'] = guac.reduce_heat_instances(guac_params,
                                                                 debug)
     # Populate the guac_params with current connection and user data
+    guac_params['new_conns'] = generate_conns(globals,
+                                               guac_params,
+                                               debug)
     guac_params['conns'] = guac.get_conns(gconn,
                                           guac_params['parent_group_id'],
                                           debug)
