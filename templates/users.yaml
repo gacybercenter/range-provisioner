@@ -1,16 +1,160 @@
-parameters:
-  Alice:
-    password: password1
-    org_name: Different
-    sharing: write
-    permissions:
-      - CREATE_USER
-      - CREATE_USER_GROUP
-      - CREATE_CONNECTION
-      - CREATE_CONNECTION_GROUP
-      - CREATE_SHARING_PROFILE
-      - ADMINISTER
-    instances:
-      - Test_Range.Test_Name.1
-      - Test_Range.Test_Name.2
-      - Test_Range.Test_Name.3
+# # Replace range_name with the key from globals.yaml
+# parameters:
+#   range_name.student.1:
+#     password: ncustudent407
+#     instances:
+#       - range_name.win11.student.1
+#   range_name.student.2:
+#     password: ncustudent728
+#     instances:
+#       - range_name.win11.student.2
+#   range_name.student.3:
+#     password: ncustudent668
+#     instances:
+#       - range_name.win11.student.3
+#   range_name.student.4:
+#     password: ncustudent684
+#     instances:
+#       - range_name.win11.student.4
+#   range_name.student.5:
+#     password: ncustudent679
+#     instances:
+#       - range_name.win11.student.5
+#   range_name.student.6:
+#     password: ncustudent647
+#     instances:
+#       - range_name.win11.student.6
+#   range_name.student.7:
+#     password: ncustudent321
+#     instances:
+#       - range_name.win11.student.7
+#   range_name.student.8:
+#     password: ncustudent981
+#     instances:
+#       - range_name.win11.student.8
+#   range_name.student.9:
+#     password: ncustudent871
+#     instances:
+#       - range_name.win11.student.9
+#   range_name.student.10:
+#     password: ncustudent707
+#     instances:
+#       - range_name.win11.student.10
+#   range_name.student.11:
+#     password: ncustudent441
+#     instances:
+#       - range_name.win11.student.11
+#   range_name.student.12:
+#     password: ncustudent542
+#     instances:
+#       - range_name.win11.student.12
+#   range_name.student.13:
+#     password: ncustudent745
+#     instances:
+#       - range_name.win11.student.13
+#   range_name.student.14:
+#     password: ncustudent414
+#     instances:
+#       - range_name.win11.student.14
+#   range_name.student.15:
+#     password: ncustudent375
+#     instances:
+#       - range_name.win11.student.15
+#   range_name.student.16:
+#     password: ncustudent602
+#     instances:
+#       - range_name.win11.student.16
+#   range_name.student.17:
+#     password: ncustudent281
+#     instances:
+#       - range_name.win11.student.17
+#   range_name.student.18:
+#     password: ncustudent997
+#     instances:
+#       - range_name.win11.student.18
+#   range_name.student.19:
+#     password: ncustudent283
+#     instances:
+#       - range_name.win11.student.19
+#   range_name.student.20:
+#     password: ncustudent209
+#     instances:
+#       - range_name.win11.student.20
+#   range_name.student.21:
+#     password: ncustudent243
+#     instances:
+#       - range_name.win11.student.21
+#   range_name.student.22:
+#     password: ncustudent519
+#     instances:
+#       - range_name.win11.student.22
+#   range_name.instructor.1:
+#     password: ncuinstructor535
+#     instances:
+#       - range_name.win11.instructor.1
+#       - range_name.win11.student.*
+#     permissions:
+#       - ADMINISTER
+#   range_name.instructor.2:
+#     password: ncuinstructor888
+#     instances:
+#       - range_name.win11.instructor.2
+#       - range_name.win11.student.*
+#     permissions:
+#       - ADMINISTER
+#   range_name.instructor.3:
+#     password: ncuinstructor732
+#     instances:
+#       - range_name.win11.instructor.3
+#       - range_name.win11.student.*
+#     permissions:
+#       - ADMINISTER
+#   range_name.instructor.4:
+#     password: ncuinstructor123
+#     instances:
+#       - range_name.win11.instructor.4
+#       - range_name.win11.student.*
+#     permissions:
+#       - ADMINISTER
+#   range_name.instructor.5:
+#     password: ncuinstructor156
+#     instances:
+#       - range_name.win11.instructor.5
+#       - range_name.win11.student.*
+#     permissions:
+#       - ADMINISTER
+#   range_name.instructor.6:
+#     password: ncuinstructor986
+#     instances:
+#       - range_name.win11.instructor.6
+#       - range_name.win11.student.*
+#     permissions:
+#       - ADMINISTER
+#   range_name.instructor.7:
+#     password: ncuinstructor803
+#     instances:
+#       - range_name.win11.instructor.7
+#       - range_name.win11.student.*
+#     permissions:
+#       - ADMINISTER
+#   range_name.instructor.8:
+#     password: ncuinstructor812
+#     instances:
+#       - range_name.win11.instructor.8
+#       - range_name.win11.student.*
+#     permissions:
+#       - ADMINISTER
+#   range_name.instructor.9:
+#     password: ncuinstructor858
+#     instances:
+#       - range_name.win11.instructor.9
+#       - range_name.win11.student.*
+#     permissions:
+#       - ADMINISTER
+#   range_name.instructor.10:
+#     password: ncuinstructor615
+#     instances:
+#       - range_name.win11.instructor.10
+#       - range_name.win11.student.*
+#     permissions:
+#       - ADMINISTER

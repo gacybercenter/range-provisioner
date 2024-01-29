@@ -5,7 +5,6 @@ import secrets
 import string
 from utils.msg_format import info_msg, general_msg, error_msg
 
-
 def generate_password() -> str:
     """
     Generate a random password consisting of 16 characters.
@@ -36,41 +35,6 @@ def generate_names(ranges: int,
         return [prefix]
 
     return [f"{prefix}.{i+1}" for i in range(ranges)]
-
-
-def generate_instance_names(params: dict,
-                            debug=False):
-    """
-    Generate a list of instance names based on given ranges and names
-
-    Args:
-        params (dict): The parameters for the generation
-        debug (bool): A flag indicating whether to enable debug mode.
-
-    Returns:
-        list: The generated instance names
-    """
-
-    num_ranges = params.get('num_ranges')
-    num_users = params.get('num_users')
-    user_name = params.get('user_name')
-    range_name = params.get('range_name')
-    endpoint = 'Generate'
-
-    general_msg(f"Generating instance names for {range_name}",
-                endpoint)
-
-    if num_users == 1:
-        instance_names = [f"{range_name}.{user_name}"]
-    else:
-        instance_names = [
-            f"{name}.{user_name}.{u+1}"
-            for name in generate_names(num_ranges, range_name)
-            for u in range(num_users)
-        ]
-    info_msg(instance_names, debug)
-
-    return instance_names
 
 
 def generate_conns(params: dict,
@@ -192,36 +156,74 @@ def generate_users(params: dict,
     num_ranges = params.get('num_ranges')
     num_users = params.get('num_users')
     range_name = params.get('range_name')
-    user_name = params.get('user_name')
+    user_name = params.get('user_name') # For backwards compatibility
+    user_names = guac_params.get('user_names')
     sharing = guac_params.get('sharing')
     org_name = guac_params['org_name']
 
     general_msg(f"Generating user data for {range_name}",
                 endpoint)
 
-    if num_users == 1:
-        user_names = [f"{range_name}.{user_name}"]
-    else:
-        user_names = [
-            f"{name}.{user_name}.{u+1}"
+    if not user_names:  # For backwards compatibility
+        user_names = [user_name]
+
+    users = []
+
+    if isinstance(user_names, str):
+        user_names = [user_names]
+
+    if isinstance(user_names, list):
+        users.extend([
+            {
+                "username": f"{name}.{user_name}.{u+1}",
+                "data": {}
+            }
+            if num_users > 1 else
+            {
+                "username": f"{name}.{user_name}",
+                "data": {}
+            }
+            for user_name in user_names
             for name in generate_names(num_ranges, range_name)
             for u in range(num_users)
-        ]
-    user_dict = {
-        user:
-            {
-                'password': generate_password(),
-                'permissions': {
-                    'connectionPermissions': [user, f"{get_group_name(user)}.{user_name}"],
-                    'connectionGroupPermissions': [org_name, get_group_name(user)],
-                    'sharingProfilePermissions': [f"{user}.{sharing}"] if sharing else [],
-                    'userPermissions': {
-                        user: ['READ']
-                    },
-                    'userGroupPermissions': [],
-                    'systemPermissions': []
+        ])
+
+    elif isinstance(user_names, dict):
+        users.extend([
+                {
+                    "username": f"{name}.{user_name}.{u+1}",
+                    "data": data
                 }
-            } for user in user_names
+                 if num_users > 1 else
+                {
+                    "username": f"{name}.{user_name}",
+                    "data": {}
+                }
+            for user_name, data in user_names.items()
+            for name in generate_names(num_ranges, range_name)
+            for u in range(num_users)
+        ])
+
+    user_dict = {
+        user['username']:
+            {
+                'password': user['data'].get('password', generate_password()),
+                'permissions': {
+                    'connectionPermissions': user['data'].get('instances', [user['username']]),
+                    'connectionGroupPermissions': [
+                        org_name,
+                        get_group_name(user['username'])
+                    ],
+                    'sharingProfilePermissions': [
+                        f"{user['username']}.{sharing}"
+                    ] if sharing else [],
+                    'userPermissions': {
+                        user['username']: ['READ']
+                    },
+                    'userGroupPermissions': user['data'].get('groups', []),
+                    'systemPermissions': user['data'].get('permissions', [])
+                }
+            } for user in users
     }
     info_msg(user_dict,
              endpoint,
@@ -387,3 +389,18 @@ def get_group_name(name: str) -> str:
         return f"{parts[0]}.{parts[1]}"
 
     return parts[0]
+
+
+def get_connection_name(name: str) -> str:
+    """
+    Generate a connection name based on the given name.
+    """
+
+    parts = name.split('.')
+    if len(parts) == 1:
+        return parts[0]
+
+    if parts[-1].isdigit():
+        return f"{parts[-2]}.{parts[-1]}"
+
+    return parts[-1]

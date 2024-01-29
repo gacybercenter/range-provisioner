@@ -1,10 +1,10 @@
-heat_template_version: 2018-03-02
+# heat_template_version: 2018-03-02
 
-description: devstack deployment
+# description: devstack deployment
 
-parameters:
-  name: 
-    type: string
-    default: sec_group
+# parameters:
+#   name: 
+#     type: string
+#     default: sec_group
 
-resources:
+# resources:

@@ -1,138 +1,160 @@
 heat_template_version: 2018-03-02
 
 description: >
-  alphanox
+  CFIC Zero Day Attack Data Aquisition
+    Guacd Insstance
+      - d1.xlarge_guacd
+      - Ubuntu2204
+    Kali Attack Instance
+      - d1.medium
+      - Debian10_Kali
+    Apache Vulnerable Instance
+      - m1.nano
+      - Ubuntu2004
 
 parameters:
-
-  instance_id:
-    type: string
-    label: instance_id
-    description: stack naming scheme for range provisioner
-    default: ncu_scratch
-
   username:
     type: string
     label: Default Username
-    description: Sets the Username for the instances
     default: kali
-
-  root_password:
-    type: string
-    default: P@ssw0rd
-    description: root password to be used throughout template
-
+    description: >
+      Sets the Username for the instances
   password:
     type: string
     default: password
-    description: student password to be used throughout template
-
-  tenant_id:
+    description: >
+      student password to be used throughout template
+  range_admin:
     type: string
-    default: db413974768f4743a1689072f27da5d2
-    description: TenantID for swift object store
-
+    label: Default Username
+    default: gacyberrange
+    description: >
+      Sets the Username for the instances
+  range_password:
+    type: string
+    default: gacyberrange
+    description: >
+      student password to be used throughout template
+  root_password:
+    type: string
+    default: password
+    description: >
+      root password to be used throughout template
+  tenant_id: 
+    type: string
+    default: 0d2a873c3add4f268cbf5f3e1c2931e9
+    description: >
+      TenantID for swift object store
   apt_cache_proxy:
     type: string
     label: IP
     default: 10.100.1.84
     description: >
       Sets the apt-cache proxy server for the desired deployment
-      - 10.100.1.84 prod
-      - x.x.x.x dev
-      - x.x.x.x research
-
   container_name:
     type: string
-    description: name for object store container for instance assets
-    default: alphanox
-
+    default: zeroday
+    description: >
+      name for object store container for instance assets
   dashboard:
     type: string
     default: dashboard.training
     description: >
       URL for the desired Georgia Cyber Range Sub-Domain
-      - dashboard.training
-      - dashboard.dev
-      - dashboard.research
-
+  public_network:
+    type: string
+    default: public
+    description: >
+      Public network with floating IP addresses.
   dashboard_record:
     type: string
     default: 10.100.1.85
     description: >
       DNS A record address for Georgia Cyber Range Domain
-      - 10.100.1.85 training
-      - x.x.x.x dev
-      - x.x.x.x research
-
   nameserver:
     type: string
     default: 10.100.10.1
     description: >
-      DNS Server for Georgia Cyber Range
-
+      IP Address for DNS
   conn_proto:
     type: comma_delimited_list
     default: "rdp"
-
-  count:
-    type: string
-    default: 2
-
+    description: >
+      Connection type associated with guacamole connections
   disable.updates:
-    default: true
     type: boolean
+    default: true
+    description: >
+      Disable Windows Updates
+  count:
+    type: number
+    default: 1
+  manager_srv:
+    type: string
+    default: so-manager
+  env_type:
+    type: string
+    default: fundamentals # environment type is analyst or fundamentals
+  so_volume:
+    type: string
+    default: f199d658-3861-465b-baad-37c145ef68d7 # current seconion iso volume
+  so_image:
+    type: string
+    default: so_2.4.30-20231228_base
+  production_check:
+    type: string
+    default: production
 
 resources:
-## Networks / Subnets ##
-  student.network:
-    type: OS::Neutron::Net
-    properties:
-      name:
-        list_join: [ '-', [ { get_param: "OS::stack_name"}, 'student.network']]
-      admin_state_up: true
-      shared: false
-
-  student.subnet:
-    type: OS::Neutron::Subnet
-    properties:
-      name:
-        list_join: [ '-', [ { get_param: "OS::stack_name"}, 'student.subnet']]
-      cidr: 192.168.1.0/26
-      gateway_ip: 192.168.1.1
-      enable_dhcp: true
-      network_id: { get_resource: student.network }
-      dns_nameservers: [{ get_param: apt_cache_proxy }, 10.100.10.1]
-      ip_version: 4
-
-## INFRASTRUCTURE ROUTER ##
-  infrastructure.router:
+## Network, Router, and Subnet Resources ##
+  router:
     type: OS::Neutron::Router
     properties:
       name:
-        list_join: [ '-', [ { get_param: "OS::stack_name"}, 'infrastructure.router']]
+        str_replace:
+          template: stack.app.router
+          params:
+            stack: {get_param: OS::stack_name }
       external_gateway_info: {"network": public}
 
-  infrastructure.student.internal.interface:
-    type: OS::Neutron::RouterInterface
+  router.Interface:
+    type:  OS::Neutron::RouterInterface
+    depends_on: [ router, zeroday.subnet ]
     properties:
-      router_id: { get_resource: infrastructure.router }
-      subnet: { get_resource: student.subnet }
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: zeroday.subnet }
+
+  zeroday.network:
+    type: OS::Neutron::Net
+    properties:
+      admin_state_up: true
+      shared: false
+
+  zeroday.subnet:
+    type: OS::Neutron::Subnet
+    depends_on: zeroday.network
+    properties:
+      cidr: 192.168.1.0/28
+      gateway_ip: 192.168.1.14
+      network_id: { get_resource: zeroday.network }
+      enable_dhcp: true
+      dns_nameservers: [{get_param: nameserver}]
+      ip_version: 4
 
 ## GUACD.SYSTEM ##
-  guacd.server:
+  zeroday.guacd.server:
     type: OS::Nova::Server
     metadata:
       hostname: guacd
     properties:
-      name:
-        list_join: [ '.', [ { get_param: "OS::stack_name"}, 'guacd.server']]
-      image: ubuntu2004
-      flavor: r1.small
+      name: zeroday.guacd.server
+      image: ubuntu2204
+      flavor: d1.xlarge_guacd
       diskConfig: AUTO
       config_drive: true
+      security_groups: [ ]
       networks:
-        - port: { get_resource: guacd.server.port }
+        - port: { get_resource: zeroday.guacd.server.port }
       user_data_format: RAW
       user_data: { get_resource: guacd.config }
 
@@ -145,7 +167,7 @@ resources:
           template: |
             #!/bin/bash
             echo "__dashboard_record__ __dashboard__.gacyberrange.org" >> /etc/hosts
-            echo "nameserver __nameserver_ip__" > /etc/resolv.conf
+            echo "nameserver __nameserver__" > /etc/resolv.conf
             chattr +i /etc/resolv.conf
 
             echo 'Acquire::http::proxy "http://__cache_proxy__:3142";' > /etc/apt/apt.conf.d/02proxy
@@ -174,91 +196,384 @@ resources:
             __container_name__: { get_param: container_name }
             __dashboard__: { get_param: dashboard }
             __dashboard_record__: { get_param: dashboard_record }
-            __nameserver_ip__: { get_param: nameserver }
+            __nameserver__: { get_param: nameserver }
 
-  guacd.server.port:
+  zeroday.guacd.server.port:
       type: OS::Neutron::Port
       properties:
-        name:
-          list_join: [ '-', [ { get_param: "OS::stack_name"}, 'guacd.server.port']]
-        network_id: { get_resource: student.network }
+        name: zeroday.guacd.server.port
+        network_id: { get_resource: zeroday.network }
         fixed_ips:
-          - subnet_id: { get_resource: student.subnet }
+          - subnet_id: { get_resource: zeroday.subnet }
             ip_address: 192.168.1.4
         port_security_enabled: true
-        security_groups:
-          - any
+        security_groups: [ ]
 
-  guacd.server.float:
+  zeroday.guacd.server.float:
     type: OS::Neutron::FloatingIP
     properties: { floating_network: public }
 
-  guacd.server.float_association:
-    depends_on: guacd.server.port
+  zeroday.guacd.server.float_association:
+    depends_on: zeroday.guacd.server.port
     type: OS::Neutron::FloatingIPAssociation
     properties:
-      floatingip_id: { get_resource: guacd.server.float }
-      port_id: { get_resource: guacd.server.port }
+      floatingip_id: { get_resource: zeroday.guacd.server.float }
+      port_id: { get_resource: zeroday.guacd.server.port }
 
-  analyst:
-    type: OS::Heat::ResourceGroup
+## zeroday Vulnerable Instance ##
+  zeroday.server:
+    type: OS::Nova::Server
     properties:
-      count: { get_param: count }
-      removal_policies: [{'resource_list': ['0']}]
-      resource_def:
-        type: OS::Nova::Server
-        properties:
-          name:
-            list_join: [ '.', [ { get_param: "OS::stack_name"}, 'analyst', '%index%']]
-          image: kali_2204
-          flavor: d1.medium
-          config_drive: true
-          networks:
-          - network: { get_resource: student.network }
-          security_groups:
-          - any
-          user_data_format: RAW
-          user_data: { get_resource: kali.system.config }
+      name: zeroday.server
+      image: ubuntu2004
+      flavor: m1.nano
+      security_groups: [ ]
+      networks:
+        - port: { get_resource: zeroday.server.port }
+      config_drive: true
+      user_data_format: RAW
+      user_data:
+        { get_resource: zeroday.server.config }
 
-  kali.system.config:
+  zeroday.server.config:
     type: OS::Heat::SoftwareConfig
     properties:
       group: ungrouped
       config:
         str_replace:
-          template: |
-            #!/bin/bash
-            echo "__dashboard_record__ __dashboard__.gacyberrange.org" >> /etc/hosts
-            echo "nameserver __nameserver_ip__" > /etc/resolv.conf
-            chattr +i /etc/resolv.conf
-
-            echo 'Acquire::http::proxy "http://__cache_proxy__:3142";' > /etc/apt/apt.conf.d/02proxy
-
-            useradd -m -U -s /bin/bash __username__
-            usermod -aG sudo,netdev __username__
-            timedatectl set-timezone America/New_York
-            echo "root:__rootpass__" | chpasswd
-            echo "__username__:__userpass__" | chpasswd
-
-            echo dashboard="__dashboard__" > /root/vars.sh
-            echo dashboard_record="__dashboard_record__" >> /root/vars.sh
-            echo tenant_id="__tenant_id__" >> ~/vars.sh
-            echo container_name="__container_name__" >> /root/vars.sh
-            echo cache_proxy="__apt_cache_proxy__" >> /root/vars.sh
-            echo private_ip="__private_ip__" >> /root/vars.sh
-
-            curl https://__dashboard__.gacyberrange.org:7480/swift/v1/AUTH___tenant_id__/__container_name__/assets/kali/config.sh > /root/config.sh
-            chmod +x /root/config.sh
-            /bin/bash /root/config.sh
-
           params:
-            __system_name__: "kali.system"
-            __username__: { get_param: username }
+            __tenant__: { get_param: tenant_id }
+            __container__: { get_param: container_name }
             __rootpass__: { get_param: root_password }
             __userpass__: { get_param: password }
-            __tenant_id__: { get_param: tenant_id }
-            __cache_proxy__: { get_param: apt_cache_proxy }
-            __container_name__: { get_param: container_name }
             __dashboard__: { get_param: dashboard }
-            __dashboard_record__: { get_param: dashboard_record }
-            __nameserver_ip__: { get_param: nameserver }
+            __dashboard_ip__: { get_param: dashboard_record }
+            __nameserver__: { get_param: apt_cache_proxy }
+          template: |
+            #!/bin/bash
+            tenant_id="__tenant__" && export tenant_id
+            container_name="__container__" && export container_name
+            rootpass="__root__" && export rootpass
+            userpass="__userpass__" && export userpass
+            dashboard_ip="__dashboard_ip__" && export dashboard_ip
+            dashboard="__dashboard__" && export dashboard
+            apt_cache_proxy="__nameserver__" && export apt_cache_proxy
+            port_number="__port__" && export port_number
+            # wc_notify="__wc_notify__" && export wc_notify
+
+            echo "__dashboard_ip__ __dashboard__.gacyberrange.org" >> /etc/hosts
+            echo 'Acquire::http::proxy "http://__nameserver__:3142";' > /etc/apt/apt.conf.d/02proxy
+
+            useradd -m -U -s /bin/bash user
+            echo "root:__rootpass__" | chpasswd
+            echo "user:__userpass__" | chpasswd
+            usermod -aG sudo,netdev user
+
+            sleep 30
+
+            curl https://$dashboard.gacyberrange.org:7480/swift/v1/AUTH_$tenant_id/$container_name/assets/zeroday/config.sh > ~/config.sh
+
+            echo dashboard="__dashboard__" > ~/vars.sh
+            echo tenant_id="__tenant__" >> ~/vars.sh
+            echo container_name="__container__" >> ~/vars.sh
+
+            chmod +x ~/config.sh
+            /bin/bash ~/config.sh
+
+            # __wc_notify__ --data-binary '{"status": "SUCCESS"}'
+
+  zeroday.server.port:
+    type: OS::Neutron::Port
+    depends_on: [ zeroday.subnet ]
+    properties:
+      network_id: { get_resource: zeroday.network }
+      fixed_ips:
+      - subnet_id: { get_resource: zeroday.subnet }
+        ip_address: 192.168.1.10
+      port_security_enabled: false
+      security_groups: [ ]
+
+  # zeroday.server.port.floating.ip:
+  #   type: OS::Neutron::FloatingIP
+  #   properties:
+  #     floating_network: { get_param: public_network }
+
+  # zeroday.server.port.floating.ip.assoc:
+  #   type: OS::Neutron::FloatingIPAssociation
+  #   depends_on: [ zeroday.server.port, zeroday.server.port.floating.ip ]
+  #   properties:
+  #     floatingip_id: { get_resource: zeroday.server.port.floating.ip }
+  #     port_id: { get_resource: zeroday.server.port }
+
+## Kali Attack Instance ##
+  zeroday.kali:
+    type: OS::Nova::Server
+    properties:
+      name: zeroday.kali
+      image: kali_2204
+      flavor: d1.medium
+      security_groups: [ ]
+      networks:
+        - port: { get_resource: zeroday.kali.port }
+      config_drive: true
+      user_data_format: RAW
+      user_data:
+        { get_resource: zeroday.kali.config }
+
+
+  zeroday.kali.config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ungrouped
+      config:
+        str_replace:
+          params:
+            __init_script__: "config.sh"
+            __system_name__: "zeroday.kali.INSTANCE_ID"
+            __system_type__: "kali"
+            __username__: { get_param: username }
+            __userpass__: { get_param: password }
+            __range_adm__: { get_param: range_admin }
+            __range_pass__: { get_param: range_password }
+            __rootpass__: { get_param: root_password }
+            __dashboard__: { get_param: dashboard }
+            __dashboard_ip__: { get_param: dashboard_record }
+            __tenant_id__: { get_param: tenant_id }
+            __container_name__: { get_param: container_name }
+            __nameserver__: { get_param: apt_cache_proxy }
+            __apt_cache_proxy__: { get_param: apt_cache_proxy }
+          template: |
+            #!/bin/bash
+            declare -a commands
+
+            sleep 10
+
+            chattr -i /etc/hosts
+
+            echo "__dashboard_ip__ __dashboard__.gacyberrange.org" >> /etc/hosts
+            echo 'Acquire::http::proxy "http://__apt_cache_proxy__:3142";' > /etc/apt/apt.conf.d/02proxy
+
+            chattr +i /etc/hosts
+
+            ## SET VARIABLES ##
+            echo init_script="__init_script__" > ~/vars.sh
+            echo system_name="__system_name__" >> ~/vars.sh
+            echo system_type="__system_type__" >> ~/vars.sh
+            echo username="__username__" >> ~/vars.sh
+            echo password="__userpass__" >> ~/vars.sh
+            echo range_adm="__range_adm__" >> ~/vars.sh
+            echo range_pass="__range_pass__" >> ~/vars.sh
+            echo root_password="__rootpass__" >> ~/vars.sh
+            echo dashboard="__dashboard__" >> ~/vars.sh
+            echo dashboard_ip="__dashboard_ip__" >> ~/vars.sh
+            echo tenant_id="__tenant_id__" >> ~/vars.sh
+            echo container_name="__container_name__" >> ~/vars.sh
+            echo nameserver="__nameserver__" >> ~/vars.sh
+            echo apt_cache_proxy="__apt_cache_proxy__" >> ~/vars.sh
+            echo container_url="https://__dashboard__.gacyberrange.org:7480/swift/v1/AUTH___tenant_id__/__container_name__/" >> ~/vars.sh
+            
+
+            ## SOURCE VARIABLES ##
+            source ~/vars.sh
+
+            # Remove Greenbone link from skel
+            rm /etc/skel/Desktop/greenbone.desktop
+
+            ## NETWORKING / DNS ##
+            commands=("echo 'nameserver __nameserver__' > /etc/resolv.conf")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            # Start File Downloads
+            files=$(curl $container_url | grep $system_type)
+
+            for file in $files
+            do
+                base_directory=$(dirname $file)
+                edited=$(echo "$base_directory" | sed "s#.*\/$system_type\(\/.*\)#\1#")
+                basefile=$(basename $file)
+                echo "------"
+                if [ "$basefile" = "$init_script" ]; then
+                  base_name=$(basename $file)
+                  echo "curl $container_url$file -o ~/$base_name"
+                  curl $container_url$file -o ~/$base_name
+                elif [ -n "$edited" ]; then
+                  mkdir -p $edited
+                  echo "Creating $edited"
+                  new_file=$(basename $file | sed "s#.*\/$system_type\(\/.*\)#\1#")
+                  echo "curl $container_url$file -o $edited/$new_file"
+                  curl $container_url$file -o $edited/$new_file
+                fi
+                echo "------"
+            done
+
+            # Check if specific config.sh exists, otherwise pull the default
+            if test -f ~/"$init_script"; then
+              echo "$init_script exists"
+            else
+              config_loc="assets/$init_script"
+              echo "Specific config.sh does not exist. Getting default config.sh..."
+              echo "curl $container_url$config_loc -o ~/$init_script"
+              curl $container_url$config_loc -o ~/$init_script
+            fi
+
+            ## USER/GROUP CREATION ##
+            commands=("echo 'root:__rootpass__' | chpasswd")
+            commands+=("timedatectl set-timezone America/New_York")
+            for cmd in "${commands[@]}"; do
+              printf "\n**** Running: $cmd *****\n\n"
+              eval $cmd
+            done
+
+            chmod +x ~/config.sh
+            /bin/bash ~/config.sh
+
+  zeroday.kali.port:
+    type: OS::Neutron::Port
+    depends_on: [ zeroday.subnet ]
+    properties:
+      network_id: { get_resource: zeroday.network }
+      fixed_ips:
+      - subnet_id: { get_resource: zeroday.subnet }
+        ip_address: 192.168.1.9
+      port_security_enabled: false
+      security_groups: [ ]
+
+  # zeroday.kali.port.floating.ip:
+  #   type: OS::Neutron::FloatingIP
+  #   properties:
+  #     floating_network: { get_param: public_network }
+
+  # zeroday.kali.port.floating.ip.assoc:
+  #   type: OS::Neutron::FloatingIPAssociation
+  #   depends_on: [ zeroday.kali.port, zeroday.kali.port.floating.ip ]
+  #   properties:
+  #     floatingip_id: { get_resource: zeroday.kali.port.floating.ip }
+  #     port_id: { get_resource: zeroday.kali.port }
+
+## STANDALONE ##
+  zeroday.seconion:
+    type: OS::Nova::Server
+    properties:
+      name: zeroday.seconion
+      image: { get_param: so_image }
+      flavor: so.manager
+      networks:
+        - port: { get_resource: seconion.manager.port }
+        - port: { get_resource: seconion.monitor.port }
+      config_drive: true
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: |
+            #cloud-config
+
+            ssh_pwauth: True
+
+            chpasswd:
+              list: |
+                root:__rootpass__
+                cloud-user:__password__
+              expire: False
+
+            # package_update: true
+
+            packages:
+              - git
+              - cloud-utils-growpart
+              - nano
+              - unzip
+
+            write_files:
+              - path: /root/config.sh
+                content: |
+                  #!/bin/bash
+
+                  echo "Download of Security Onion Installation Files"  
+                  echo system_type="__system_type__" >> ~/vars
+                  echo tenant_id="__tenant_id__" >> ~/vars
+                  echo container_name="__container_name__" >> ~/vars
+                  echo container_url="https://dashboard.training.gacyberrange.org:7480/swift/v1/AUTH___tenant_id__/__container_name__/" >> ~/vars
+                  echo SYSTEMNAME="__system_name__" >> ~/vars
+                  echo NODETYPE="__node_type__" >> ~/vars
+                  echo MANAGERSRV="__manager_srv__" >> ~/vars
+                  echo MANAGERIP="__manager_ip__" >> ~/vars
+                  echo SEARCHIP="__search_ip__" >> ~/vars
+                  echo SENSORIP="__sensor_ip__" >> ~/vars
+                  echo MINIONCIDR="__minion_cidr__" >> ~/vars
+                  echo PASSWORD="__password__" >> ~/vars
+                  echo ROOTPASS="__rootpass__" >> ~/vars
+
+                  source ~/vars
+                  
+                  echo "Expand and extend root fs"
+                  growpart /dev/vda 2
+                  pvresize /dev/vda2
+                  lvextend -r -l +100%FREE /dev/mapper/vg_main-lv_root
+                  echo "Allow root login"
+                  sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/g' /etc/ssh/sshd_config && systemctl restart sshd
+                  echo "Download of Security Onion Installation Files"
+
+                  files=$(curl -s "$container_url" | grep "$system_type")
+
+                  while IFS= read -r file; do
+                    base_directory=$(dirname "$file")
+                    edited=$(echo "$base_directory" | sed "s#.*\/$system_type\(\/.*\)#\1#")
+                    basefile=$(basename "$file")
+                    echo "------"
+                    new_file=$(basename "$file" | sed "s#.*\/$system_type\(\/.*\)#\1#")
+                    echo "curl \"$container_url$file\" -o \"/root/$new_file\""
+                    curl "$container_url$file" -o "/root/$new_file"
+                    echo "------"
+                  done <<< "$files"
+
+                  chmod +x /root/provision.sh
+                  /root/provision.sh
+                  
+            runcmd:
+              - chmod +x /root/config.sh
+              - /root/config.sh
+
+          params:
+            __system_type__: "seconion"
+            __system_name__: "so-manager"
+            __node_type__: "STANDALONE"
+            __manager_srv__: { get_param: manager_srv }
+            __manager_ip__: { get_attr: [ seconion.manager.port, fixed_ips, 0, ip_address ] }
+            __minion_cidr__: { get_attr: [ zeroday.subnet, cidr ] }
+            __rootpass__: { get_param: root_password }
+            __password__: { get_param: password }
+            __dashboard__: { get_param: dashboard }
+            __dashboard_ip__: { get_param: dashboard_record }
+            __apt_cache_proxy__: { get_param: apt_cache_proxy }
+            __tenant_id__: { get_param: tenant_id }
+            __username__: { get_param: username }
+            __container_name__: { get_param: container_name }
+            __nameserver__: { get_param: nameserver }
+
+  seconion.manager.port:
+    type: OS::Neutron::Port
+    depends_on: [ zeroday.subnet, router.Interface ]
+    properties:
+      name: seconion.manager.port
+      network_id: { get_resource: zeroday.network }
+      fixed_ips:
+      - subnet_id: { get_resource: zeroday.subnet }
+        ip_address: 192.168.1.5
+      port_security_enabled: false
+      security_groups: [ ]
+
+  seconion.monitor.port:
+    type: OS::Neutron::Port
+    depends_on: [ zeroday.subnet, router.Interface ]
+    properties:
+      name: seconion.monitor.port
+      network_id: { get_resource: zeroday.network }
+      fixed_ips:
+      - subnet_id: { get_resource: zeroday.subnet }
+        ip_address: 192.168.1.3
+      port_security_enabled: false
+      security_groups: [ ]
+## END STANDALONE MANAGER ##

@@ -1,0 +1,15 @@
+#!/bin/bash
+# initialise initialise
+# chkconfig: 345 50 2
+# description: Init
+# processname: Initialise
+
+. /etc/init.d/functions
+
+/usr/sbin/vsftpd
+
+# Netcat listeners.
+/etc/rc.d/init.d/netcat &
+/etc/rc.d/init.d/fakessh &
+/etc/rc.d/init.d/test &
+exit 0

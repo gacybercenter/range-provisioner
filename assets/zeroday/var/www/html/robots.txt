@@ -1,0 +1,5 @@
+They're Robots Morty! It's ok to hack them! They're just Robots!
+
+/cgi-bin/root_shell.cgi
+/cgi-bin/tracertool.cgi
+/cgi-bin/*
