@@ -197,7 +197,7 @@ def generate_users(params: dict,
                  if num_users > 1 else
                 {
                     "username": f"{name}.{user_name}",
-                    "data": {}
+                    "data": data
                 }
             for user_name, data in user_names.items()
             for name in generate_names(num_ranges, range_name)
@@ -209,7 +209,12 @@ def generate_users(params: dict,
             {
                 'password': user['data'].get('password', generate_password()),
                 'permissions': {
-                    'connectionPermissions': user['data'].get('instances', [user['username']]),
+                    'connectionPermissions': user['data'].get(
+                        'instances', [
+                            user['username'],
+                            get_connection_name(user['username'])
+                        ]
+                    ),
                     'connectionGroupPermissions': [
                         org_name,
                         get_group_name(user['username'])
@@ -398,9 +403,10 @@ def get_connection_name(name: str) -> str:
 
     parts = name.split('.')
     if len(parts) == 1:
-        return parts[0]
+        return parts
 
     if parts[-1].isdigit():
-        return f"{parts[-2]}.{parts[-1]}"
+        del parts[-1]
+        return '.'.join(parts)
 
-    return parts[-1]
+    return parts

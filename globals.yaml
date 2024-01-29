@@ -4,13 +4,13 @@
 globals:
   debug: True # debug mode (True) or not (False)
   cloud: gcr # name of cloud to use
-  num_users: 1 # number of user systems to provision
-  num_ranges: 1 # number of ranges to provision
+  num_users: 2 # number of user systems to provision
+  num_ranges: 2 # number of ranges to provision
   user_name: kali # user name prefix
   range_name: zeroday # range name prefix for heat (Ex: comp1313)
   org_name: CFIC-Capstone # name of organization for users in guacamole
   artifacts: True # artifacts (True) or not (False)
-  provision: # provision range with swift, heat, and guacamole (True) or delete all of it (False)
+  provision: False # provision range with swift, heat, and guacamole (True) or delete all of it (False)
 
 # Guacamole Parameters
 guacamole:
@@ -29,7 +29,7 @@ guacamole:
 
 # Heat Template Parameters
 heat:
-  provision: True # provision heat (True) or not (False)
+  provision: False # provision heat (True) or not (False)
   update: False # update heat (True) or not (False)
   pause: 0.5 # pause between each heat stack action in minutes
   template_dir: templates # directory containing heat templates

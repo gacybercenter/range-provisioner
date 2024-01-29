@@ -113,27 +113,27 @@ def provision(conn,
         guac_params['new_users'] = generate_users(globals,
                                                     guac_params,
                                                     debug)
-    # if create and guac_params['mapped_only']:
-    #     guac_params['instances'] = guac.reduce_heat_instances(guac_params,
-    #                                                             debug)
-    # # Populate the guac_params with current connection and user data
-    # guac_params['new_conns'] = generate_conns(globals,
-    #                                            guac_params,
-    #                                            debug)
-    # guac_params['conns'] = guac.get_conns(gconn,
-    #                                       guac_params['parent_group_id'],
-    #                                       debug)
+    if create and guac_params['mapped_only']:
+        guac_params['instances'] = guac.reduce_heat_instances(guac_params,
+                                                                debug)
+    # Populate the guac_params with current connection and user data
+    guac_params['new_conns'] = generate_conns(globals,
+                                               guac_params,
+                                               debug)
+    guac_params['conns'] = guac.get_conns(gconn,
+                                          guac_params['parent_group_id'],
+                                          debug)
 
-    # guac_params['users'] = guac.get_users(gconn,
-    #                                       guac_params['org_name'],
-    #                                       debug)
+    guac_params['users'] = guac.get_users(gconn,
+                                          guac_params['org_name'],
+                                          debug)
 
-    # # Provision, deprovision, or reprovision
-    # if create:
-    #     guac.provision(gconn,
-    #                    guac_params,
-    #                    update,
-    #                    debug)
-    # else:
-    #     guac.deprovision(gconn,
-    #                      guac_params)
+    # Provision, deprovision, or reprovision
+    if create:
+        guac.provision(gconn,
+                       guac_params,
+                       update,
+                       debug)
+    else:
+        guac.deprovision(gconn,
+                         guac_params)
