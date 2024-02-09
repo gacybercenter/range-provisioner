@@ -987,7 +987,10 @@ def get_conn_id(gconn: object,
         return None
 
     if conn_type in ['any', 'group']:
-        groups = gconn.list_connection_groups().values()
+        conn_groups = gconn.list_connection_groups()
+        if not isinstance(conn_groups, dict):
+            return None
+        groups = conn_groups.values()
         for group in groups:
             # Find the group with the given name and parent ID
             if (group['parentIdentifier'] == parent_id and
@@ -999,7 +1002,10 @@ def get_conn_id(gconn: object,
                 return conn_id
 
     if conn_type in ['any', 'connection']:
-        conns = gconn.list_connections().values()
+        connections = gconn.list_connections()
+        if not isinstance(connections, dict):
+            return None
+        conns = connections.values()
         for conn in conns:
             # Find the connection with the given name and parent ID
             if (conn['parentIdentifier'] == parent_id and
@@ -1011,7 +1017,10 @@ def get_conn_id(gconn: object,
                 return conn_id
 
     if conn_type in ['any', 'sharing profile']:
-        sharings = gconn.list_sharing_profile().values()
+        sharing_profiles = gconn.list_sharing_profile()
+        if not isinstance(sharing_profiles, dict):
+            return None
+        sharings = sharing_profiles.values()
         for sharing in sharings:
             # Find the connection with the given name and parent ID
             if (sharing['primaryConnectionIdentifier'] == parent_id and
