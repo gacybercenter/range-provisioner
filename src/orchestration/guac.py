@@ -987,37 +987,43 @@ def get_conn_id(gconn: object,
         return None
 
     if conn_type in ['any', 'group']:
-        groups = gconn.list_connection_groups().values()
-        for group in groups:
+        groups = gconn.list_connection_groups()
+        if not isinstance(groups, dict):
+            return None
+        for group in groups.values():
             # Find the group with the given name and parent ID
             if (group['parentIdentifier'] == parent_id and
                     group['name'] == conn_name):
                 conn_id = group['identifier']
-                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
+                info_msg(f"Retrieved {conn_name}'s group ID '{conn_id}'",
                          endpoint,
                          debug)
                 return conn_id
 
     if conn_type in ['any', 'connection']:
-        conns = gconn.list_connections().values()
-        for conn in conns:
+        conns = gconn.list_connections()
+        if not isinstance(conns, dict):
+            return None
+        for conn in conns.values():
             # Find the connection with the given name and parent ID
             if (conn['parentIdentifier'] == parent_id and
                     conn['name'] == conn_name):
                 conn_id = conn['identifier']
-                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
+                info_msg(f"Retrieved {conn_name}'s connection ID '{conn_id}'",
                          endpoint,
                          debug)
                 return conn_id
 
     if conn_type in ['any', 'sharing profile']:
-        sharings = gconn.list_sharing_profile().values()
-        for sharing in sharings:
+        sharings = gconn.list_sharing_profile()
+        if not isinstance(sharings, dict):
+            return None
+        for sharing in sharings.values():
             # Find the connection with the given name and parent ID
             if (sharing['primaryConnectionIdentifier'] == parent_id and
                     sharing['name'] == conn_name):
                 conn_id = sharing['identifier']
-                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
+                info_msg(f"Retrieved {conn_name}'s sharing profile ID '{conn_id}'",
                          endpoint,
                          debug)
                 return conn_id
