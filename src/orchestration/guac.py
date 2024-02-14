@@ -989,13 +989,15 @@ def get_conn_id(gconn: object,
     if conn_type in ['any', 'group']:
         groups = gconn.list_connection_groups()
         if not isinstance(groups, dict):
+            error_msg(groups,
+                      endpoint)
             return None
         for group in groups.values():
             # Find the group with the given name and parent ID
             if (group['parentIdentifier'] == parent_id and
                     group['name'] == conn_name):
                 conn_id = group['identifier']
-                info_msg(f"Retrieved {conn_name}'s group ID '{conn_id}'",
+                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
                          endpoint,
                          debug)
                 return conn_id
@@ -1003,13 +1005,15 @@ def get_conn_id(gconn: object,
     if conn_type in ['any', 'connection']:
         conns = gconn.list_connections()
         if not isinstance(conns, dict):
+            error_msg(conns,
+                      endpoint)
             return None
         for conn in conns.values():
             # Find the connection with the given name and parent ID
             if (conn['parentIdentifier'] == parent_id and
                     conn['name'] == conn_name):
                 conn_id = conn['identifier']
-                info_msg(f"Retrieved {conn_name}'s connection ID '{conn_id}'",
+                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
                          endpoint,
                          debug)
                 return conn_id
@@ -1017,13 +1021,15 @@ def get_conn_id(gconn: object,
     if conn_type in ['any', 'sharing profile']:
         sharings = gconn.list_sharing_profile()
         if not isinstance(sharings, dict):
+            error_msg(sharings,
+                      endpoint)
             return None
         for sharing in sharings.values():
             # Find the connection with the given name and parent ID
             if (sharing['primaryConnectionIdentifier'] == parent_id and
                     sharing['name'] == conn_name):
                 conn_id = sharing['identifier']
-                info_msg(f"Retrieved {conn_name}'s sharing profile ID '{conn_id}'",
+                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
                          endpoint,
                          debug)
                 return conn_id
@@ -1092,9 +1098,15 @@ def get_users(gconn: object,
     endpoint = 'Guacamole'
 
     # Filter the users based on the organization name
+    users_list = gconn.list_users()
+    if not isinstance(users_list, dict):
+        error_msg(users_list,
+                  endpoint)
+        return []
+
     users = [
         user
-        for user in gconn.list_users().values()
+        for user in users_list.values()
         if user['attributes']['guac-organization'] == org_name
     ]
 
