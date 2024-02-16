@@ -1,3 +1,4 @@
+pytest
 guacamole-api-wrapper
 openstacksdk
 requests
