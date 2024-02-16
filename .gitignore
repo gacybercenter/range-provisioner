@@ -6,3 +6,5 @@
 *__pycache__/
 *.gz
 *.tar
+.venv
+.pylintrc

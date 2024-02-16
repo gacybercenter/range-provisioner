@@ -16,7 +16,6 @@ from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 from utils.load_template import load_global, load_heat, load_sec, load_env, load_users, load_template
 from utils.manage_ids import update_ids, update_env
 
-
 def main():
     """
     This function is the main entry point of the program.
