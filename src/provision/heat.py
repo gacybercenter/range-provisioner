@@ -20,7 +20,7 @@ def provision(conn: object,
     # Set the create and update flags from the globals vars
     if isinstance(globals['provision'], bool):
         create = globals['provision']
-        update = False
+        update = heat_globals.get('update', False)
         info_msg(f"Global provisioning is set to '{create}'",
                  endpoint,
                  debug)
