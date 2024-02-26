@@ -12,8 +12,8 @@ pylint:
   image: python:3
   before_script:
     - pip install pylint_gitlab
-  script:
     - pip install -r requirements.txt
+  script:
     - pylint --exit-zero --output-format=text $(find ./src -type f -name "*.py") | tee /tmp/pylint.txt
     - pylint --exit-zero --output-format=pylint_gitlab.GitlabCodeClimateReporter $(find ./src -type f -name "*.py") > codeclimate.json
   artifacts:
@@ -26,18 +26,18 @@ unit-test:
   tags:
     - docker-gcc
   image: python:3
-  script:
+  before_script:
     - pip install -r requirements.txt
     - pip install pytest pytest-cov
+  script:
     - pytest --cov --cov-report term --cov-report xml:coverage.xml
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     when: always
     paths:
-      - pspec.xml
       - coverage.xml
     reports:
-      junit: pspec.xml
+      junit: coverage.xml
       coverage_report:
         coverage_format: cobertura
         path: coverage.xml
