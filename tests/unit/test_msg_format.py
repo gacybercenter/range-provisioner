@@ -1,9 +1,9 @@
 import unittest
-import sys
 from unittest.mock import patch
 from io import StringIO
-from colorama import Fore
+import sys
 from src.utils.msg_format import error_msg, info_msg, success_msg, general_msg
+from colorama import Fore
 
 # Your messaging module code would go here
 
