@@ -31,13 +31,10 @@ unit-test:
     - pip install pytest pytest-cov
   script:
     - pytest --cov --cov-report term --cov-report xml:coverage.xml
-    - pytest junitxml:pipeline.xml
+    - pytest --junitxml:pipeline.xml
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     when: always
-    paths:
-      - coverage.xml
-      - pipeline.xml
     reports:
       junit: pipeline.xml
       coverage_report:
