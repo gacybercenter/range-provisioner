@@ -401,19 +401,23 @@ def create_conn(gconn: object,
                                                     conn_data.get('parameters', {}))
     time.sleep(0.1)
 
-    if not conn_id:
-        conn_id = response.get('identifier')
+    if isinstance(response, dict):
+        if not conn_id:
+            conn_id = response.get('identifier')
 
-    if isinstance(response, dict) and response.get('message'):
-        general_msg(response['message'],
-                    endpoint)
+        if response.get('message'):
+            general_msg(response['message'],
+                        endpoint)
+        else:
+            general_msg(
+                f"{operation} {conn_type} '{conn_data['name']}' ({conn_id}) under ID '{parent_id}'",
+                endpoint
+            )
     else:
-        general_msg(
-            f"{operation} {conn_type} '{conn_data['name']}' ({conn_id}) under ID '{parent_id}'",
-            endpoint
-        )
+        error_msg(f"Failed to {operation} {conn_type} '{conn_data['name']}'",
+                  endpoint)
 
-    info_msg(conn_data,
+    info_msg(response,
              endpoint,
              debug)
 
