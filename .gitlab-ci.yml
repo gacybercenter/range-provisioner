@@ -2,6 +2,8 @@ image: python:3.9.1-alpine3.12
 
 stages:
   - lint
+  - unit-test
+  # - integration-test
 
 pylint:
   stage: lint
@@ -18,3 +20,32 @@ pylint:
     reports:
       codequality: codeclimate.json
     when: always
+
+unit-test:
+  stage: unit-test
+  tags:
+    - docker-gcc
+  image: python:3.12.1-slim
+  script:
+    - python3 -m venv .venv
+    - . .venv/bin/activate
+    - pip install -r requirements.txt
+    - coverage run -m pytest
+  artifacts:
+    reports:
+      coverage_report:
+        coverage: .coverage
+    when: always
+
+# integration-test:
+#   stage: integration-test
+#   tags:
+#     - docker-gcc
+#   image: python:3.7-slim
+#   script:
+#     - pip install -r requirements.txt
+#     - pytest
+#   artifacts:
+#     reports:
+#       codequality: codeclimate.json
+#     when: always

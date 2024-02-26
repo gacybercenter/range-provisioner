@@ -9,3 +9,4 @@
 .venv
 .pylintrc
 .pytest_cache
+.coverage

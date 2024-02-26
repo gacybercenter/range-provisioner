@@ -35,10 +35,17 @@ def main() -> None:
 
         global_dict = load_template.load_global()
         globals: Dict[str, Any] = global_dict['globals']
-        debug: bool = globals['debug']
         swift_globals: Dict[str, Any] = global_dict['swift']
         heat_globals: Dict[str, Any] = global_dict['heat']
         guacamole_globals: Dict[str, Any] = global_dict['guacamole']
+        debug: bool = globals['debug']
+
+        # Backward compatibility
+        if globals.get('cloud') and not heat_globals.get('cloud'):
+            heat_globals['cloud'] = globals['cloud']
+        if not guacamole_globals.get('cloud'):
+            guacamole_globals['cloud'] = "guac"
+
         heat_params: Dict[str, Any] = load_template.load_heat(
             heat_globals['template_dir'], debug
         ).get('parameters')

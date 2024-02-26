@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch, mock_open
 from src.provisioner import main
+from src.utils.load_template import load_template
 
 class TestConnections(unittest.TestCase):
 
