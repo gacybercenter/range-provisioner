@@ -12,13 +12,13 @@ from utils.generate import generate_groups, generate_users, format_users, format
 from utils.msg_format import error_msg, info_msg
 
 
-def provision(conn,
-              gconn,
-              globals,
-              guacamole_globals,
-              heat_params,
-              user_params,
-              debug):
+def provision(conn: object,
+              gconn: object,
+              globals: dict,
+              guacamole_globals: dict,
+              heat_params: dict,
+              user_params: dict,
+              debug: bool):
     """
     Provisions or deprovisions Guacamole based on the given parameters.
 
@@ -40,7 +40,7 @@ def provision(conn,
     # Set the create and update flags from the globals vars
     if isinstance(globals['provision'], bool):
         create = globals['provision']
-        update = False
+        update = guacamole_globals.get('update', False)
         info_msg(f"Global provisioning is set to {create}",
                  endpoint,
                  debug)
