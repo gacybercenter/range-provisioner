@@ -32,7 +32,7 @@ unittest-report:
     - pip install -r requirements.txt
     - pip install -r requirements-dev.txt
   script:
-    - pytest --junitxml=report.xml
+    - pytest tests/unit --junitxml=report.xml 
   artifacts:
     when: always
     reports:
@@ -52,6 +52,7 @@ unittest-coverage:
   artifacts:
     when: always
     reports:
+      junit: coverage.xml
       coverage_report:
         coverage_format: cobertura
         path: coverage.xml
