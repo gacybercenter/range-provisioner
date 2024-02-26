@@ -32,7 +32,7 @@ unittest-report:
     - pip install -r requirements.txt
     - pip install -r requirements-dev.txt
   script:
-    - pytest --cov --junitxml:report.xml
+    - pytest --junitxml=report.xml
   artifacts:
     when: always
     reports:
