@@ -9,7 +9,7 @@ pylint:
   stage: lint
   tags:
     - docker-gcc
-  image: python:3.7-slim
+  image: python:3.12.1-slim
   before_script:
     - pip install pylint_gitlab
   script:
@@ -27,7 +27,7 @@ unit-test:
     - docker-gcc
   image: python:3.12.1-slim
   before_script:
-    - apt install build-essential
+    - apt install python3-dev
   script:
     - python3 -m venv .venv
     - . .venv/bin/activate
