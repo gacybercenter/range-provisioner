@@ -30,11 +30,10 @@ unit-test:
     - python3 -m venv .venv
     - . .venv/bin/activate
     - pip install -r requirements.txt
-    - coverage run -m pytest
+    - coverage run -m pytest --junitxml=junit.xml
   artifacts:
     reports:
-      coverage_report:
-        coverage: .coverage
+      junit: junit.xml
     when: always
 
 # integration-test:
