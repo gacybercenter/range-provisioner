@@ -27,7 +27,7 @@ unit-test:
     - docker-gcc
   image: python:3.12.1-slim
   before_script:
-    - sudo apt install build-essential
+    - apt install build-essential
   script:
     - python3 -m venv .venv
     - . .venv/bin/activate
