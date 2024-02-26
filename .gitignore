@@ -7,4 +7,5 @@
 *.gz
 *.tar
 .venv
-.coverage
+.pylintrc
+.pytest_cache
