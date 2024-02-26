@@ -27,6 +27,7 @@ unit-test:
     - docker-gcc
   image: python:3
   script:
+    - pip install -r requirements.txt
     - pip install pytest pytest-cov
     - pytest --cov --cov-report term --cov-report xml:coverage.xml
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
