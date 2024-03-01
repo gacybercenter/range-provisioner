@@ -1,16 +1,16 @@
 parameters:
-  Alice:
-    password: password1
-    org_name: Different
-    sharing: write
-    permissions:
-      - CREATE_USER
-      - CREATE_USER_GROUP
-      - CREATE_CONNECTION
-      - CREATE_CONNECTION_GROUP
-      - CREATE_SHARING_PROFILE
-      - ADMINISTER
-    instances:
-      - Test_Range.Test_Name.1
-      - Test_Range.Test_Name.2
-      - Test_Range.Test_Name.3
+  # Alice:
+  #   password: password1
+  #   sharing: write
+  #   permissions:
+  #     - CREATE_USER
+  #     - CREATE_USER_GROUP
+  #     - CREATE_CONNECTION
+  #     - CREATE_CONNECTION_GROUP
+  #     - CREATE_SHARING_PROFILE
+  #     - ADMINISTER
+  #   instances:
+  #     # - Test_Range.Test_Name.1
+  #     # - Test_Range.Test_Name.2
+  #     # - Test_Range.Test_Name.3
+  #     - Test_Range.Test_Name.*
