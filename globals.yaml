@@ -1,7 +1,7 @@
 #YAML for storing range provisioning parameters
 globals:
   debug: True # debug mode (True) or not (False)
-  num_users: 5 # number of user systems to provision
+  num_users: 1 # number of user systems to provision
   num_ranges: 1 # number of ranges to provision
   user_name: Test_Name # user name prefix
   range_name: Test_Range # range name prefix
@@ -16,6 +16,18 @@ guacamole:
   mapped_only: True # only create connections for user mapped instances (True) or not (False)
   recording: True # enable session recording (True) or not (False)
   sharing: False # enable link sharing read (read), write (write) or not (False)
+  users:
+    test_user:
+      password: kali
+      amount: 2
+    test_admin:
+      password: analyst
+      amount: 1
+      sharing: write
+      permissions:
+        - ADMINISTER
+      instances:
+        - Test_Range*
 
 heat:
   provision: True # provision heat (True) or not (False)

@@ -1,8 +1,7 @@
 #YAML for storing range provisioning parameters
 globals:
   debug: True # debug mode (True) or not (False)
-  cloud: gcr # name of cloud to use
-  num_users: 3 # number of user systems to provision
+  num_users: 1 # number of user systems to provision
   num_ranges: 1 # number of ranges to provision
   user_name: Test_Name # user name prefix
   range_name: Test_Range # range name prefix
@@ -13,15 +12,32 @@ globals:
 guacamole:
   provision: True # provision guacamole (True) or not (False)
   update: False # update guacamole users (True) or not (False)
+  cloud: guac # name of cloud to use
   mapped_only: True # only create connections for user mapped instances (True) or not (False)
   recording: True # enable session recording (True) or not (False)
-  sharing: write # enable link sharing read (read), write (write) or not (False)
+  sharing: False # enable link sharing read (read), write (write) or not (False)
+  users:
+    test_user:
+      password: kali
+      amount: 2
+    test_admin:
+      password: analyst
+      amount: 1
+      sharing: write
+      permissions:
+        - ADMINISTER
+      instances:
+        - Test_Range*
 
 heat:
   provision: True # provision heat (True) or not (False)
   update: True # update heat (True) or not (False)
+  cloud: gcr # name of cloud to use
   template_dir: templates # directory containing heat templates
   pause: 2 # pause between each heat stack action
+  parameters: # Update existing heat parameters
+  - username: test
+  - instructor_count: 2
 
 swift:
   provision: True # provision swift (True) or not (False)

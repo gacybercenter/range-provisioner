@@ -91,6 +91,9 @@ def provision(conn: object,
     guac_params['mapped_only'] = guacamole_globals['mapped_only']
     guac_params['recording'] = guacamole_globals['recording']
     guac_params['sharing'] = guacamole_globals['sharing']
+    guac_params['users'] = guacamole_globals.get(
+        'users', globals['user_name'] # For backward compatibility
+    )
 
     # Format the users.yaml data into groups and users data
     if user_params:
