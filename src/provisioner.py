@@ -65,6 +65,12 @@ def main() -> None:
             heat_globals['template_dir'], debug
         ).get('parameters')
 
+        msg_format.info_msg(json.dumps(global_dict, indent=4), endpoint, debug)
+        msg_format.info_msg(json.dumps(heat_params, indent=4), endpoint, debug)
+        msg_format.info_msg(json.dumps(sec_params, indent=4), endpoint, debug)
+        msg_format.info_msg(json.dumps(env_params, indent=4), endpoint, debug)
+        msg_format.info_msg(json.dumps(user_params, indent=4), endpoint, debug)
+
         clouds = load_template.load_template(
             'clouds.yaml', debug
         )['clouds']
@@ -75,18 +81,6 @@ def main() -> None:
             msg_format.error_msg(f"Cloud '{heat_globals['cloud']}' not found in clouds.yaml",
                                  endpoint)
             sys.exit(1)
-        try:
-            guacamole_clouds: Dict[str, Any] = clouds[f"{guacamole_globals['cloud']}"]
-        except KeyError:
-            msg_format.error_msg(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml",
-                                 endpoint)
-            sys.exit(1)
-
-        msg_format.info_msg(json.dumps(global_dict, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(heat_params, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(sec_params, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(env_params, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(user_params, indent=4), endpoint, debug)
 
         openstack_connect = connections.openstack_connection(heat_globals['cloud'],
                                                              openstack_clouds,
@@ -114,6 +108,13 @@ def main() -> None:
                            sec_params,
                            debug)
         elif arg[0] == "guacamole":
+            try:
+                guacamole_clouds: Dict[str, Any] = clouds[f"{guacamole_globals['cloud']}"]
+            except KeyError:
+                msg_format.error_msg(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml",
+                                    endpoint)
+                sys.exit(1)
+
             guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
                                                                  guacamole_clouds,
                                                                  debug)
@@ -125,6 +126,13 @@ def main() -> None:
                            user_params,
                            debug)
         elif arg[0] == "full":
+            try:
+                guacamole_clouds: Dict[str, Any] = clouds[f"{guacamole_globals['cloud']}"]
+            except KeyError:
+                msg_format.error_msg(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml",
+                                    endpoint)
+                sys.exit(1)
+
             guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
                                                                  guacamole_clouds,
                                                                  debug)
