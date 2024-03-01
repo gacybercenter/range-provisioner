@@ -1190,7 +1190,7 @@ def remove_empty(obj: object) -> object:
 
 
 def detail_conns(gconn: object,
-                 obj: object) -> (object, dict):
+                 obj: object) -> object:
     """
     Recursively removes None and empty values from a dictionary or a list.
 
@@ -1198,7 +1198,7 @@ def detail_conns(gconn: object,
     obj (dict or list): The dictionary or list to remove None and empty values from.
 
     Returns:
-    (object, dict): The modified dictionary or list and the current_conns variable.
+    object: The modified dictionary or list and the current_conns variable.
     """
     if isinstance(obj, dict):
         if obj.get('childConnections'):
@@ -1224,7 +1224,7 @@ def detail_conns(gconn: object,
 
 
 def extract_connections(obj: dict,
-                        parent='ROOT') -> (list, dict):
+                        parent='ROOT') -> object:
     """
     Recursively walks through an object and extracts connection groups,
     connections, and sharing groups.
@@ -1233,7 +1233,7 @@ def extract_connections(obj: dict,
     obj (dict): The object to extract groups and connections from.
 
     Returns:
-    list: The extracted connection groups, connections, and sharing groups.
+    object: The extracted connection groups, connections, and sharing groups.
     """
 
     conns = []
@@ -1268,7 +1268,7 @@ def extract_connections(obj: dict,
 
 
 def get_id_difference(connection_ids: dict,
-                      current_connection_ids: dict) -> (dict, dict):
+                      current_connection_ids: dict) -> object:
     """
     Gets the difference between two connection ids.
 
@@ -1277,7 +1277,7 @@ def get_id_difference(connection_ids: dict,
         current_connection_ids (dict): The new connection ids.
 
     Returns:
-        (dict, dict): The added and removed connection ids.
+        object: The added and removed connection ids.
     """
 
     added_ids = {}
