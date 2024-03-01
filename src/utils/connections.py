@@ -35,12 +35,9 @@ def openstack_connection(cloud,
 
 
     # Connect to OpenStack
-    general_msg("Connecting to OpenStack...",
+    general_msg(f"Connecting to OpenStack cloud '{cloud}'...",
                 endpoint)
     info_msg(f"Endpoint: {openstack_clouds['auth']['auth_url']}",
-                endpoint,
-                debug)
-    info_msg(f"Project: {openstack_clouds['auth']['project_name']}",
                 endpoint,
                 debug)
     openstack_connect = connect(cloud=cloud)
@@ -54,13 +51,15 @@ def openstack_connection(cloud,
     return openstack_connect
 
 
-def guacamole_connection(guacamole_clouds,
+def guacamole_connection(cloud,
+                         guacamole_clouds,
                          debug):
     """
     A function to establish a connection with the Guacamole service.
 
     Args:
-        guacamole_clouds (dict): A dictionary containing the information needed to connect to the Guacamole service.
+        guacamole_clouds (dict): A dictionary containing the information needed
+        to connect to the Guacamole service.
         debug (bool): A flag indicating whether debug logging should be enabled.
 
     Returns:
@@ -71,7 +70,7 @@ def guacamole_connection(guacamole_clouds,
     endpoint = 'Connections'
 
     # Connect to Guacamole
-    general_msg("Connecting to Guacamole...",
+    general_msg(f"Connecting to Guacamole cloud '{cloud}'...",
                 endpoint)
     info_msg(f"Endpoint: {guacamole_clouds['host']}",
                 endpoint,

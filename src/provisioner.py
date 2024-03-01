@@ -104,7 +104,8 @@ def main() -> None:
                            sec_params,
                            debug)
         elif arg[0] == "guacamole":
-            guacamole_connect = connections.guacamole_connection(guacamole_clouds,
+            guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
+                                                                 guacamole_clouds,
                                                                  debug)
             guac.provision(openstack_connect,
                            guacamole_connect,
@@ -114,7 +115,8 @@ def main() -> None:
                            user_params,
                            debug)
         elif arg[0] == "full":
-            guacamole_connect = connections.guacamole_connection(guacamole_clouds,
+            guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
+                                                                 guacamole_clouds,
                                                                  debug)
             swift.provision(openstack_connect,
                             globals,
