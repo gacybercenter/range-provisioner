@@ -65,18 +65,18 @@ def main() -> None:
             heat_globals['template_dir'], debug
         ).get('parameters')
 
+        clouds = load_template.load_template(
+            'clouds.yaml', debug
+        )['clouds']
+
         try:
-            openstack_clouds: Dict[str, Any] = load_template.load_template(
-                'clouds.yaml', debug
-            )['clouds'][f"{heat_globals['cloud']}"]
+            openstack_clouds: Dict[str, Any] = clouds[f"{heat_globals['cloud']}"]
         except KeyError:
             msg_format.error_msg(f"Cloud '{heat_globals['cloud']}' not found in clouds.yaml",
                                  endpoint)
             sys.exit(1)
         try:
-            guacamole_clouds: Dict[str, Any] = load_template.load_template(
-                'clouds.yaml', debug
-            )['clouds'][f"{guacamole_globals['cloud']}"]
+            guacamole_clouds: Dict[str, Any] = clouds[f"{guacamole_globals['cloud']}"]
         except KeyError:
             msg_format.error_msg(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml",
                                  endpoint)
