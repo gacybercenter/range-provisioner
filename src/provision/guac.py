@@ -81,6 +81,13 @@ def provision(conn: object,
                                                       'ROOT',
                                                       'group',
                                                       debug)
+    # Check if the group exists
+    if update and not guac_params['parent_group_id']:
+        error_msg(
+            f"Guacamole group '{guac_params['org_name']}' cannot be updated, it doesn't exist",
+            endpoint
+        )
+        return
     # Populate the guac_params for provision or reprovision
     if create or update:
         guac_params['protocol'] = heat_params['conn_proto']['default']
