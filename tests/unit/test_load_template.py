@@ -2,7 +2,6 @@
 
 """
 
-import tempfile
 import unittest
 from unittest.mock import patch, mock_open
 from src.utils.load_template import load_template
