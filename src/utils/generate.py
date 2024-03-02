@@ -98,6 +98,9 @@ def generate_conns(params: dict,
             endpoint
         )
 
+    general_msg("Generating Connection Data",
+                endpoint)
+
     guacd_ips = {}
 
     # Filter instances by guacd
@@ -105,6 +108,9 @@ def generate_conns(params: dict,
         if "guacd" in instance['name']:
             guacd_org = get_group_name(instance['name'])
             guacd_ips[guacd_org] = instance['hostname']
+            info_msg(f"Found guacd server ({instance['name']}) for '{guacd_org}'",
+                     endpoint,
+                     debug)
             instances.remove(instance)
 
     conn_objects = []
@@ -268,9 +274,9 @@ def format_groups(user_params: dict,
     for data in user_params.values():
         instances = data.get('instances', [])
         for instance in instances:
-            group = instance.split('.')
-            if group and group[0] not in groups:
-                groups.append(group[0])
+            group = get_group_name(instance)
+            if group not in groups:
+                groups.append(group)
 
     general_msg("Retrieved groups from users.yaml",
                 endpoint)
@@ -348,7 +354,7 @@ def format_users(user_params: dict,
                 'permissions': {
                     'connectionPermissions': data.get('instances', []),
                     'connectionGroupPermissions': set(
-                        instance.split('.')[0]
+                        get_group_name(instance)
                         for instance in [org_name] + data.get('instances')
                     ),
                     'sharingProfilePermissions': [
