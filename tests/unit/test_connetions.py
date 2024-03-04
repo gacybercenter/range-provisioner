@@ -7,7 +7,9 @@ from unittest.mock import patch, MagicMock
 from src.utils.connections import openstack_connection, guacamole_connection
 
 class TestConnections(unittest.TestCase):
-
+    """
+    Tests the OpenStack and Guacamole connectionss.
+    """
     @patch('src.utils.connections.connect')
     @patch('src.utils.connections.general_msg')
     @patch('src.utils.connections.info_msg')
@@ -36,13 +38,19 @@ class TestConnections(unittest.TestCase):
         mock_connect.return_value = MagicMock()
 
         cloud = 'test_cloud'
-        openstack_clouds = {'auth': {'auth_url': 'http://example.com'}}
+        openstack_clouds = {
+            'auth': {
+                'auth_url': 'http://example.com'
+            }
+        }
         debug = True
 
         result = openstack_connection(cloud, openstack_clouds, debug)
 
-        self.assertIsNotNone(result)
+        self.assertEqual(result, mock_connect.return_value)
+        mock_general_msg.assert_called_once()
         mock_success_msg.assert_called_once()
+        mock_info_msg.assert_called_once()
         mock_error_msg.assert_not_called()
 
     @patch('src.utils.connections.connect')
@@ -73,14 +81,20 @@ class TestConnections(unittest.TestCase):
         mock_connect.return_value = None
 
         cloud = 'test_cloud'
-        openstack_clouds = {'auth': {'auth_url': 'http://example.com'}}
+        openstack_clouds = {
+            'auth': {
+                'auth_url': 'http://example.com'
+            }
+        }
         debug = True
 
         result = openstack_connection(cloud, openstack_clouds, debug)
 
-        self.assertIsNone(result)
+        self.assertEqual(result, mock_connect.return_value)
+        mock_general_msg.assert_called_once()
         mock_error_msg.assert_called_once()
         mock_success_msg.assert_not_called()
+        mock_info_msg.assert_not_called()
 
     @patch('src.utils.connections.session')
     @patch('src.utils.connections.general_msg')
@@ -120,9 +134,11 @@ class TestConnections(unittest.TestCase):
 
         result = guacamole_connection(cloud, guacamole_clouds, debug)
 
-        self.assertIsNotNone(result)
+        self.assertEqual(result, mock_session.return_value)
+        mock_general_msg.assert_called_once()
         mock_success_msg.assert_called_once()
         mock_error_msg.assert_not_called()
+        mock_info_msg.assert_called_once()
 
     @patch('src.utils.connections.session')
     @patch('src.utils.connections.general_msg')
@@ -162,9 +178,11 @@ class TestConnections(unittest.TestCase):
 
         result = guacamole_connection(cloud, guacamole_clouds, debug)
 
-        self.assertIsNone(result)
+        self.assertEqual(result, mock_session.return_value)
+        mock_general_msg.assert_called_once()
         mock_error_msg.assert_called_once()
         mock_success_msg.assert_not_called()
+        mock_info_msg.assert_not_called()
 
 if __name__ == '__main__':
     unittest.main()
