@@ -7,9 +7,9 @@ from guacamole import session
 from openstack import connect, enable_logging
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
-def openstack_connection(cloud,
-                         openstack_clouds,
-                         debug):
+def openstack_connection(cloud: str,
+                         openstack_clouds: dict,
+                         debug: bool = False):
     """
     A function to establish a connection to OpenStack.
 
@@ -37,11 +37,13 @@ def openstack_connection(cloud,
     # Connect to OpenStack
     general_msg(f"Connecting to OpenStack cloud '{cloud}'...",
                 endpoint)
-    info_msg(f"Endpoint: {openstack_clouds['auth']['auth_url']}",
-                endpoint,
-                debug)
+
     openstack_connect = connect(cloud=cloud)
+
     if openstack_connect:
+        info_msg(f"Endpoint: {openstack_clouds['auth']['auth_url']}",
+                    endpoint,
+                    debug)
         success_msg("Connected to OpenStack",
                     endpoint)
     else:
@@ -72,14 +74,14 @@ def guacamole_connection(cloud,
     # Connect to Guacamole
     general_msg(f"Connecting to Guacamole cloud '{cloud}'...",
                 endpoint)
-    info_msg(f"Endpoint: {guacamole_clouds['host']}",
-                endpoint,
-                debug)
     guacamole_connect = session(guacamole_clouds['host'],
                                 guacamole_clouds['data_source'],
                                 guacamole_clouds['username'],
                                 guacamole_clouds['password'])
     if guacamole_connect:
+        info_msg(f"Endpoint: {guacamole_clouds['host']}",
+                    endpoint,
+                    debug)
         success_msg("Connected to Guacamole",
                     endpoint)
     else:
