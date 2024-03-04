@@ -8,7 +8,6 @@ be processed.
 import yaml
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
-
 def update_env(conn: object,
                globals_dict: object,
                make_entries: bool = False,
