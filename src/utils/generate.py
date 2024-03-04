@@ -38,8 +38,11 @@ def generate_names(ranges: int,
     return [f"{prefix}.{i+1}" for i in range(ranges)]
 
 
-def generate_instance_names(params: dict,
-                            debug=False):
+def generate_instance_names(range_name: str,
+                            num_ranges: int,
+                            user_name: str,
+                            num_users: int,
+                            debug: bool=False):
     """
     Generate a list of instance names based on given ranges and names
 
@@ -51,24 +54,23 @@ def generate_instance_names(params: dict,
         list: The generated instance names
     """
 
-    num_ranges = params.get('num_ranges')
-    num_users = params.get('num_users')
-    user_name = params.get('user_name')
-    range_name = params.get('range_name')
     endpoint = 'Generate'
 
-    general_msg(f"Generating instance names for {range_name}",
+    general_msg(f"Generating instance names for '{user_name}' in '{range_name}'",
                 endpoint)
 
     if num_users == 1:
-        instance_names = [f"{range_name}.{user_name}"]
+        instance_names = [
+            f"{name}.{user_name}"
+            for name in generate_names(num_ranges, range_name)
+        ]
     else:
         instance_names = [
             f"{name}.{user_name}.{u+1}"
             for name in generate_names(num_ranges, range_name)
             for u in range(num_users)
         ]
-    info_msg(instance_names, debug)
+    info_msg(instance_names, endpoint, debug)
 
     return instance_names
 
@@ -185,7 +187,7 @@ def generate_conns(params: dict,
 
 def generate_users(params: dict,
                    guac_params: dict,
-                   debug) -> dict | None:
+                   debug: bool = False) -> dict | None:
     """Create a user list based on given ranges"""
 
     endpoint = 'Generate'
@@ -207,38 +209,44 @@ def generate_users(params: dict,
     users_list = []
 
     if isinstance(users, str):
-        users = [users]
-
-    if isinstance(users, list):
         users_list.extend([
             {
-                "username": f"{name}.{user_name}.{u+1}",
+                "username": username,
                 "data": {}
             }
-            if num_users > 1 else
+            for username in generate_instance_names(range_name,
+                                                    num_ranges,
+                                                    users,
+                                                    num_users,
+                                                    debug)
+        ])
+
+    elif isinstance(users, list):
+        users_list.extend([
             {
-                "username": f"{name}.{user_name}",
+                "username": username,
                 "data": {}
             }
             for user_name in users
-            for name in generate_names(num_ranges, range_name)
-            for u in range(num_users)
+            for username in generate_instance_names(range_name,
+                                                    num_ranges,
+                                                    user_name,
+                                                    num_users,
+                                                    debug)
         ])
 
     elif isinstance(users, dict):
         users_list.extend([
-                {
-                    "username": f"{name}.{user_name}.{u+1}",
-                    "data": data
-                }
-                 if data.get('amount', num_users) > 1 else
-                {
-                    "username": f"{name}.{user_name}",
-                    "data": data
-                }
+            {
+                "username": username,
+                "data": data
+            }
             for user_name, data in users.items()
-            for name in generate_names(num_ranges, range_name)
-            for u in range(data.get('amount', num_users))
+            for username in generate_instance_names(range_name,
+                                                    num_ranges,
+                                                    user_name,
+                                                    data.get('amount', num_users),
+                                                    debug)
         ])
 
     user_dict = {}
