@@ -8,8 +8,6 @@ be processed.
 import yaml
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
-
-<<<<<<< HEAD
 def update_env(conn: object,
                globals_dict: object,
                make_entries: bool = False,
@@ -80,31 +78,7 @@ def get_env_path(globals_dict: dict) -> str:
     return env_path
 
 
-<<<<<<< HEAD
-def manage_params(heat_template: object) -> object:
-    """
-    Generates a new heat template by managing the parameters.
-
-    Args:
-        heat_template (object): The original heat template. If None, an empty heat
-        template will be initialized.
-
-    Returns:
-        (object): The updated heat template with managed parameters.
-    """
-    if heat_template is None:
-        heat_template = {"parameters": {}}
-        general_msg("The heat template is empty, initializing it for you...")
-    elif heat_template.get("parameters") is None:
-        heat_template['parameters'] = {}
-        general_msg("Adding a parameters key to the heat template...")
-    return heat_template
-
-
-def update_ids(conn: object,
-=======
 def update_ids(conn,
->>>>>>> 5035f53 (fix: ci trigger validation)
                params: list,
                stacks: list,
                make_entries: bool = False,
@@ -165,11 +139,6 @@ def get_ids(conn: object,
     project_id = conn.current_project_id
     info_msg(f"Current project ID: {project_id}", debug)
 
-<<<<<<< HEAD
-    if not stack_names:
-        general_msg("No stacks provided, fetching all stacks...")
-        stacks = conn.orchestration.stacks(project_id=project_id)
-=======
 
 def get_ids(conn, params, stack_list, replace=False, debug=False):
     """
@@ -191,7 +160,6 @@ def get_ids(conn, params, stack_list, replace=False, debug=False):
     if not stack_list:
         general_msg("No stacks provided, getting resource IDs from all stacks")
         stacks = conn.orchestration.stacks()
->>>>>>> 5035f53 (fix: ci trigger validation)
         for stack in stacks:
             if conn.orchestration.find_stack(stack.name) is not None:
                 stack_names.append(stack.name)
