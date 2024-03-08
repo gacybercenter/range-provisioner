@@ -86,9 +86,17 @@ def provision(conn: object,
                                                       debug)
     # Populate the guac_params for provision or reprovision
     if create or update:
-        guac_params['username'] = guacamole_globals['username']
-        guac_params['password'] = guacamole_globals['password']
-        guac_params['protocol'] = guacamole_globals['protocol']
+        guac_params['username'] = guacamole_globals.get('username')
+        guac_params['password'] = guacamole_globals.get('password')
+        guac_params['protocol'] = guacamole_globals.get('protocol')
+
+        # Backwards compatibility
+        if not guac_params['protocol']:
+            guac_params['protocol'] = heat_params['conn_proto']['default']
+        if not guac_params['username']:
+            guac_params['username'] = heat_params['username']['default']
+        if not guac_params['password']:
+            guac_params['password'] = heat_params['password']['default']
 
     # Format the users.yaml data into groups and users data
     if user_params:
