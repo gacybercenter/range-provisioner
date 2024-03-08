@@ -1128,41 +1128,6 @@ def get_users(gconn: object,
     return users
 
 
-def find_domain_name(heat_params: dict,
-                     debug: bool = False) -> str:
-    """
-    Finds and returns the domain name from the given heat parameters.
-
-    Args:
-        heat_params (dict): The heat parameters dictionary.
-        debug (bool, optional): Flag indicating whether to enable debug mode. 
-            Defaults to False.
-
-    Returns:
-        str: The domain name if found, empty string otherwise.
-
-    Raises:
-        KeyError: If the domain name is not found.
-    """
-
-    endpoint = 'Guacamole'
-
-    try:
-        # Retrieve the domain name from heat parameters
-        domain_name = heat_params['domain_name']['default']
-
-    except KeyError:
-        info_msg("Did not find a domain name",
-                 endpoint,
-                 debug)
-        return ''
-
-    general_msg(f"Retrieved domain name '{domain_name}'",
-                endpoint)
-
-    return domain_name
-
-
 def remove_empty(obj: object) -> object:
     """
     Recursively removes None and empty values from a dictionary or a list.

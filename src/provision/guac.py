@@ -86,8 +86,6 @@ def provision(conn: object,
         guac_params['protocol'] = heat_params['conn_proto']['default']
         guac_params['username'] = heat_params['username']['default']
         guac_params['password'] = heat_params['password']['default']
-        guac_params['domain_name'] = guac.find_domain_name(heat_params,
-                                                           debug)
     guac_params['mapped_only'] = guacamole_globals['mapped_only']
     guac_params['recording'] = guacamole_globals['recording']
     guac_params['sharing'] = guacamole_globals['sharing']
