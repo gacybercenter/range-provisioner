@@ -76,6 +76,9 @@ def provision(conn: object,
 
     # Populate the guac_params
     guac_params['org_name'] = globals['org_name']
+    guac_params['mapped_only'] = guacamole_globals['mapped_only']
+    guac_params['recording'] = guacamole_globals['recording']
+    guac_params['sharing'] = guacamole_globals['sharing']
     guac_params['parent_group_id'] = guac.get_conn_id(gconn,
                                                       guac_params['org_name'],
                                                       'ROOT',
@@ -83,12 +86,9 @@ def provision(conn: object,
                                                       debug)
     # Populate the guac_params for provision or reprovision
     if create or update:
-        guac_params['protocol'] = heat_params['conn_proto']['default']
-        guac_params['username'] = heat_params['username']['default']
-        guac_params['password'] = heat_params['password']['default']
-    guac_params['mapped_only'] = guacamole_globals['mapped_only']
-    guac_params['recording'] = guacamole_globals['recording']
-    guac_params['sharing'] = guacamole_globals['sharing']
+        guac_params['username'] = guacamole_globals['username']
+        guac_params['password'] = guacamole_globals['password']
+        guac_params['protocol'] = guacamole_globals['protocol']
 
     # Format the users.yaml data into groups and users data
     if user_params:
