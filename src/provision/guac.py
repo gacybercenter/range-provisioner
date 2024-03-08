@@ -84,6 +84,7 @@ def provision(conn: object,
                                                       'ROOT',
                                                       'group',
                                                       debug)
+
     # Populate the guac_params for provision or reprovision
     if create or update:
         guac_params['username'] = guacamole_globals.get('username')
@@ -121,6 +122,7 @@ def provision(conn: object,
     if create and guac_params['mapped_only']:
         guac_params['instances'] = guac.reduce_heat_instances(guac_params,
                                                                 debug)
+
     # Populate the guac_params with current connection and user data
     guac_params['new_conns'] = generate_conns(globals,
                                                guac_params,
@@ -128,7 +130,6 @@ def provision(conn: object,
     guac_params['conns'] = guac.get_conns(gconn,
                                           guac_params['parent_group_id'],
                                           debug)
-
     guac_params['users'] = guac.get_users(gconn,
                                           guac_params['org_name'],
                                           debug)
