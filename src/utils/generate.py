@@ -100,6 +100,9 @@ def generate_conns(params: dict,
             endpoint
         )
 
+    general_msg("Generating connection data",
+                endpoint)
+
     guacd_ips = {}
 
     # Filter instances by guacd
@@ -146,30 +149,8 @@ def generate_conns(params: dict,
         })
 
     # Generate the create data
-    conn_dict = {
-        'name': org_name,
-        'type': 'ORGANIZATIONAL',
-        'childConnectionGroups': [
-            {
-                'name': group,
-                'type': 'ORGANIZATIONAL',
-                'childConnections': [
-                    conn
-                    for conn in conn_objects
-                    if get_group_name(conn['name']) == group
-                ],
-                'attributes': {
-                    'max-connections': '50',
-                    'max-connections-per-user': '10'
-                }
-            }
-            for group in new_groups
-        ],
-        'attributes': {
-            'max-connections': '50',
-            'max-connections-per-user': '10'
-        }
-    } if org_name != new_groups[0] else {
+    if org_name == new_groups[0]:
+        conn_dict = {
         'name': org_name,
         'type': 'ORGANIZATIONAL',
         'childConnections': conn_objects,
@@ -178,6 +159,34 @@ def generate_conns(params: dict,
             'max-connections-per-user': '10'
         }
     }
+    else:
+        group_map = {}
+        for conn in conn_objects:
+            group_map.setdefault(
+                get_group_name(conn['name']
+            ), []).append(conn)
+
+        conn_dict = {
+            'name': org_name,
+            'type': 'ORGANIZATIONAL',
+            'childConnectionGroups': [
+                {
+                    'name': group,
+                    'type': 'ORGANIZATIONAL',
+                    'childConnections': conns,
+                    'attributes': {
+                        'max-connections': '50',
+                        'max-connections-per-user': '10'
+                    }
+                }
+                for group, conns in group_map.items()
+            ],
+            'attributes': {
+                'max-connections': '50',
+                'max-connections-per-user': '10'
+            }
+        }
+
     info_msg(conn_dict,
              endpoint,
              debug)
@@ -324,14 +333,15 @@ def format_groups(user_params: dict,
     """
 
     endpoint = 'Generate'
-    groups = []
+    groups = set()
 
     for data in user_params.values():
         instances = data.get('instances', [])
         for instance in instances:
-            group = instance.split('.')
-            if group and group[0] not in groups:
-                groups.append(group[0])
+            group = get_group_name(instance)
+            groups.add(group)
+
+    groups = list(groups)
 
     general_msg("Retrieved groups from users.yaml",
                 endpoint)
@@ -391,7 +401,7 @@ def format_users(user_params: dict,
                 'permissions': {
                     'connectionPermissions': data.get('instances', []),
                     'connectionGroupPermissions': set(
-                        instance.split('.')[0]
+                        get_group_name(instance)
                         for instance in [org_name] + data.get('instances')
                     ),
                     'sharingProfilePermissions': [
