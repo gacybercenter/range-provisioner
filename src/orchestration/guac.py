@@ -30,8 +30,6 @@ def provision(gconn: object,
     """
 
     endpoint = 'Guacamole'
-    global delay
-    delay = guac_params['delay']
 
     general_msg("Provisioning Guacamole",
                 endpoint)
@@ -401,7 +399,7 @@ def create_conn(gconn: object,
             response = gconn.create_sharing_profile(parent_id,
                                                     conn_data['name'],
                                                     conn_data.get('parameters', {}))
-    time.sleep(delay)
+    time.sleep(0.5)
 
     if not conn_id:
         conn_id = response.get('identifier')
@@ -510,7 +508,7 @@ def delete_conn(gconn: object,
             f"Deleted {conn_type} ID '{conn_id}'",
             endpoint
         )
-    time.sleep(delay)
+    time.sleep(0.5)
 
 
 def remove_children(connections: list) -> list:
@@ -651,7 +649,7 @@ def create_user(gconn: object,
         general_msg(message,
                     endpoint)
 
-    time.sleep(delay)
+    time.sleep(0.5)
 
     info_msg(user.get('attributes', {}),
              endpoint,
@@ -788,7 +786,7 @@ def update_user_conn(gconn: object,
     else:
         general_msg(f"{action} '{user}' {conn_type} permissions",
                     endpoint)
-    time.sleep(delay)
+    time.sleep(0.5)
 
 
 def update_user_perms(gconn: object,
@@ -898,7 +896,7 @@ def update_user_perm(gconn: object,
     else:
         general_msg(f"{action} '{user}' system permissions {system_perms}",
                     endpoint)
-    time.sleep(delay)
+    time.sleep(0.5)
 
 
 def delete_users(gconn: object,
@@ -957,7 +955,7 @@ def delete_user(gconn: object,
     else:
         general_msg(f"Deleted user account '{user}'",
                     endpoint)
-    time.sleep(delay)
+    time.sleep(0.5)
 
 
 def get_conn_id(gconn: object,
@@ -1119,7 +1117,7 @@ def get_users(gconn: object,
 
     for user in users:
         user['permissions'] = gconn.detail_user_permissions(user['username'])
-        time.sleep(delay)
+        time.sleep(0.5)
 
     general_msg("Retrieved current users accounts",
                 endpoint)
