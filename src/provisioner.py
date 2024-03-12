@@ -75,6 +75,12 @@ def main() -> None:
             'clouds.yaml', debug
         )['clouds']
 
+        # Backwards compatibility
+        if not heat_globals.get('cloud'):
+            heat_globals['cloud'] = globals['cloud']
+        if not guacamole_globals.get('cloud'):
+            guacamole_globals['cloud'] = 'guac'
+
         try:
             openstack_clouds: Dict[str, Any] = clouds[f"{heat_globals['cloud']}"]
         except KeyError:
