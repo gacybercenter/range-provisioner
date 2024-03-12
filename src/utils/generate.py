@@ -162,9 +162,11 @@ def generate_conns(params: dict,
     else:
         group_map = {}
         for conn in conn_objects:
-            group_map.setdefault(
-                get_group_name(conn['name']
-            ), []).append(conn)
+            conns = group_map.setdefault(
+                get_group_name(conn['name']), []
+            )
+            if conn not in conns:
+                conns.append(conn)
 
         conn_dict = {
             'name': org_name,
