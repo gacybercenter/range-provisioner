@@ -101,6 +101,9 @@ def provision(conn: object,
     guac_params['users'] = guacamole_globals.get(
         'users', globals['user_name'] # For backward compatibility
     )
+    guac_params['delay'] = guacamole_globals.get(
+        'delay', 0.5 # For backward compatibility
+    )
 
     # Format the users.yaml data into groups and users data
     if user_params:

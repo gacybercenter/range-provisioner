@@ -16,6 +16,7 @@ guacamole:
   mapped_only: True # only create connections for user mapped instances (True) or not (False)
   recording: True # enable session recording (True) or not (False)
   sharing: False # enable link sharing read (read), write (write) or not (False)
+  delay: 0.5 # pause between each guacamole action in seconds
   users:
     test_user:
       password: kali
