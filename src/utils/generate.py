@@ -38,8 +38,11 @@ def generate_names(ranges: int,
     return [f"{prefix}.{i+1}" for i in range(ranges)]
 
 
-def generate_instance_names(params: dict,
-                            debug=False):
+def generate_instance_names(range_name: str,
+                            num_ranges: int,
+                            user_name: str,
+                            num_users: int,
+                            debug: bool=False):
     """
     Generate a list of instance names based on given ranges and names
 
@@ -51,24 +54,23 @@ def generate_instance_names(params: dict,
         list: The generated instance names
     """
 
-    num_ranges = params.get('num_ranges')
-    num_users = params.get('num_users')
-    user_name = params.get('user_name')
-    range_name = params.get('range_name')
     endpoint = 'Generate'
 
-    general_msg(f"Generating instance names for {range_name}",
+    general_msg(f"Generating instance names for '{user_name}' in '{range_name}'",
                 endpoint)
 
     if num_users == 1:
-        instance_names = [f"{range_name}.{user_name}"]
+        instance_names = [
+            f"{name}.{user_name}"
+            for name in generate_names(num_ranges, range_name)
+        ]
     else:
         instance_names = [
             f"{name}.{user_name}.{u+1}"
             for name in generate_names(num_ranges, range_name)
             for u in range(num_users)
         ]
-    info_msg(instance_names, debug)
+    info_msg(instance_names, endpoint, debug)
 
     return instance_names
 
@@ -98,7 +100,7 @@ def generate_conns(params: dict,
             endpoint
         )
 
-    general_msg("Generating Connection Data",
+    general_msg("Generating connection data",
                 endpoint)
 
     guacd_ips = {}
@@ -108,9 +110,6 @@ def generate_conns(params: dict,
         if "guacd" in instance['name']:
             guacd_org = get_group_name(instance['name'])
             guacd_ips[guacd_org] = instance['hostname']
-            info_msg(f"Found guacd server ({instance['name']}) for '{guacd_org}'",
-                     endpoint,
-                     debug)
             instances.remove(instance)
 
     conn_objects = []
@@ -150,30 +149,8 @@ def generate_conns(params: dict,
         })
 
     # Generate the create data
-    conn_dict = {
-        'name': org_name,
-        'type': 'ORGANIZATIONAL',
-        'childConnectionGroups': [
-            {
-                'name': group,
-                'type': 'ORGANIZATIONAL',
-                'childConnections': [
-                    conn
-                    for conn in conn_objects
-                    if get_group_name(conn['name']) == group
-                ],
-                'attributes': {
-                    'max-connections': '50',
-                    'max-connections-per-user': '10'
-                }
-            }
-            for group in new_groups
-        ],
-        'attributes': {
-            'max-connections': '50',
-            'max-connections-per-user': '10'
-        }
-    } if org_name != new_groups[0] else {
+    if org_name == new_groups[0]:
+        conn_dict = {
         'name': org_name,
         'type': 'ORGANIZATIONAL',
         'childConnections': conn_objects,
@@ -182,6 +159,36 @@ def generate_conns(params: dict,
             'max-connections-per-user': '10'
         }
     }
+    else:
+        group_map = {}
+        for conn in conn_objects:
+            conns = group_map.setdefault(
+                get_group_name(conn['name']), []
+            )
+            if conn not in conns:
+                conns.append(conn)
+
+        conn_dict = {
+            'name': org_name,
+            'type': 'ORGANIZATIONAL',
+            'childConnectionGroups': [
+                {
+                    'name': group,
+                    'type': 'ORGANIZATIONAL',
+                    'childConnections': conns,
+                    'attributes': {
+                        'max-connections': '50',
+                        'max-connections-per-user': '10'
+                    }
+                }
+                for group, conns in group_map.items()
+            ],
+            'attributes': {
+                'max-connections': '50',
+                'max-connections-per-user': '10'
+            }
+        }
+
     info_msg(conn_dict,
              endpoint,
              debug)
@@ -191,44 +198,103 @@ def generate_conns(params: dict,
 
 def generate_users(params: dict,
                    guac_params: dict,
-                   debug) -> dict | None:
+                   debug: bool = False) -> dict | None:
     """Create a user list based on given ranges"""
 
     endpoint = 'Generate'
     num_ranges = params.get('num_ranges')
     num_users = params.get('num_users')
     range_name = params.get('range_name')
-    user_name = params.get('user_name')
+    users = guac_params.get('users')
     sharing = guac_params.get('sharing')
     org_name = guac_params['org_name']
 
     general_msg(f"Generating user data for {range_name}",
                 endpoint)
 
-    if num_users == 1:
-        user_names = [f"{range_name}.{user_name}"]
-    else:
-        user_names = [
-            f"{name}.{user_name}.{u+1}"
-            for name in generate_names(num_ranges, range_name)
-            for u in range(num_users)
-        ]
-    user_dict = {
-        user:
+    instance_names = [
+        instance_name['name']
+        for instance_name in guac_params['instances']
+    ]
+
+    users_list = []
+
+    if isinstance(users, str):
+        users_list.extend([
             {
-                'password': generate_password(),
-                'permissions': {
-                    'connectionPermissions': [user, f"{get_group_name(user)}.{user_name}"],
-                    'connectionGroupPermissions': [org_name, get_group_name(user)],
-                    'sharingProfilePermissions': [f"{user}.{sharing}"] if sharing else [],
-                    'userPermissions': {
-                        user: ['READ']
-                    },
-                    'userGroupPermissions': [],
-                    'systemPermissions': []
-                }
-            } for user in user_names
-    }
+                "username": username,
+                "data": {}
+            }
+            for username in generate_instance_names(range_name,
+                                                    num_ranges,
+                                                    users,
+                                                    num_users,
+                                                    debug)
+        ])
+
+    elif isinstance(users, list):
+        users_list.extend([
+            {
+                "username": username,
+                "data": {}
+            }
+            for user_name in users
+            for username in generate_instance_names(range_name,
+                                                    num_ranges,
+                                                    user_name,
+                                                    num_users,
+                                                    debug)
+        ])
+
+    elif isinstance(users, dict):
+        users_list.extend([
+            {
+                "username": username,
+                "data": data
+            }
+            for user_name, data in users.items()
+            for username in generate_instance_names(range_name,
+                                                    num_ranges,
+                                                    user_name,
+                                                    data.get('amount', num_users),
+                                                    debug)
+        ])
+
+    user_dict = {}
+
+    for user in users_list:
+        instances = user['data'].get('instances', [
+            user['username'],
+            get_connection_name(user['username'])
+        ])
+
+        expand_instances(instances,
+                         instance_names,
+                         debug)
+
+        groups = [
+            get_group_name(instance)
+            for instance in instances
+        ] + [org_name]
+
+        sharing_copy = user['data'].get('sharing', sharing)
+
+        user_dict[user['username']] = {
+            'password': user['data'].get('password', generate_password()),
+            'permissions': {
+                'connectionPermissions': instances,
+                'connectionGroupPermissions': groups,
+                'sharingProfilePermissions': [
+                    f"{user['username']}.{sharing_copy}"
+                ] if sharing_copy else [],
+                'userPermissions': {
+                    user['username']: ['READ']
+                },
+                'userGroupPermissions': user['data'].get('groups', []),
+                'systemPermissions': user['data'].get('permissions', [])
+            }
+        }
+
     info_msg(user_dict,
              endpoint,
              debug)
@@ -269,14 +335,15 @@ def format_groups(user_params: dict,
     """
 
     endpoint = 'Generate'
-    groups = []
+    groups = set()
 
     for data in user_params.values():
         instances = data.get('instances', [])
         for instance in instances:
             group = get_group_name(instance)
-            if group not in groups:
-                groups.append(group)
+            groups.add(group)
+
+    groups = list(groups)
 
     general_msg("Retrieved groups from users.yaml",
                 endpoint)
@@ -322,29 +389,11 @@ def format_users(user_params: dict,
             )
             sharing = None
 
-        # If a user has an instance not in the heat_instances list, pattern match
-        for instance in data.get('instances', []):
-            if instance.endswith('*'):
-                instance_pattern = instance.removesuffix('*')
-                heat_instances = [
-                    heat_instance
-                    for heat_instance in instance_names
-                    if instance_pattern in heat_instance
-                ]
-                info_msg(
-                    f"Turned '{instance}' into {heat_instances}",
-                    endpoint,
-                    debug
-                )
-                data['instances'].remove(instance)
-                data['instances'].extend(heat_instances)
-            elif instance not in instance_names:
-                error_msg(
-                    f"The instance '{instance}' does not exist",
-                    endpoint
-                )
-                data['instances'].remove(instance)
+        instances = data.get('instances', [])
 
+        expand_instances(instances,
+                         instance_names,
+                         debug)
 
         user = {
             username: {
@@ -393,3 +442,49 @@ def get_group_name(name: str) -> str:
         return f"{parts[0]}.{parts[1]}"
 
     return parts[0]
+
+def get_connection_name(name: str) -> str:
+    """
+    Generate a connection name based on the given name.
+    """
+
+    parts = name.split('.')
+    if len(parts) == 1:
+        return parts[0]
+
+    if parts[-1].isdigit():
+        return f"{parts[-2]}.{parts[-1]}"
+
+    return parts[-1]
+
+def expand_instances(instances: list,
+                     instance_names: dict,
+                     debug: bool = False) -> list:
+    """
+    Expand the instances list based on the heat instances list.
+    """
+
+    endpoint = 'Generate'
+
+    # If a user has an instance not in the heat_instances list, pattern match
+    for instance in instances:
+        if instance.endswith('*'):
+            instance_pattern = instance.removesuffix('*')
+            heat_instances = [
+                heat_instance
+                for heat_instance in instance_names
+                if instance_pattern in heat_instance
+            ]
+            info_msg(
+                f"Turned '{instance}' into {heat_instances}",
+                endpoint,
+                debug
+            )
+            instances.remove(instance)
+            instances.extend(heat_instances)
+        elif instance not in instance_names:
+            error_msg(
+                f"The instance '{instance}' does not exist",
+                endpoint
+            )
+            instances.remove(instance)

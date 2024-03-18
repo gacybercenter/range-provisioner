@@ -131,35 +131,49 @@ parameters:
 #### Mappings to `globals.yaml`
 ```yaml
 globals:
-  debug: True             # debug mode (True) or not (False)
-  cloud: cloud_name       # name of cloud to use
-  num_users: 3            # number of user systems to provision
-  num_ranges: 1           # number of ranges to provision
-  user_name: user_name    # user name prefix
-  range_name: range_name  # range name prefix
-  org_name: org_name      # name of organization
-  artifacts: True         # artifacts (True) or not (False)
-  provision:              # provision range (True) or not (False) or None
+  debug: True # debug mode (True) or not (False)
+  num_users: 1 # number of user systems to provision
+  num_ranges: 1 # number of ranges to provision
+  user_name: Test_Name # user name prefix
+  range_name: Test_Range # range name prefix
+  org_name: Test_Org # name of organization
+  artifacts: True # artifacts (True) or not (False)
+  provision: # provision range (True) or not (False)
 
 guacamole:
-  provision: True         # provision guacamole (True) or not (False)
-  update: False           # update guacamole users (True) or not (False)
-  mapped_only: True       # only create connections for user mapped instances (True) or not (False)
-  recording: True         # enable session recording (True) or not (False)
-  sharing: write          # enable link sharing read (read), write (write) or not (False)
+  provision: True # provision guacamole (True) or not (False)
+  update: False # update guacamole users (True) or not (False)
+  cloud: guac # name of cloud to use
+  mapped_only: True # only create connections for user mapped instances (True) or not (False)
+  recording: True # enable session recording (True) or not (False)
+  sharing: False # enable link sharing read (read), write (write) or not (False)
+  users:
+    test_user:
+      password: kali
+      amount: 2
+    test_admin:
+      password: analyst
+      amount: 1
+      sharing: write
+      permissions:
+        - ADMINISTER
+      instances:
+        - Test_Range*
 
 heat:
-  provision: True         # provision heat (True) or not (False)
-  update: True            # update heat (True) or not (False)
+  provision: True # provision heat (True) or not (False)
+  update: True # update heat (True) or not (False)
+  cloud: gcr # name of cloud to use
   template_dir: templates # directory containing heat templates
-  pause: 2                # pause between each heat stack action
-  parameters:             # Update existing heat parameters (Optional)
-  - username: user
+  pause: 2 # pause between each heat stack action
+  parameters: # Update existing heat parameters
+  - username: test
+  - instructor_count: 2
 
 swift:
-  provision: True         # provision swift (True) or not (False)
-  update: True            # update swift (True) or not (False)
-  asset_dir: assets       # directory containing swift assets
+  provision: True # provision swift (True) or not (False)
+  update: True # update swift (True) or not (False)
+  asset_dir: assets # directory containing swift assets
 ```
 ### Usage Example
 To ensure easy of use the following provides an example CI/CD implementation utilizing Range

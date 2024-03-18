@@ -1,6 +1,7 @@
 parameters:
   # Alice:
   #   password: password1
+  #   org_name: Different
   #   sharing: write
   #   permissions:
   #     - CREATE_USER
@@ -10,7 +11,6 @@ parameters:
   #     - CREATE_SHARING_PROFILE
   #     - ADMINISTER
   #   instances:
-  #     # - Test_Range.Test_Name.1
-  #     # - Test_Range.Test_Name.2
-  #     # - Test_Range.Test_Name.3
-  #     - Test_Range.Test_Name.*
+  #     - Test_Range.Test_Name.1
+  #     - Test_Range.Test_Name.2
+  #     - Test_Range.Test_Name.3

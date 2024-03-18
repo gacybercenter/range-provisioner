@@ -2,19 +2,70 @@ image: python:3.9.1-alpine3.12
 
 stages:
   - lint
+  - unit-test
+  # - integration-test
 
 pylint:
   stage: lint
   tags:
     - docker-gcc
-  image: python:3.7-slim
+  image: python:3
   before_script:
     - pip install pylint_gitlab
-  script:
     - pip install -r requirements.txt
+  script:
     - pylint --exit-zero --output-format=text $(find ./src -type f -name "*.py") | tee /tmp/pylint.txt
     - pylint --exit-zero --output-format=pylint_gitlab.GitlabCodeClimateReporter $(find ./src -type f -name "*.py") > codeclimate.json
   artifacts:
+    when: always
     reports:
       codequality: codeclimate.json
+
+unittest-report:
+  stage: unit-test
+  tags:
+    - docker-gcc
+  image: python:3
+  before_script:
+    - python3 -m venv .venv
+    - . .venv/bin/activate
+    - pip install -r requirements.txt
+    - pip install -r requirements-dev.txt
+  script:
+    - pytest tests/unit --junitxml=report.xml 
+  artifacts:
     when: always
+    reports:
+      junit: report.xml
+
+unittest-coverage:
+  stage: unit-test
+  tags:
+    - docker-gcc
+  image: python:3
+  before_script:
+    - pip install -r requirements.txt
+    - pip install -r requirements-dev.txt
+  script:
+    - pytest --cov --cov-report term --cov-report xml:coverage.xml
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    when: always
+    reports:
+      junit: coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
+# integration-test:
+#   stage: integration-test
+#   tags:
+#     - docker-gcc
+#   image: python:3.7-slim
+#   script:
+#     - pip install -r requirements.txt
+#     - pytest
+#   artifacts:
+#     reports:
+#       codequality: codeclimate.json
+#     when: always

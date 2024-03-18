@@ -8,7 +8,6 @@ be processed.
 import yaml
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
-
 def update_env(conn: object,
                globals_dict: object,
                make_entries: bool = False,
@@ -163,6 +162,7 @@ def get_ids(conn: object,
     if not stack_names:
         general_msg("No stacks provided, fetching all stacks...")
         stacks = conn.orchestration.stacks(project_id=project_id)
+
         for stack in stacks:
             if conn.orchestration.find_stack(stack.name) is not None:
                 stack_names.append(stack.name)

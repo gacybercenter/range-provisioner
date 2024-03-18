@@ -81,6 +81,13 @@ def provision(conn: object,
                                                       'ROOT',
                                                       'group',
                                                       debug)
+    # Check if the group exists
+    if update and not guac_params['parent_group_id']:
+        error_msg(
+            f"Guacamole group '{guac_params['org_name']}' cannot be updated, it doesn't exist",
+            endpoint
+        )
+        return
     # Populate the guac_params for provision or reprovision
     if create or update:
         guac_params['protocol'] = heat_params['conn_proto']['default']
@@ -91,6 +98,12 @@ def provision(conn: object,
     guac_params['mapped_only'] = guacamole_globals['mapped_only']
     guac_params['recording'] = guacamole_globals['recording']
     guac_params['sharing'] = guacamole_globals['sharing']
+    guac_params['users'] = guacamole_globals.get(
+        'users', globals['user_name'] # For backward compatibility
+    )
+    guac_params['delay'] = guacamole_globals.get(
+        'delay', 0.5 # For backward compatibility
+    )
 
     # Format the users.yaml data into groups and users data
     if user_params:

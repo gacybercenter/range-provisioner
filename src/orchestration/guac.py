@@ -399,7 +399,7 @@ def create_conn(gconn: object,
             response = gconn.create_sharing_profile(parent_id,
                                                     conn_data['name'],
                                                     conn_data.get('parameters', {}))
-    time.sleep(0.1)
+    time.sleep(0.5)
 
     if not conn_id:
         conn_id = response.get('identifier')
@@ -508,7 +508,7 @@ def delete_conn(gconn: object,
             f"Deleted {conn_type} ID '{conn_id}'",
             endpoint
         )
-    time.sleep(0.1)
+    time.sleep(0.5)
 
 
 def remove_children(connections: list) -> list:
@@ -649,7 +649,7 @@ def create_user(gconn: object,
         general_msg(message,
                     endpoint)
 
-    time.sleep(0.1)
+    time.sleep(0.5)
 
     info_msg(user.get('attributes', {}),
              endpoint,
@@ -786,7 +786,7 @@ def update_user_conn(gconn: object,
     else:
         general_msg(f"{action} '{user}' {conn_type} permissions",
                     endpoint)
-    time.sleep(0.1)
+    time.sleep(0.5)
 
 
 def update_user_perms(gconn: object,
@@ -896,7 +896,7 @@ def update_user_perm(gconn: object,
     else:
         general_msg(f"{action} '{user}' system permissions {system_perms}",
                     endpoint)
-    time.sleep(0.1)
+    time.sleep(0.5)
 
 
 def delete_users(gconn: object,
@@ -955,7 +955,7 @@ def delete_user(gconn: object,
     else:
         general_msg(f"Deleted user account '{user}'",
                     endpoint)
-    time.sleep(0.1)
+    time.sleep(0.5)
 
 
 def get_conn_id(gconn: object,
@@ -1117,7 +1117,7 @@ def get_users(gconn: object,
 
     for user in users:
         user['permissions'] = gconn.detail_user_permissions(user['username'])
-        time.sleep(0.1)
+        time.sleep(0.5)
 
     general_msg("Retrieved current users accounts",
                 endpoint)
@@ -1190,7 +1190,7 @@ def remove_empty(obj: object) -> object:
 
 
 def detail_conns(gconn: object,
-                 obj: object) -> (object, dict):
+                 obj: object) -> object:
     """
     Recursively removes None and empty values from a dictionary or a list.
 
@@ -1198,7 +1198,7 @@ def detail_conns(gconn: object,
     obj (dict or list): The dictionary or list to remove None and empty values from.
 
     Returns:
-    (object, dict): The modified dictionary or list and the current_conns variable.
+    object: The modified dictionary or list and the current_conns variable.
     """
     if isinstance(obj, dict):
         if obj.get('childConnections'):
@@ -1224,7 +1224,7 @@ def detail_conns(gconn: object,
 
 
 def extract_connections(obj: dict,
-                        parent='ROOT') -> (list, dict):
+                        parent='ROOT') -> object:
     """
     Recursively walks through an object and extracts connection groups,
     connections, and sharing groups.
@@ -1233,7 +1233,7 @@ def extract_connections(obj: dict,
     obj (dict): The object to extract groups and connections from.
 
     Returns:
-    list: The extracted connection groups, connections, and sharing groups.
+    object: The extracted connection groups, connections, and sharing groups.
     """
 
     conns = []
@@ -1268,7 +1268,7 @@ def extract_connections(obj: dict,
 
 
 def get_id_difference(connection_ids: dict,
-                      current_connection_ids: dict) -> (dict, dict):
+                      current_connection_ids: dict) -> object:
     """
     Gets the difference between two connection ids.
 
@@ -1277,7 +1277,7 @@ def get_id_difference(connection_ids: dict,
         current_connection_ids (dict): The new connection ids.
 
     Returns:
-        (dict, dict): The added and removed connection ids.
+        object: The added and removed connection ids.
     """
 
     added_ids = {}
