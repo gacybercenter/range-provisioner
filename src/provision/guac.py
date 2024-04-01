@@ -90,9 +90,9 @@ def provision(conn: object,
         return
     # Populate the guac_params for provision or reprovision
     if create or update:
-        guac_params['protocol'] = heat_params['conn_proto']['default']
-        guac_params['username'] = heat_params['username']['default']
-        guac_params['password'] = heat_params['password']['default']
+        guac_params['protocol'] = guacamole_globals['protocol']
+        guac_params['username'] = guacamole_globals['username']
+        guac_params['password'] = guacamole_globals['password']
         guac_params['domain_name'] = guac.find_domain_name(heat_params,
                                                            debug)
     guac_params['mapped_only'] = guacamole_globals['mapped_only']
