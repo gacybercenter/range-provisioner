@@ -1,0 +1,56 @@
+groups:
+  playground:
+    count: 2
+    name: playground.%index%
+    attributes:
+      enable-session-affinity: ''
+      max-connections: '50'
+      max-connections-per-user: '10'
+    parentIdentifier: ROOT
+
+
+connections:
+  kali.1:
+    count: 2
+    name: kali.%index%
+    attributes:
+      sharing: read
+      recording: true
+    protocol: rdp
+    parameters:
+      hostname:
+      password: fak3int3rn3t
+      port: 3389
+      username: root
+    parentIdentifier: playground
+
+sharing_profiles:
+
+  kali.2:
+    count: 2
+    name: kali.%index%
+    attributes:
+      sharing: read
+      recording: true
+    protocol: rdp
+    parameters:
+      hostname:
+      password: fak3int3rn3t
+      port: 3389
+      username: root
+    parentIdentifier: playground
+
+
+users:
+  Alice:
+    password: password1
+    sharing: write
+    permissions:
+      - CREATE_USER
+      - CREATE_USER_GROUP
+      - CREATE_CONNECTION
+      - CREATE_CONNECTION_GROUP
+      - CREATE_SHARING_PROFILE
+      - ADMINISTER
+    connections:
+      - playground.1.kali
