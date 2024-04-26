@@ -4,11 +4,11 @@ Handles the logic for provisioning Heat
 import time
 from orchestration import heat
 from utils.msg_format import error_msg, info_msg, general_msg
-from utils.generate import generate_names
+from utils.generate import generate_names, set_provisioning_flags
 
 
 def provision(conn: object,
-              globals: dict,
+              globals_dict: dict,
               heat_globals: dict,
               heat_params: dict,
               sec_params: dict,
@@ -17,40 +17,17 @@ def provision(conn: object,
 
     endpoint = 'Heat'
 
-    # Set the create and update flags from the globals vars
-    if isinstance(globals['provision'], bool):
-        create = globals['provision']
-        update = heat_globals.get('update', False)
-        info_msg(f"Global provisioning is set to '{create}'",
-                 endpoint,
-                 debug)
+    create, update = set_provisioning_flags(globals_dict.get('provision'),
+                                            heat_globals.get('provision'),
+                                            heat_globals.get('update'),
+                                            endpoint,
+                                            debug)
 
-    # Set the create and update flags from the heat globals vars
-    elif (isinstance(heat_globals['provision'], bool) and
-          isinstance(heat_globals['update'], bool)):
-        create = heat_globals['provision']
-        update = heat_globals['update']
-
-        if not create and update:
-            error_msg(
-                f"Can't have provision: False, update: True in {endpoint} globals.yaml",
-                endpoint
-            )
-            return
-
-        info_msg(f"{endpoint} provisioning is set to '{create}'",
-                 endpoint,
-                 debug)
-        info_msg(f"{endpoint} update is set to '{update}'",
-                 endpoint,
-                 debug)
-
-    else:
-        error_msg(
-            f"Please check the {endpoint} provison and update parameters in globals.yaml",
-            endpoint
-        )
-        return
+    heat_params['container_name'] = globals_dict['organization']
+    heat_params['amount'] = globals_dict['amount']
+    stack_names = generate_names(heat_params['amount'],
+                                 heat_params['container_name'])
+    pause = heat_globals.get('pause', 0)
 
     # Format the parameters for Heat
     if heat_params:
@@ -83,12 +60,6 @@ def provision(conn: object,
             if 'default' in v
         }
 
-    heat_params['container_name'] = globals['range_name']
-    heat_params['instance_id'] = globals['user_name']
-    heat_params['count'] = globals['num_users']
-    stack_names = generate_names(globals['num_ranges'],
-                                 heat_params['container_name'])
-
     # Provision, deprovision, or reprovision
     if create:
         if sec_params:
@@ -100,7 +71,7 @@ def provision(conn: object,
                            True,
                            update,
                            debug)
-            time.sleep(heat_globals.get('pause', 0) * 60)
+            time.sleep(pause)
         else:
             general_msg("No security group parameters were provided",
                         endpoint)
@@ -113,7 +84,7 @@ def provision(conn: object,
                            last_stack,
                            update,
                            debug)
-            time.sleep(heat_globals.get('pause', 0) * 60)
+            time.sleep(pause)
     else:
         for name in stack_names:
             last_stack = name == stack_names[-1]
@@ -121,4 +92,4 @@ def provision(conn: object,
                              name,
                              last_stack,
                              debug)
-            time.sleep(heat_globals.get('pause', 0) * 60)
+            time.sleep(pause)

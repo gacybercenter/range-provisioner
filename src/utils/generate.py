@@ -322,13 +322,13 @@ def generate_groups(params: dict,
     return group_names
 
 
-def format_groups(user_params: dict,
+def format_groups(conn_params: dict,
                   debug=False) -> list:
     """
     Format the users.yaml data into a list of groups.
 
     Parameters:
-        user_params (dict): The users.yaml dictionary.
+        conn_params (dict): The users.yaml dictionary.
 
     Returns:
         list: The group names present in the users.yaml
@@ -337,7 +337,7 @@ def format_groups(user_params: dict,
     endpoint = 'Generate'
     groups = set()
 
-    for data in user_params.values():
+    for data in conn_params.values():
         instances = data.get('instances', [])
         for instance in instances:
             group = get_group_name(instance)
@@ -354,14 +354,14 @@ def format_groups(user_params: dict,
     return groups
 
 
-def format_users(user_params: dict,
+def format_users(conn_params: dict,
                  guac_params: dict,
                  debug=False) -> dict:
     """
     Format the users.yaml data into a dictionary of user objects.
 
     Parameters:
-        user_params (dict): The usrs.yaml dictionary.
+        conn_params (dict): The usrs.yaml dictionary.
 
     Returns:
         dict: The formated users dictionary.
@@ -375,7 +375,9 @@ def format_users(user_params: dict,
     ]
     users = {}
 
-    for username, data in user_params.items():
+    user_dict = conn_params.get('users', {})
+
+    for username, data in conn_params.items():
         sharing = guac_params.get('sharing')
         sharing = data.get('sharing', sharing)
         if sharing and sharing not in ['read', 'write']:
@@ -488,3 +490,122 @@ def expand_instances(instances: list,
                 endpoint
             )
             instances.remove(instance)
+
+def set_provisioning_flags(global_create: bool | None,
+                           local_create: bool,
+                           local_update: bool = False,
+                           endpoint: str = '',
+                           debug: bool = False) -> bool:
+    """
+    Sets provisioning and update flags based on global and local settings.
+    
+    If global_create is True, it sets the provision to global_create and update to local_update.
+    If global_create is False, it checks the local_create and local_update, and raises an error
+    if local_create is False and local_update is True.
+    Logs the provisioning and update status if debug is True.
+    
+    Args:
+        global_create (bool): The global flag indicating if provisioning should occur.
+        local_create (bool): The local flag indicating if provisioning should occur.
+        local_update (bool, optional): The local flag indicating if an update should occur. Defaults to False.
+        endpoint (str, optional): The endpoint name for logging purposes. Defaults to ''.
+        debug (bool, optional): A flag determining whether debug information should be printed. Defaults to False.
+    
+    Returns:
+        bool: True if the settings are valid, False otherwise with an error message logged.
+    """
+
+    # Set the create and update flags based on the provided arguments
+    create = local_create if global_create is None else global_create
+    update = local_update
+
+    # Log the provisioning and update status if debug is enabled
+    if debug:
+        info_msg(f"{endpoint} provisioning is set to '{create}'", endpoint, debug)
+        info_msg(f"{endpoint} update is set to '{update}'", endpoint, debug)
+
+    return create, update
+
+
+def get_conn_id(gconn: object,
+                conn_name: str,
+                parent_id: str,
+                conn_type: str = 'any',
+                debug: bool = False) -> str | None:
+    """
+    Retrieves the connection ID for a given connection name and group ID from Guacamole.
+
+    Args:
+        gconn (object): The Guacamole connection object.
+        conn_name (str): The name of the connection.
+        conn_group_id (str): The ID of the connection group.
+        conn_type (str, optional): The type of connection. Defaults to 'any'.
+            Can be 'any', 'group', 'connection', or 'sharing profile'.
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
+    Returns:
+        str: The connection ID. If the connection is not found, None is returned.
+
+    """
+
+    endpoint = 'Guacamole'
+
+    if conn_type not in ['any', 'group', 'connection', 'sharing profile']:
+        error_msg(f"Invalid connection type '{conn_type}'",
+                  endpoint)
+        return None
+
+    if conn_type in ['any', 'group']:
+        groups = gconn.list_connection_groups()
+        if not isinstance(groups, dict):
+            error_msg(groups,
+                      endpoint)
+            return None
+        for group in groups.values():
+            # Find the group with the given name and parent ID
+            if (group['parentIdentifier'] == parent_id and
+                    group['name'] == conn_name):
+                conn_id = group['identifier']
+                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
+                         endpoint,
+                         debug)
+                return conn_id
+
+    if conn_type in ['any', 'connection']:
+        conns = gconn.list_connections()
+        if not isinstance(conns, dict):
+            error_msg(conns,
+                      endpoint)
+            return None
+        for conn in conns.values():
+            # Find the connection with the given name and parent ID
+            if (conn['parentIdentifier'] == parent_id and
+                    conn['name'] == conn_name):
+                conn_id = conn['identifier']
+                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
+                         endpoint,
+                         debug)
+                return conn_id
+
+    if conn_type in ['any', 'sharing profile']:
+        sharings = gconn.list_sharing_profile()
+        if not isinstance(sharings, dict):
+            error_msg(sharings,
+                      endpoint)
+            return None
+        for sharing in sharings.values():
+            # Find the connection with the given name and parent ID
+            if (sharing['primaryConnectionIdentifier'] == parent_id and
+                    sharing['name'] == conn_name):
+                conn_id = sharing['identifier']
+                info_msg(f"Retrieved {conn_name}'s {conn_type} ID '{conn_id}'",
+                         endpoint,
+                         debug)
+                return conn_id
+
+    general_msg(
+        f"{conn_name} has no connection ID under '{parent_id}'",
+        endpoint
+    )
+
+    return None

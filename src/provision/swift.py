@@ -2,11 +2,12 @@
 Handles the logic for provisioning Swift
 """
 import orchestration.swift as swift
+from utils.generate import set_provisioning_flags
 from utils.msg_format import error_msg, info_msg
 
 
 def provision(conn: object,
-              globals: dict,
+              globals_dict: dict,
               swift_globals: dict,
               debug=False) -> None:
     """
@@ -24,42 +25,13 @@ def provision(conn: object,
 
     endpoint = 'Swift'
 
-    # Set the create and update flags from the globals vars
-    if isinstance(globals['provision'], bool):
-        create = globals['provision']
-        update = swift_globals.get('update', False)
-        info_msg(f"Global provisioning is set to '{create}'",
-                 endpoint,
-                 debug)
+    create, update = set_provisioning_flags(globals_dict.get('provision'),
+                                            swift_globals.get('provision'),
+                                            swift_globals.get('update'),
+                                            endpoint,
+                                            debug)
 
-    # Set the create and update flags from the swift globals vars
-    elif (isinstance(swift_globals['provision'], bool) and
-          isinstance(swift_globals['update'], bool)):
-        create = swift_globals['provision']
-        update = swift_globals['update']
-
-        if not create and update:
-            error_msg(
-                f"Can't have provision: False, update: True in {endpoint} globals.yaml",
-                endpoint
-            )
-            return
-
-        info_msg(f"{endpoint} provisioning is set to '{create}'",
-                 endpoint,
-                 debug)
-        info_msg(f"{endpoint} update is set to '{update}'",
-                 endpoint,
-                 debug)
-
-    else:
-        error_msg(
-            f"Please check the {endpoint} provison and update parameters in globals.yaml",
-            endpoint
-        )
-        return
-
-    range_name = globals['range_name']
+    range_name = globals_dict['range_name']
     directory = swift_globals['asset_dir']
 
     # Provision, deprovision, or reprovision

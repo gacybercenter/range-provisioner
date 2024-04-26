@@ -11,6 +11,8 @@ import time
 from orchestration.heat import get_ostack_instances
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
+from objects.connections import NewConnections
+from objects.users import NewUsers
 
 def provision(gconn: object,
               guac_params: dict,
@@ -34,34 +36,7 @@ def provision(gconn: object,
     general_msg("Provisioning Guacamole",
                 endpoint)
 
-    conns_to_create, conns_to_delete, current_conns = create_conn_data(guac_params,
-                                                                       update,
-                                                                       debug)
-
-    conn_ids = create_conns(gconn,
-                            conns_to_create,
-                            current_conns,
-                            update,
-                            debug)
-
-    if update:
-        delete_conns(gconn,
-                     conns_to_delete)
-
-    users_to_create, users_to_delete, current_users = create_user_data(guac_params,
-                                                                       conn_ids,
-                                                                       update,
-                                                                       debug)
-
-    create_users(gconn,
-                 users_to_create,
-                 current_users,
-                 update,
-                 debug)
-
-    if update:
-        delete_users(gconn,
-                     users_to_delete)
+    
 
     success_msg("Provisioned Guacamole",
                 endpoint)

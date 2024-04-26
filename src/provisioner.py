@@ -46,30 +46,25 @@ def main() -> None:
 
         start_time = time.time()
 
-        global_dict = load_template.load_global()
-        globals: Dict[str, Any] = global_dict['globals']
-        debug: bool = globals['debug']
-        swift_globals: Dict[str, Any] = global_dict['swift']
-        heat_globals: Dict[str, Any] = global_dict['heat']
-        guacamole_globals: Dict[str, Any] = global_dict['guacamole']
-        heat_params: Dict[str, Any] = load_template.load_heat(
-            heat_globals['template_dir'], debug
-        ).get('parameters')
-        sec_params: Dict[str, Any] = load_template.load_sec(
-            heat_globals['template_dir'], debug
-        ).get('parameters')
-        env_params: Dict[str, Any] = load_template.load_env(
-            heat_globals['template_dir'], debug
-        ).get('parameters')
-        user_params: Dict[str, Any] = load_template.load_users(
-            heat_globals['template_dir'], debug
-        ).get('parameters')
+        globals_vars = load_template.load_yaml_file("globals.yaml")
+        globals_dict: Dict[str, Any] = globals_vars['globals']
+        swift_globals: Dict[str, Any] = globals_vars['swift']
+        heat_globals: Dict[str, Any] = globals_vars['heat']
+        guacamole_globals: Dict[str, Any] = globals_vars['guacamole']
+        template_dir = heat_globals['template_dir']
+        user_dir = guacamole_globals['user_dir']
+        debug: bool = globals_dict['debug']
 
-        msg_format.info_msg(json.dumps(global_dict, indent=4), endpoint, debug)
+        heat_params = load_template.load_yaml_file("main.yaml", template_dir, debug).get('parameters')
+        sec_params = load_template.load_yaml_file("sec.yaml", template_dir, debug).get('parameters')
+        env_params = load_template.load_yaml_file("env.yaml", template_dir, debug).get('parameters')
+        conn_params = load_template.load_yaml_file("guac.yaml", user_dir, debug)
+
+        msg_format.info_msg(json.dumps(globals_vars, indent=4), endpoint, debug)
+        msg_format.info_msg(json.dumps(conn_params, indent=4), endpoint, debug)
         msg_format.info_msg(json.dumps(heat_params, indent=4), endpoint, debug)
         msg_format.info_msg(json.dumps(sec_params, indent=4), endpoint, debug)
         msg_format.info_msg(json.dumps(env_params, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(user_params, indent=4), endpoint, debug)
 
         clouds = load_template.load_template(
             'clouds.yaml', debug
@@ -77,7 +72,7 @@ def main() -> None:
 
         # Backwards compatibility
         if not heat_globals.get('cloud'):
-            heat_globals['cloud'] = globals['cloud']
+            heat_globals['cloud'] = globals_dict['cloud']
         if not guacamole_globals.get('cloud'):
             guacamole_globals['cloud'] = 'guac'
 
@@ -94,13 +89,13 @@ def main() -> None:
 
         if arg[0] == "swift":
             swift.provision(openstack_connect,
-                            globals,
+                            globals_dict,
                             swift_globals,
                             debug)
         elif arg[0] == "heat":
             if env_params:
                 manage_ids.update_env(openstack_connect,
-                                      global_dict,
+                                      globals_dict,
                                       True,
                                       debug)
                 heat_params, sec_params, env_params = manage_ids.update_ids(openstack_connect,
@@ -109,7 +104,7 @@ def main() -> None:
                                                                             False,
                                                                             debug)
             heat.provision(openstack_connect,
-                           globals, heat_globals,
+                           globals_dict, heat_globals,
                            heat_params,
                            sec_params,
                            debug)
@@ -126,10 +121,10 @@ def main() -> None:
                                                                  debug)
             guac.provision(openstack_connect,
                            guacamole_connect,
-                           globals,
+                           globals_dict,
                            guacamole_globals,
                            heat_params,
-                           user_params,
+                           conn_params,
                            debug)
         elif arg[0] == "full":
             try:
@@ -143,12 +138,12 @@ def main() -> None:
                                                                  guacamole_clouds,
                                                                  debug)
             swift.provision(openstack_connect,
-                            globals,
+                            globals_dict,
                             swift_globals,
                             debug)
             if env_params:
                 manage_ids.update_env(openstack_connect,
-                                      global_dict,
+                                      globals_dict,
                                       True,
                                       debug)
                 heat_params, sec_params, env_params = manage_ids.update_ids(openstack_connect,
@@ -157,17 +152,17 @@ def main() -> None:
                                                                             False,
                                                                             debug)
             heat.provision(openstack_connect,
-                           globals,
+                           globals_dict,
                            heat_globals,
                            heat_params,
                            sec_params,
                            debug)
             guac.provision(openstack_connect,
                            guacamole_connect,
-                           globals,
+                           globals_dict,
                            guacamole_globals,
                            heat_params,
-                           user_params,
+                           conn_params,
                            debug)
 
         end_time = time.time()

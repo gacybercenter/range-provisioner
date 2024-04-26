@@ -1,56 +1,68 @@
+stacks:
+  - playground
+
 groups:
   playground:
-    count: 2
-    name: playground.%index%
+    parent: ROOT
+    attributes:
+      max-connections: 200
+
+connectionTemplates:
+  playground.kali:
+    parent: playground
+    parameters:
+      username: kali
+      password: password
+    attributes:
+      guacd-hostname: guacd
+  win11:
+    parent: playground
+    attributes:
+      guacd-hostname: guacd
+
+users:
+  playground.user:
+    count: 3
+    username: playground.user.%index%
+    password: fak3int3rn3t
+    permissions:
+      connectionPermissions:
+        - kali.%index%
+        # - win11.%index%
+  testuser.pie:
+    username: testuser
+    password: apples
+    permissions:
+      connectionPermissions:
+        - win11
+
+defaults:
+  groups:
+    type: ORGANIZATIONAL
     attributes:
       enable-session-affinity: ''
       max-connections: '50'
       max-connections-per-user: '10'
-    parentIdentifier: ROOT
 
-
-connections:
-  kali.1:
-    count: 2
-    name: kali.%index%
-    attributes:
-      sharing: read
-      recording: true
+  connectionTemplates:
     protocol: rdp
     parameters:
-      hostname:
-      password: fak3int3rn3t
       port: 3389
+      password: fak3int3rn3t
       username: root
-    parentIdentifier: playground
+    sharingProfiles:
+      - parameters:
+          read-only: 'true'
 
-sharing_profiles:
-
-  kali.2:
-    count: 2
-    name: kali.%index%
+  users:
+    password: 'CHANGME'
     attributes:
-      sharing: read
-      recording: true
-    protocol: rdp
-    parameters:
-      hostname:
-      password: fak3int3rn3t
-      port: 3389
-      username: root
-    parentIdentifier: playground
-
-
-users:
-  Alice:
-    password: password1
-    sharing: write
+      guac-organization: cyber-range-testing
     permissions:
-      - CREATE_USER
-      - CREATE_USER_GROUP
-      - CREATE_CONNECTION
-      - CREATE_CONNECTION_GROUP
-      - CREATE_SHARING_PROFILE
-      - ADMINISTER
-    connections:
-      - playground.1.kali
+      systemPermissions:
+        - ADMINISTER
+        - CREATE_USER
+        - CREATE_USER_GROUP
+        - CREATE_CONNECTION
+        - CREATE_CONNECTION_GROUP
+        # - CREATE_SHARING_PROFILE

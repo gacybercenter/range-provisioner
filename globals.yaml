@@ -1,44 +1,24 @@
 #YAML for storing range provisioning parameters
 globals:
   debug: True # debug mode (True) or not (False)
-  num_users: 1 # number of user systems to provision
-  num_ranges: 1 # number of ranges to provision
-  user_name: Test_Name # user name prefix
-  range_name: Test_Range # range name prefix
-  org_name: Test_Org # name of organization
   artifacts: True # artifacts (True) or not (False)
+  organization: Test_Range # range name prefix
+  amount: 1 # number of ranges to provision
   provision: # provision range (True) or not (False)
 
 guacamole:
   provision: True # provision guacamole (True) or not (False)
   update: False # update guacamole users (True) or not (False)
   cloud: guac # name of cloud to use
-  username: test # name of guacamole connection
-  password: test # password of guacamole connection
-  protocol: rdp # protocol of guacamole connection (ssh or rdp)
-  mapped_only: True # only create connections for user mapped instances (True) or not (False)
-  recording: True # enable session recording (True) or not (False)
-  sharing: False # enable link sharing read (read), write (write) or not (False)
-  delay: 0.5 # pause between each guacamole action in seconds
-  users:
-    test_user:
-      password: kali
-      amount: 2
-    test_admin:
-      password: analyst
-      amount: 1
-      sharing: write
-      permissions:
-        - ADMINISTER
-      instances:
-        - Test_Range*
+  user_dir: templates # directory containing guacamole templates
+  pause: 2 # pause between each guacamole action in seconds TODO: make configurable
 
 heat:
   provision: True # provision heat (True) or not (False)
   update: True # update heat (True) or not (False)
   cloud: gcr # name of cloud to use
   template_dir: templates # directory containing heat templates
-  pause: 2 # pause between each heat stack action
+  pause: 60 # pause between each heat stack action in seconds
   parameters: # Update existing heat parameters
   - username: test
   - instructor_count: 2
@@ -46,4 +26,6 @@ heat:
 swift:
   provision: True # provision swift (True) or not (False)
   update: True # update swift (True) or not (False)
+  cloud: gcr # name of cloud to use
   asset_dir: assets # directory containing swift assets
+  pause: 2 # pause between each swift action in seconds TODO: make configurable
