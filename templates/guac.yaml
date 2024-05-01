@@ -31,7 +31,7 @@ users:
         # - win11.%index%
   testuser.pie:
     username: testuser
-    password: apples
+    # password: apples
     permissions:
       connectionPermissions:
         - win11
@@ -56,8 +56,8 @@ defaults:
 
   users:
     password: 'CHANGME'
-    attributes:
-      guac-organization: cyber-range-testing
+    attributes: {}
+      # guac-organization: cyber-range-testing
     permissions:
       systemPermissions:
         - ADMINISTER

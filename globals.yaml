@@ -11,7 +11,7 @@ guacamole:
   update: False # update guacamole users (True) or not (False)
   cloud: guac # name of cloud to use
   user_dir: templates # directory containing guacamole templates
-  pause: 2 # pause between each guacamole action in seconds TODO: make configurable
+  pause: 0.5 # pause between each guacamole action in seconds TODO: make configurable
 
 heat:
   provision: True # provision heat (True) or not (False)

@@ -7,6 +7,7 @@ from guacamole import session
 from openstack import connect, enable_logging
 from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 
+
 def openstack_connection(cloud: str,
                          openstack_clouds: dict,
                          debug: bool = False):
@@ -33,7 +34,6 @@ def openstack_connection(cloud: str,
         logging.getLogger("openstack").setLevel(logging.CRITICAL)
         logging.getLogger("keystoneauth").setLevel(logging.CRITICAL)
 
-
     # Connect to OpenStack
     general_msg(f"Connecting to OpenStack cloud '{cloud}'...",
                 endpoint)
@@ -42,8 +42,8 @@ def openstack_connection(cloud: str,
 
     if openstack_connect:
         info_msg(f"Endpoint: {openstack_clouds['auth']['auth_url']}",
-                    endpoint,
-                    debug)
+                 endpoint,
+                 debug)
         success_msg("Connected to OpenStack",
                     endpoint)
     else:
@@ -80,8 +80,8 @@ def guacamole_connection(cloud,
                                 guacamole_clouds['password'])
     if guacamole_connect:
         info_msg(f"Endpoint: {guacamole_clouds['host']}",
-                    endpoint,
-                    debug)
+                 endpoint,
+                 debug)
         success_msg("Connected to Guacamole",
                     endpoint)
     else:

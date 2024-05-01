@@ -123,7 +123,6 @@ def main() -> None:
                            guacamole_connect,
                            globals_dict,
                            guacamole_globals,
-                           heat_params,
                            conn_params,
                            debug)
         elif arg[0] == "full":
@@ -161,7 +160,6 @@ def main() -> None:
                            guacamole_connect,
                            globals_dict,
                            guacamole_globals,
-                           heat_params,
                            conn_params,
                            debug)
 

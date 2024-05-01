@@ -1,6 +1,7 @@
 """
 Connection Classes
 """
+from time import sleep
 from typing import Dict, Any, List
 import openstack.connection
 import guacamole
@@ -10,13 +11,14 @@ from utils import msg_format
 
 class Connection:
     """
-    Connection
+    Connection Template Object for Guacamole
 
     Args:
         gconn: Specific type of Connection object
         name: Name of the connection
         protocol: Protocol of the connection
         identifier: Identifier of the connection
+        debug: Debug mode
     """
 
     def __init__(self,
@@ -73,7 +75,7 @@ class Connection:
     def __repr__(self):
         return self.__str__()
 
-    def create(self):
+    def create(self, delay: float = 0):
         """
         Creates a connection
         """
@@ -85,23 +87,24 @@ class Connection:
         msg_format.general_msg(f"Creating {type(self).__name__} '{self.name}'",
                                "Guacamole")
 
-        # Create the connection
         response = self._create_connection()
 
         if isinstance(response, dict):
-            self.identifier = response.get('identifier')
+            self.identifier = response.get('identifier', self.identifier)
 
         msg_format.info_msg(response,
                             "Guacamole",
                             self.debug)
+        sleep(delay)
+
         return response
 
-    def delete(self):
+    def delete(self, delay: float = 0):
         """
         Deletes a connection
         """
         if not self.identifier:
-            msg_format.error_msg(f"Counld Not Delete'{self.name}', {type(self).__name__} Does Not Exists",
+            msg_format.error_msg(f"Counld Not Delete'{self.name}', {type(self).__name__} Does Not Exist",
                                  "Guacamole")
             return None
 
@@ -114,14 +117,16 @@ class Connection:
         msg_format.info_msg(response,
                             "Guacamole",
                             self.debug)
+        sleep(delay)
+
         return response
 
-    def update(self):
+    def update(self, delay: float = 0):
         """
         Updates a connection
         """
         if not self.identifier:
-            msg_format.error_msg(f"Counld Not Update'{self.name}', {type(self).__name__} Does Not Exists",
+            msg_format.error_msg(f"Counld Not Update'{self.name}', {type(self).__name__} Does Not Exist",
                                  "Guacamole")
             return None
 
@@ -135,6 +140,7 @@ class Connection:
             msg_format.info_msg(response,
                                 "Guacamole",
                                 self.debug)
+        sleep(delay)
 
         return response
 
@@ -158,7 +164,7 @@ class Connection:
 
     def detail(self):
         """
-        Returns a detailed version of the connection
+        Returns a detailed connection
         """
         raise NotImplementedError("Must be implemented in child class")
 
@@ -285,9 +291,9 @@ class ConnectionInstance(Connection):
         """
         Gets details of a connection
         """
-        gconn = self.gconn
-        self.parameters = gconn.detail_connection(
-            self.identifier, 'parameters')
+        self.parameters = self.gconn.detail_connection(
+            self.identifier, 'parameters'
+        )
         return self.parameters
 
 
@@ -344,9 +350,9 @@ class SharingProfile(Connection):
         """
         Gets details of a sharing profile
         """
-        gconn = self.gconn
-        self.parameters = gconn.detail_sharing_profile(
-            self.identifier, 'parameters')
+        self.parameters = self.gconn.detail_sharing_profile(
+            self.identifier, 'parameters'
+        )
         return self.parameters
 
 
@@ -582,12 +588,12 @@ class NewConnections():
 
         msg_format.general_msg(f"Generating New Connections under ID '{self.parent_identifier}'",
                                "Guacamole")
-        self.defaults = conn_data.get('defaults', {})
-        self.stacks = conn_data.get('stacks', conn_data['groups'].keys())
+        self.defaults = conn_data['defaults'] or {}
+        self.stacks = conn_data['stacks'] or list(conn_data['groups'].keys())
         self.addresses = HeatInstances(oconn, self.stacks, debug).addresses
 
-        group_defaults = self.defaults.get('groups', {})
-        conn_defaults = self.defaults.get('connectionTemplates', {})
+        group_defaults = self.defaults['groups'] or {}
+        conn_defaults = self.defaults['connectionTemplates'] or {}
 
         msg_format.general_msg("Generating New Connection Groups",
                                "Guacamole")
@@ -608,7 +614,7 @@ class NewConnections():
                     self._create_connection_instances(data, name, address)
                 )
 
-    def create(self):
+    def create(self, delay: float = 0):
         """
         Creates the Guacamole connections
         """
@@ -619,10 +625,20 @@ class NewConnections():
             if not conn.parent_identifier.isnumeric():
                 conn.parent_identifier = identifier_map.get(
                     conn.parent_identifier, 'ROOT')
-            conn.create()
+            conn.create(delay)
             identifier_map[conn.name] = conn.identifier
 
-    def update(self):
+    def delete(self, delay: float = 0):
+        """
+        Deletes the Guacamole connections
+        """
+        msg_format.general_msg("Deleting Connections",
+                               "Guacamole")
+        for conn in self.connections:
+            if conn.identifier:
+                conn.delete(delay)
+
+    def update(self, delay: float = 0):
         """
         Updates the Guacamole connections
         """
@@ -644,31 +660,25 @@ class NewConnections():
                                         "Guacamole",
                                         self.debug)
                     continue
-                conn.update()
+                conn.update(delay)
             else:
-                conn.create()
+                conn.create(delay)
             identifier_map[conn.name] = conn.identifier
 
         for conn in self.current_connections:
             if conn not in self.connections:
-                conn.delete()
-
-    def delete(self):
-        """
-        Deletes the Guacamole connections
-        """
-        msg_format.general_msg("Deleting Connections",
-                               "Guacamole")
-        for conn in self.connections:
-            if conn.identifier:
-                conn.delete()
+                conn.delete(delay)
 
     def _find_group_id(self, name: str) -> str:
         conn_groups = self.gconn.list_connection_groups()
-        print(conn_groups)
         for identifier, group in conn_groups.items():
             if group['name'] == name:
+                msg_format.info_msg(group,
+                                    "Guacamole",
+                                    self.debug)
                 return identifier
+        msg_format.error_msg(f"Counld Not Find Connection Group '{name}'",
+                             "Guacamole")
         return None
 
     def _create_connection_group(self,
@@ -695,12 +705,17 @@ class NewConnections():
                                      data: dict,
                                      name: str,
                                      address: str) -> List[ConnectionInstance]:
-        attributes = data.get('attributes', {})
-        parameters = data.get('parameters', {})
-        sharings = data.get('sharingProfiles', {})
-        param_copy = {**parameters, 'hostname': address}
-        attr_copy = {**attributes,
-                     'guacd-hostname': self._get_guacd_hostname(attributes)}
+        attributes = data['attributes'] or {}
+        parameters = data['parameters'] or {}
+        sharings = data['sharingProfiles'] or {}
+        param_copy = {
+            **parameters,
+            'hostname': address
+        }
+        attr_copy = {
+            **attributes,
+            'guacd-hostname': self._get_guacd_hostname(attributes)
+        }
         instance = ConnectionInstance(self.gconn,
                                       data.get('protocol', 'ssh'),
                                       data.get('name', name),

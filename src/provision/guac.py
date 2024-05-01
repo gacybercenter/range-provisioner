@@ -1,17 +1,16 @@
 """
-Guacamole provisioning script.
+Guacamole provisioning script
 Author: Marcus Corulli
-Date: 09/28/2023
-Version: 1.0
+Date: 5/1/2024
+Version: 2.0
 
 Description:
     Handles the logic for provisioning Guacamole
 """
-from orchestration import guac
-from utils.generate import set_provisioning_flags, get_conn_id
-from utils.msg_format import error_msg, info_msg
+from utils.generate import set_provisioning_flags
 from objects.users import NewUsers
 from objects.connections import NewConnections
+
 
 def provision(oconn: object,
               gconn: object,
@@ -23,11 +22,10 @@ def provision(oconn: object,
     Provisions or deprovisions Guacamole based on the given parameters.
 
     Args:
-        conn (object): The Heat connection object.
+        oconn (object): The Heat connection object.
         gconn (object): The Guacamole connection object.
         globals_dict (dict): The globals dictionary.
         guacamole_globals (dict): The Guacamole globals dictionary.
-        heat_params (dict): The Heat parameters.
         conn_params (dict): The User parameters.
         debug (bool): The debug flag.
 
@@ -43,19 +41,31 @@ def provision(oconn: object,
                                             endpoint,
                                             debug)
 
-    # Populate the guac_params
     organization = globals_dict['organization']
-
-    users = guacamole_globals['users']
-    pause = guacamole_globals['pause']
+    delay = guacamole_globals['pause']
 
     new_conns = NewConnections(gconn,
-                              oconn,
-                              conn_params,
-                              organization,
-                              debug)
+                               oconn,
+                               conn_params,
+                               organization,
+                               debug)
+
+    if update:
+        new_conns.update(delay)
+    elif create:
+        new_conns.create(delay)
+    else:
+        new_conns.delete(delay)
+
     new_users = NewUsers(gconn,
                          conn_params,
                          organization,
                          new_conns.connections,
                          debug)
+
+    if update:
+        new_users.update(delay)
+    elif create:
+        new_users.create(delay)
+    else:
+        new_users.delete(delay)

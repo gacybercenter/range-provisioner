@@ -520,9 +520,12 @@ def set_provisioning_flags(global_create: bool | None,
     update = local_update
 
     # Log the provisioning and update status if debug is enabled
-    if debug:
-        info_msg(f"{endpoint} provisioning is set to '{create}'", endpoint, debug)
-        info_msg(f"{endpoint} update is set to '{update}'", endpoint, debug)
+    info_msg(f"{endpoint} provisioning is set to '{create}'",
+             endpoint,
+             debug)
+    info_msg(f"{endpoint} update is set to '{update}'",
+             endpoint,
+             debug)
 
     return create, update
 
@@ -607,5 +610,4 @@ def get_conn_id(gconn: object,
         f"{conn_name} has no connection ID under '{parent_id}'",
         endpoint
     )
-
     return None
