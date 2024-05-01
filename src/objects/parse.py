@@ -4,7 +4,7 @@ Helper functions for parsing templates
 
 
 def expand_instances(data: dict,
-                     default: dict) -> list | dict:
+                     default: dict) -> list:
     """
     Recursively expands instances in dictionaries and lists
 
@@ -19,7 +19,7 @@ def expand_instances(data: dict,
     count = data.get('count')
 
     if not count:
-        return data
+        return [data]
 
     return_data = []
     for index in range(1, count + 1):

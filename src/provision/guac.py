@@ -50,12 +50,12 @@ def provision(oconn: object,
                                organization,
                                debug)
 
-    if update:
-        new_conns.update(delay)
-    elif create:
-        new_conns.create(delay)
-    else:
-        new_conns.delete(delay)
+    # if update:
+    #     new_conns.update(delay)
+    # elif create:
+    #     new_conns.create(delay)
+    # else:
+    #     new_conns.delete(delay)
 
     new_users = NewUsers(gconn,
                          conn_params,
@@ -63,9 +63,9 @@ def provision(oconn: object,
                          new_conns.connections,
                          debug)
 
-    if update:
-        new_users.update(delay)
-    elif create:
-        new_users.create(delay)
-    else:
-        new_users.delete(delay)
+    # if update:
+    #     new_users.update(delay)
+    # elif create:
+    #     new_users.create(delay)
+    # else:
+    #     new_users.delete(delay)

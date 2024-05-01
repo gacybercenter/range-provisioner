@@ -36,31 +36,11 @@ class User:
         self.username = username
         self.password = password if password else self._generate_password(16)
         self.attributes = self._clean_empty_values(attributes)
-        self.permissions = self._flatten_permissions(permissions)
-        self.permissions.setdefault('userPermissions', username)
+        self.permissions = self._flatten_permissions(
+            self._clean_empty_values(permissions)
+        )
+        self.permissions['userPermissions'] = [username]
         self.debug = debug
-
-    @staticmethod
-    def _clean_empty_values(d: Dict[str, str] | List[str]) -> Dict[str, Any]:
-        """
-        Removes None and empty values from a dictionary or a list,
-        and returns a deep sorted dictionary.
-        """
-        if not isinstance(d, (dict, list)):
-            return {}
-
-        if isinstance(d, list):
-            return sorted([
-                str(item)
-                for item in d
-                if item
-            ])
-
-        return {
-            str(key): str(value)
-            for key, value in sorted(d.items())
-            if value
-        }
 
     def __hash__(self):
         return hash(
@@ -95,6 +75,29 @@ class User:
         return ''.join(
             choice(alphabet) for _ in range(length)
         )
+
+    @staticmethod
+    def _clean_empty_values(d: Dict[str, Any] | List[str]) -> Dict[str, Any]:
+        """
+        Removes None and empty values from a dictionary or a list,
+        and returns a deep sorted dictionary.
+        """
+        if not isinstance(d, (dict, list)):
+            return {}
+
+        if isinstance(d, list):
+            return sorted([
+                str(item)
+                for item in d
+                if item
+            ])
+
+        sorted_items = sorted(d.items())
+        return {
+            str(key): value
+            for key, value in sorted_items
+            if value
+        }
 
     @staticmethod
     def _flatten_permissions(permissions: dict) -> dict:
@@ -254,8 +257,8 @@ class User:
         for category in categories:
             if category == 'userPermissions':
                 continue
-            new_perm_set = set(new_perms[category] or [])
-            old_perm_set = set(old_perms[category] or [])
+            new_perm_set = set(new_perms.get(category, []))
+            old_perm_set = set(old_perms.get(category, []))
             perms_changes['add'][category] = list(new_perm_set - old_perm_set)
             perms_changes['remove'][category] = list(
                 old_perm_set - new_perm_set)
@@ -337,17 +340,15 @@ class NewUsers():
 
         msg_format.general_msg("Generating New Users",
                                "Guacamole")
-        user_defaults = self.defaults['users'] or {}
+        user_defaults = self.defaults.get('users') or {}
         for name, data in guac_data['users'].items():
             data = expand_instances(user_defaults, data)
-            if not isinstance(data, list):
-                data = [data]
             for entry in data:
-                permissions = entry['permissions'] or {}
-                attributes = entry['attributes'] or {}
+                permissions = entry.get('permissions') or {}
+                attributes = entry.get('attributes') or {}
                 attributes['guac-organization'] = self.organization
 
-                conn_perms = permissions['connectionPermissions'] or []
+                conn_perms = permissions.get('connectionPermissions') or []
                 groups, conns, sharings = self._resolve_connections(conn_perms)
                 permissions['connectionGroupPermissions'] = groups
                 permissions['connectionPermissions'] = conns
@@ -396,12 +397,12 @@ class NewUsers():
             old_user = current_users_by_username.get(user.username)
             if old_user:
                 self.current_users.remove(old_user)
-                old_permissions = old_user.permissions
                 if old_user == user:
-                    msg_format.general_msg(f"No changes for {user.username}",
-                                           "Guacamole")
+                    msg_format.info_msg(f"No Changes For {type(self).__name__} '{user.username}'",
+                                           "Guacamole",
+                                           self.debug)
                     continue
-                user.update(old_permissions, delay)
+                user.update(old_user.permissions, delay)
             else:
                 user.create(delay)
         for user in self.current_users:

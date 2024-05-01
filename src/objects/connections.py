@@ -35,7 +35,7 @@ class Connection:
         self.debug = debug
 
     @staticmethod
-    def _clean_empty_values(d: Dict[str, str] | List[str]) -> Dict[str, Any]:
+    def _clean_empty_values(d: Dict[str, Any] | List[str]) -> Dict[str, Any]:
         """
         Removes None and empty values from a dictionary or a list,
         and returns a deep sorted dictionary.
@@ -50,9 +50,10 @@ class Connection:
                 if item
             ])
 
+        sorted_items = sorted(d.items())
         return {
-            str(key): str(value)
-            for key, value in sorted(d.items())
+            str(key): value
+            for key, value in sorted_items
             if value
         }
 
@@ -386,14 +387,14 @@ class HeatInstances:
         Find the stack by name
         """
         stack = self.oconn.orchestration.find_stack(stack_name)
-        if stack:
-            msg_format.info_msg(stack,
-                                "Heat",
-                                self.debug)
-        else:
-            msg_format.info_msg(f"Could Not Find Stack '{stack_name}'",
-                                "Heat",
-                                self.debug)
+        if not stack:
+            # msg_format.error_msg(f"Could Not Find Stack '{stack_name}'",
+            #                      "Heat")
+            raise Exception(f"Could Not Find Stack '{stack_name}'")
+
+        msg_format.info_msg(stack,
+                            "Heat",
+                            self.debug)
         return stack
 
     def get_servers_in_stack(self, stack=None):
@@ -572,7 +573,16 @@ class NewConnections():
         self.conn_data = conn_data
         self.debug = debug
 
-        parent = ConnectionGroup(gconn, parent_name, 'ROOT', debug=self.debug)
+        self.stacks = conn_data.get('stacks') or list(conn_data['groups'].keys())
+        self.addresses = HeatInstances(oconn, self.stacks, debug).addresses
+        parent = ConnectionGroup(gconn,
+                                 parent_name,
+                                 'ROOT',
+                                 attributes={
+                                     "max-connections": "50",
+                                     "max-connections-per-user": "10",
+                                 },
+                                 debug=self.debug)
         self.parent_identifier = self._find_group_id(parent_name)
         if not self.parent_identifier:
             parent.create()
@@ -588,31 +598,37 @@ class NewConnections():
 
         msg_format.general_msg(f"Generating New Connections under ID '{self.parent_identifier}'",
                                "Guacamole")
-        self.defaults = conn_data['defaults'] or {}
-        self.stacks = conn_data['stacks'] or list(conn_data['groups'].keys())
-        self.addresses = HeatInstances(oconn, self.stacks, debug).addresses
-
-        group_defaults = self.defaults['groups'] or {}
-        conn_defaults = self.defaults['connectionTemplates'] or {}
+        self.defaults = conn_data['defaults']
+        group_defaults = self.defaults.get('groups', {})
+        conn_defaults = self.defaults['connectionTemplates']
 
         msg_format.general_msg("Generating New Connection Groups",
                                "Guacamole")
         for name, data in conn_data['groups'].items():
             data = expand_instances(group_defaults, data)
-            self.connections.append(
-                self._create_connection_group(data, name)
-            )
+            for d in data:
+                self.connections.append(
+                    self._create_connection_group(d, name)
+                )
 
         msg_format.general_msg("Generating New Connections and Sharing Profiles",
                                "Guacamole")
         for template, data in conn_data['connectionTemplates'].items():
             data = expand_instances(conn_defaults, data)
-            for name, address in self.addresses.items():
-                if template not in name:
-                    continue
-                self.connections.extend(
-                    self._create_connection_instances(data, name, address)
-                )
+            for d in data:
+                pattern = d.get("pattern", template)
+                found = False
+                for name, address in self.addresses.items():
+                    if pattern in name:
+                        self.connections.extend(
+                            self._create_connection_instances(d, name, address)
+                        )
+                        found = True
+                if not found:
+                    msg_format.error_msg(
+                        f"Pattern '{pattern}' was not found in Heat instances",
+                        "Guacamole"
+                    )
 
     def create(self, delay: float = 0):
         """
@@ -653,7 +669,7 @@ class NewConnections():
                     conn.parent_identifier, 'ROOT'
                 )
             old_conn = connections_by_identifier.get(conn.identifier)
-            if old_conn:
+            if old_conn and old_conn in self.current_connections:
                 self.current_connections.remove(old_conn)
                 if old_conn == conn:
                     msg_format.info_msg(f"No Changes For {type(conn).__name__} '{conn.name}'",
@@ -705,9 +721,9 @@ class NewConnections():
                                      data: dict,
                                      name: str,
                                      address: str) -> List[ConnectionInstance]:
-        attributes = data['attributes'] or {}
-        parameters = data['parameters'] or {}
-        sharings = data['sharingProfiles'] or {}
+        attributes = data.get('attributes') or {}
+        parameters = data.get('parameters') or {}
+        sharings = data.get('sharingProfiles') or {}
         param_copy = {
             **parameters,
             'hostname': address

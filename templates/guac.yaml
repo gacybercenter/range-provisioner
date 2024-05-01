@@ -1,40 +1,171 @@
 stacks:
-  - playground
+  - persistent_fake_internet
 
 groups:
-  playground:
+  # MEX1:
+  #   parent: ROOT
+  # MEX2:
+  #   parent: ROOT
+  # MIA:
+  #   parent: ROOT
+  # BRB:
+  #   parent: ROOT
+  # COL:
+  #   parent: ROOT
+  # PER:
+  #   parent: ROOT
+  # ECU:
+  #   parent: ROOT
+  # CHL:
+  #   parent: ROOT
+  # White:
+  #   parent: ROOT
+  Red:
     parent: ROOT
-    attributes:
-      max-connections: 200
 
 connectionTemplates:
-  playground.kali:
-    parent: playground
+  # mex1.ent.soc:
+  #   parent: MEX1
+  #   count: 30
+  #   pattern: mex1.ent.soc.%index%
+  #   parameters:
+  #     username: soc.analyst%index%@mex1.south
+  # mex2.ent.soc:
+  #   parent: MEX2
+  #   count: 30
+  #   pattern: mex2.ent.soc.%index%
+  #   parameters:
+  #     username: soc.analyst%index%@mex2.south
+  # mia.ent.soc:
+  #   parent: MIA
+  #   count: 30
+  #   pattern: mia.ent.soc.%index%
+  #   parameters:
+  #     username: soc.analyst%index%@mia.south
+  # brb.ent.soc:
+  #   parent: BRB
+  #   count: 30
+  #   pattern: brb.ent.soc.%index%
+  #   parameters:
+  #     username: soc.analyst%index%@brb.south
+  # col.ent.soc:
+  #   parent: COL
+  #   count: 30
+  #   pattern: col.ent.soc.%index%
+  #   parameters:
+  #     username: soc.analyst%index%@col.south
+  # per.ent.soc:
+  #   parent: PER
+  #   count: 30
+  #   pattern: per.ent.soc.%index%
+  #   parameters:
+  #     username: soc.analyst%index%@per.south
+  # ecu.ent.soc:
+  #   parent: ECU
+  #   count: 30
+  #   pattern: ecu.ent.soc.%index%
+  #   parameters:
+  #     username: soc.analyst%index%@ecu.south
+  # chl.ent.soc:
+  #   parent: CHL
+  #   count: 30
+  #   pattern: chl.ent.soc.%index%
+  #   parameters:
+  #     username: soc.analyst%index%@chl.south
+  # whitecell.ent.soc:
+  #   parent: White
+  #   count: 15
+  #   pattern: whitecell.ent.soc.%index%
+  #   parameters:
+  #     username: soc.analyst%index%@whitecell.south
+  internet.red.kail:
+    parent: Red
+    count: 20
+    pattern: internet.red.kail.%index%
     parameters:
-      username: kali
-      password: password
-    attributes:
-      guacd-hostname: guacd
-  win11:
-    parent: playground
-    attributes:
-      guacd-hostname: guacd
+      username: redteam
+      password: r3dt3@m
+  internet.red.ubuntu:
+    parent: Red
+    count: 20
+    pattern: internet.red.ubuntu.%index%
+    parameters:
+      username: redteam
+      password: r3dt3@m
+
 
 users:
-  playground.user:
-    count: 3
-    username: playground.user.%index%
-    password: fak3int3rn3t
+  # MEX1_user:
+  #   count: 30
+  #   username: MEX1_user.%index%
+  #   # password: fak3int3rn3t
+  #   permissions:
+  #     connectionPermissions:
+  #       - mex1.ent.soc.%index%
+  # MEX2_user:
+  #   count: 30
+  #   username: MEX2_user.%index%
+  #   # password: fak3int3rn3t
+  #   permissions:
+  #     connectionPermissions:
+  #       - mex2.ent.soc.%index%
+  # MIA_user:
+  #   count: 30
+  #   username: MIA_user.%index%
+  #   # password: fak3int3rn3t
+  #   permissions:
+  #     connectionPermissions:
+  #       - mia.ent.soc.%index%
+  # BRB_user:
+  #   count: 30
+  #   username: BRB_user.%index%
+  #   # password: fak3int3rn3t
+  #   permissions:
+  #     connectionPermissions:
+  #       - brb.ent.soc.%index%
+  # COL_user:
+  #   count: 30
+  #   username: COL_user.%index%
+  #   # password: fak3int3rn3t
+  #   permissions:
+  #     connectionPermissions:
+  #       - col.ent.soc.%index%
+  # PER_user:
+  #   count: 30
+  #   username: PER_user.%index%
+  #   # password: fak3int3rn3t
+  #   permissions:
+  #     connectionPermissions:
+  #       - per.ent.soc.%index%
+  # ECU_user:
+  #   count: 30
+  #   username: ECU_user.%index%
+  #   # password: fak3int3rn3t
+  #   permissions:
+  #     connectionPermissions:
+  #       - ecu.ent.soc.%index%
+  # CHL_user:
+  #   count: 30
+  #   username: CHL_user.%index%
+  #   # password: fak3int3rn3t
+  #   permissions:
+  #     connectionPermissions:
+  #       - chl.ent.soc.%index%
+  # White_user:
+  #   count: 15
+  #   username: White_user.%index%
+  #   # password: fak3int3rn3t
+  #   permissions:
+  #     connectionPermissions:
+  #       - whitecell.ent.soc.%index%
+  Red_user:
+    count: 20
+    username: Red_user.%index%
+    # password: fak3int3rn3t
     permissions:
       connectionPermissions:
-        - kali.%index%
-        # - win11.%index%
-  testuser.pie:
-    username: testuser
-    # password: apples
-    permissions:
-      connectionPermissions:
-        - win11
+        - internet.red.kali.%index%
+        - internet.red.ubuntu.%index%
 
 defaults:
   groups:
@@ -48,21 +179,26 @@ defaults:
     protocol: rdp
     parameters:
       port: 3389
-      password: fak3int3rn3t
-      username: root
-    sharingProfiles:
-      - parameters:
-          read-only: 'true'
+      password: S0uthPAssw0rd
+      security: any
+      ignore-cert: 'true'
+    attributes:
+      guacd-hostname: guacd
+      max-connections: '1'
+      max-connections-per-user: '1'
+    # sharingProfiles:
+    #   - parameters:
+    #       read-only: 'true'
 
   users:
-    password: 'CHANGME'
+    # password: 'CHANGME'
     attributes: {}
       # guac-organization: cyber-range-testing
-    permissions:
-      systemPermissions:
-        - ADMINISTER
-        - CREATE_USER
-        - CREATE_USER_GROUP
-        - CREATE_CONNECTION
-        - CREATE_CONNECTION_GROUP
+    permissions: {}
+      # systemPermissions:
+        # - ADMINISTER
+        # - CREATE_USER
+        # - CREATE_USER_GROUP
+        # - CREATE_CONNECTION
+        # - CREATE_CONNECTION_GROUP
         # - CREATE_SHARING_PROFILE
