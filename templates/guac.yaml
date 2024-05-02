@@ -1,7 +1,7 @@
 stacks:
-  # - persistent_fake_internet
-  - southcom-whitecell
-    cloud: southcom
+  - persistent_fake_internet
+  # - southcom-whitecell
+
 
 groups:
   # MEX1:
@@ -20,10 +20,10 @@ groups:
   #   parent: ROOT
   # CHL:
   #   parent: ROOT
-  White:
-    parent: ROOT
-  # Red:
+  # White:
   #   parent: ROOT
+  Red:
+    parent: ROOT
 
 connectionTemplates:
   # mex1.ent.soc:
@@ -74,40 +74,40 @@ connectionTemplates:
   #   pattern: chl.ent.soc.%index%
   #   parameters:
   #     username: soc.analyst%index%
-  whitecell.ent.soc.analyst:
-    parent: White
-    protocol: rdp
-    count: 15
-    pattern: whitecell.ent.soc.%index%.analyst
-    parameters:
-      username: soc.analyst%index%
-      domain: whitecell.south
-  whitecell.ent.soc.ubuntu:
-    parent: White
-    protocol: ssh
-    count: 15
-    pattern: whitecell.ent.soc.%index%.ubuntu
-    parameters:
-      username: soc.analyst%index%
-      domain: whitecell.south
-      port: 22
-  # internet.red.kali:
-  #   parent: Red
+  # whitecell.ent.soc.analyst:
+  #   parent: White
   #   protocol: rdp
-  #   count: 20
-  #   pattern: internet.red.kali.%index%
+  #   count: 15
+  #   pattern: whitecell.ent.soc.%index%.analyst
   #   parameters:
-  #     username: redteam
-  #     password: r3dt3@m
-  # internet.red.ubuntu:
-  #   parent: Red
+  #     username: soc.analyst%index%
+  #     domain: whitecell.south
+  # whitecell.ent.soc.ubuntu:
+  #   parent: White
   #   protocol: ssh
-  #   count: 20
-  #   pattern: internet.red.ubuntu.%index%
+  #   count: 15
+  #   pattern: whitecell.ent.soc.%index%.ubuntu
   #   parameters:
-  #     username: redteam
-  #     password: r3dt3@m
+  #     username: soc.analyst%index%
+  #     domain: whitecell.south
   #     port: 22
+  internet.red.kali:
+    parent: Red
+    protocol: rdp
+    count: 20
+    pattern: internet.red.%index%.kali
+    parameters:
+      username: redteam
+      password: r3dt3@m
+  internet.red.ubuntu:
+    parent: Red
+    protocol: ssh
+    count: 20
+    pattern: internet.red.%index%.ubuntu
+    parameters:
+      username: redteam
+      password: r3dt3@m
+      port: 22
 
 
 users:
@@ -167,22 +167,22 @@ users:
   #   permissions:
   #     connectionPermissions:
   #       - chl.ent.soc.%index%
-  White_user:
-    count: 15
-    username: White_user.%index%
-    password: S0uthPAssw0rd
-    permissions:
-      connectionPermissions:
-        - whitecell.ent.soc.%index%.ubuntu
-        - whitecell.ent.soc.%index%.analyst
-  # Red_user:
-  #   count: 20
-  #   username: Red_user.%index%
-  #   password: r3dt3@m
+  # White_user:
+  #   count: 15
+  #   username: White_user.%index%
+  #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
-  #       - internet.red.%index%.kali
-  #       - internet.red.%index%.ubuntu
+  #       - whitecell.ent.soc.%index%.ubuntu
+  #       - whitecell.ent.soc.%index%.analyst
+  Red_user:
+    count: 20
+    username: Red_user.%index%
+    password: r3dt3@m
+    permissions:
+      connectionPermissions:
+        - internet.red.%index%.kali
+        - internet.red.%index%.ubuntu
 
 defaults:
   groups:
