@@ -699,8 +699,6 @@ class NewConnections():
                                         "Guacamole",
                                         self.debug)
                     continue
-                print(old_conn)
-                print(conn)
                 conn.update(delay)
             else:
                 conn.create(delay)
