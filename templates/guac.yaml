@@ -1,5 +1,7 @@
 stacks:
-  - persistent_fake_internet
+  # - persistent_fake_internet
+  - southcom-whitecell
+    cloud: southcom
 
 groups:
   # MEX1:
@@ -18,10 +20,10 @@ groups:
   #   parent: ROOT
   # CHL:
   #   parent: ROOT
-  # White:
-  #   parent: ROOT
-  Red:
+  White:
     parent: ROOT
+  # Red:
+  #   parent: ROOT
 
 connectionTemplates:
   # mex1.ent.soc:
@@ -71,101 +73,116 @@ connectionTemplates:
   #   count: 30
   #   pattern: chl.ent.soc.%index%
   #   parameters:
-  #     username: soc.analyst%index%@chl.south
-  # whitecell.ent.soc:
-  #   parent: White
-  #   count: 15
-  #   pattern: whitecell.ent.soc.%index%
+  #     username: soc.analyst%index%
+  whitecell.ent.soc.analyst:
+    parent: White
+    protocol: rdp
+    count: 15
+    pattern: whitecell.ent.soc.%index%.analyst
+    parameters:
+      username: soc.analyst%index%
+      domain: whitecell.south
+  whitecell.ent.soc.ubuntu:
+    parent: White
+    protocol: ssh
+    count: 15
+    pattern: whitecell.ent.soc.%index%.ubuntu
+    parameters:
+      username: soc.analyst%index%
+      domain: whitecell.south
+      port: 22
+  # internet.red.kali:
+  #   parent: Red
+  #   protocol: rdp
+  #   count: 20
+  #   pattern: internet.red.kali.%index%
   #   parameters:
-  #     username: soc.analyst%index%@whitecell.south
-  internet.red.kail:
-    parent: Red
-    count: 20
-    pattern: internet.red.kail.%index%
-    parameters:
-      username: redteam
-      password: r3dt3@m
-  internet.red.ubuntu:
-    parent: Red
-    count: 20
-    pattern: internet.red.ubuntu.%index%
-    parameters:
-      username: redteam
-      password: r3dt3@m
+  #     username: redteam
+  #     password: r3dt3@m
+  # internet.red.ubuntu:
+  #   parent: Red
+  #   protocol: ssh
+  #   count: 20
+  #   pattern: internet.red.ubuntu.%index%
+  #   parameters:
+  #     username: redteam
+  #     password: r3dt3@m
+  #     port: 22
 
 
 users:
   # MEX1_user:
   #   count: 30
   #   username: MEX1_user.%index%
-  #   # password: fak3int3rn3t
+  #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
   #       - mex1.ent.soc.%index%
   # MEX2_user:
   #   count: 30
   #   username: MEX2_user.%index%
-  #   # password: fak3int3rn3t
+  #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
   #       - mex2.ent.soc.%index%
   # MIA_user:
   #   count: 30
   #   username: MIA_user.%index%
-  #   # password: fak3int3rn3t
+  #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
   #       - mia.ent.soc.%index%
   # BRB_user:
   #   count: 30
   #   username: BRB_user.%index%
-  #   # password: fak3int3rn3t
+  #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
   #       - brb.ent.soc.%index%
   # COL_user:
   #   count: 30
   #   username: COL_user.%index%
-  #   # password: fak3int3rn3t
+  #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
   #       - col.ent.soc.%index%
   # PER_user:
   #   count: 30
   #   username: PER_user.%index%
-  #   # password: fak3int3rn3t
+  #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
   #       - per.ent.soc.%index%
   # ECU_user:
   #   count: 30
   #   username: ECU_user.%index%
-  #   # password: fak3int3rn3t
+  #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
   #       - ecu.ent.soc.%index%
   # CHL_user:
   #   count: 30
   #   username: CHL_user.%index%
-  #   # password: fak3int3rn3t
+  #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
   #       - chl.ent.soc.%index%
-  # White_user:
-  #   count: 15
-  #   username: White_user.%index%
-  #   # password: fak3int3rn3t
-  #   permissions:
-  #     connectionPermissions:
-  #       - whitecell.ent.soc.%index%
-  Red_user:
-    count: 20
-    username: Red_user.%index%
-    # password: fak3int3rn3t
+  White_user:
+    count: 15
+    username: White_user.%index%
+    password: S0uthPAssw0rd
     permissions:
       connectionPermissions:
-        - internet.red.kali.%index%
-        - internet.red.ubuntu.%index%
+        - whitecell.ent.soc.%index%.ubuntu
+        - whitecell.ent.soc.%index%.analyst
+  # Red_user:
+  #   count: 20
+  #   username: Red_user.%index%
+  #   password: r3dt3@m
+  #   permissions:
+  #     connectionPermissions:
+  #       - internet.red.%index%.kali
+  #       - internet.red.%index%.ubuntu
 
 defaults:
   groups:
