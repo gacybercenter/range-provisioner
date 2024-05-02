@@ -110,7 +110,11 @@ class User:
         flattened_permissions = {}
 
         for category, permission in permissions.items():
-            flattened_permissions[category] = sorted(permission)
+            flattened_permissions[category] = sorted([
+                perm
+                for perm in permission
+                if perm
+            ])
 
         return flattened_permissions
 
