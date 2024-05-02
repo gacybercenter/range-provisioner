@@ -7,6 +7,7 @@ Version: 2.0
 Description:
     Handles the logic for provisioning Guacamole
 """
+from utils import msg_format
 from utils.generate import set_provisioning_flags
 from objects.users import NewUsers
 from objects.connections import NewConnections
@@ -68,3 +69,12 @@ def provision(oconn: object,
         new_users.create(delay)
     else:
         new_users.delete(delay)
+
+    msg_format.success_msg(f"Provisioning {endpoint} Complete",
+                           endpoint)
+
+    msg_format.general_msg("Displaying User Artifacts",
+                           endpoint)
+    for user in new_users.users:
+        msg_format.general_msg(f"Username: {user.username}, Password: {user.password}",
+                               endpoint)
