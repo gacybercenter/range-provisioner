@@ -48,9 +48,26 @@ class User:
         )
 
     def __eq__(self, other):
-        if not isinstance(other, User):
+        if not isinstance(other, self.__class__):
             return False
-        return vars(self) == vars(other)
+
+        self_vars = self._get_sorted_vars()
+        other_vars = other._get_sorted_vars()
+
+        return self_vars == other_vars
+
+    def _get_sorted_vars(self):
+        sorted_vars = {}
+        for key, value in vars(self).items():
+            if isinstance(value, dict):
+                sorted_value = sorted(value.items())
+                sorted_vars[key] = sorted_value
+            elif isinstance(value, list):
+                sorted_value = sorted(value)
+                sorted_vars[key] = sorted_value
+            else:
+                sorted_vars[key] = value
+        return sorted_vars
 
     def __str__(self):
         class_name = type(self).__name__
@@ -86,16 +103,15 @@ class User:
             return {}
 
         if isinstance(d, list):
-            return sorted([
+            return [
                 str(item)
                 for item in d
                 if item
-            ])
+            ]
 
-        sorted_items = sorted(d.items())
         return {
             str(key): value
-            for key, value in sorted_items
+            for key, value in d.items()
             if value
         }
 
@@ -130,7 +146,7 @@ class User:
                             self.debug)
         sleep(delay)
         self.manage_permissions()
-        msg_format.general_msg(f"Created {self}",
+        msg_format.general_msg(f"Created {self.username}",
                                "Guacamole")
         sleep(delay)
 
@@ -160,7 +176,7 @@ class User:
                             self.debug)
         sleep(delay)
         self.manage_permissions(old_perms)
-        msg_format.general_msg(f"Updated {self}",
+        msg_format.general_msg(f"Updated {self.username}",
                                "Guacamole")
         sleep(delay)
 
@@ -336,7 +352,7 @@ class NewUsers():
         self.organization = organization
         self.connections: List[Connection] = connections or []
         self.users: List[User] = []
-        self.defaults = guac_data['defaults'] or {}
+        self.defaults = guac_data.get('defaults', {})
         self.debug = debug
         self.current_users = CurrentUsers(
             gconn, organization, debug=debug
@@ -385,7 +401,7 @@ class NewUsers():
         """
         msg_format.general_msg("Deleting Users",
                                "Guacamole")
-        for user in self.users:
+        for user in self.current_users:
             if user.password == '*':
                 user.delete(delay)
 

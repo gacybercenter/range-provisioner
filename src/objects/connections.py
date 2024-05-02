@@ -44,16 +44,15 @@ class Connection:
             return {}
 
         if isinstance(d, list):
-            return sorted([
+            return [
                 str(item)
                 for item in d
                 if item
-            ])
+            ]
 
-        sorted_items = sorted(d.items())
         return {
             str(key): value
-            for key, value in sorted_items
+            for key, value in d.items()
             if value
         }
 
@@ -63,7 +62,17 @@ class Connection:
         )
 
     def __eq__(self, other):
-        return vars(self) == vars(other)
+        if not isinstance(other, self.__class__):
+            return False
+
+        def deep_compare(d1, d2):
+            if isinstance(d1, dict) and isinstance(d2, dict):
+                if d1.keys() != d2.keys():
+                    return False
+                return all(deep_compare(d1[key], d2[key]) for key in d1)
+            return d1 == d2
+
+        return deep_compare(vars(self), vars(other))
 
     def __str__(self):
         class_name = type(self).__name__
@@ -82,6 +91,11 @@ class Connection:
         """
         if self.identifier:
             msg_format.error_msg(f"Counld Not Create'{self.name}', {type(self).__name__} Already Exists",
+                                 "Guacamole")
+            return None
+
+        if not self.parent_identifier:
+            msg_format.error_msg(f"Counld Not Create'{self.name}', {type(self).__name__} Parent Not Set",
                                  "Guacamole")
             return None
 
@@ -128,6 +142,11 @@ class Connection:
         """
         if not self.identifier:
             msg_format.error_msg(f"Counld Not Update'{self.name}', {type(self).__name__} Does Not Exist",
+                                 "Guacamole")
+            return None
+
+        if not self.parent_identifier:
+            msg_format.error_msg(f"Counld Not Update'{self.name}', {type(self).__name__} Parent Not Set",
                                  "Guacamole")
             return None
 
@@ -456,7 +475,7 @@ class CurrentConnections():
                  debug: bool = False):
 
         self.gconn = gconn
-        self.parent_identifier = parent_identifier if parent_identifier else 'ROOT'
+        self.parent_identifier = parent_identifier or 'ROOT'
         self.debug = debug
         if self.parent_identifier == 'ROOT':
             msg_format.general_msg("Getting All Current Connections, Parent DNE",
@@ -565,7 +584,6 @@ class NewConnections():
                  gconn: guacamole.session,
                  oconn: openstack.connect,
                  conn_data: dict,
-                 parent_name: str,
                  debug: bool = False):
 
         self.gconn = gconn
@@ -573,31 +591,19 @@ class NewConnections():
         self.conn_data = conn_data
         self.debug = debug
 
-        self.stacks = conn_data.get('stacks') or list(conn_data['groups'].keys())
+        self.stacks = conn_data.get('stacks') or list(
+            conn_data['groups'].keys())
         self.addresses = HeatInstances(oconn, self.stacks, debug).addresses
-        parent = ConnectionGroup(gconn,
-                                 parent_name,
-                                 'ROOT',
-                                 attributes={
-                                     "max-connections": "50",
-                                     "max-connections-per-user": "10",
-                                 },
-                                 debug=self.debug)
-        self.parent_identifier = self._find_group_id(parent_name)
-        if not self.parent_identifier:
-            parent.create()
-            self.parent_identifier = parent.identifier
-        else:
-            parent.identifier = self.parent_identifier
-            # parent.update()
+        self.parent_identifiers: List[str] = []
+        self.connections: List[Connection] = []
+        self.current_connections: List[Connection] = []
+        parent_ids = self._find_root_ids()
+        parent_id_map = {
+            parent: parent_ids.get(parent)
+            for parent, data in conn_data['groups'].items()
+            if data.get('parent') == 'ROOT'
+        }
 
-        self.current_connections = CurrentConnections(gconn,
-                                                      self.parent_identifier,
-                                                      debug=self.debug).connections
-        self.connections: List[Connection] = [parent]
-
-        msg_format.general_msg(f"Generating New Connections under ID '{self.parent_identifier}'",
-                               "Guacamole")
         self.defaults = conn_data['defaults']
         group_defaults = self.defaults.get('groups', {})
         conn_defaults = self.defaults['connectionTemplates']
@@ -605,6 +611,16 @@ class NewConnections():
         msg_format.general_msg("Generating New Connection Groups",
                                "Guacamole")
         for name, data in conn_data['groups'].items():
+            # Add current connections under parent
+            if data.get('parent') == 'ROOT':
+                identifier = parent_id_map.get(name)
+                if identifier:
+                    self.current_connections.extend(
+                        CurrentConnections(gconn,
+                                           identifier,
+                                           debug=self.debug).connections
+                    )
+                    self.parent_identifiers.append(identifier)
             data = expand_instances(group_defaults, data)
             for d in data:
                 self.connections.append(
@@ -630,6 +646,7 @@ class NewConnections():
                         "Guacamole"
                     )
 
+
     def create(self, delay: float = 0):
         """
         Creates the Guacamole connections
@@ -640,7 +657,8 @@ class NewConnections():
         for conn in self.connections:
             if not conn.parent_identifier.isnumeric():
                 conn.parent_identifier = identifier_map.get(
-                    conn.parent_identifier, 'ROOT')
+                    conn.parent_identifier, 'ROOT'
+                )
             conn.create(delay)
             identifier_map[conn.name] = conn.identifier
 
@@ -651,7 +669,7 @@ class NewConnections():
         msg_format.general_msg("Deleting Connections",
                                "Guacamole")
         for conn in self.connections:
-            if conn.identifier:
+            if conn.identifier in self.parent_identifiers:
                 conn.delete(delay)
 
     def update(self, delay: float = 0):
@@ -660,58 +678,56 @@ class NewConnections():
         """
         msg_format.general_msg("Updating Connections",
                                "Guacamole")
-        identifier_map = {}
-        connections_by_identifier = {
-            conn.identifier: conn for conn in self.current_connections}
+        conns_by_ids = {}
+        conn_map = {'ROOT': 'ROOT'}
+        for conn in self.current_connections:
+            conns_by_ids[conn.identifier] = conn
+            conn_map.setdefault(conn.name, conn.identifier)
+
         for conn in self.connections:
-            if not conn.parent_identifier:
-                conn.parent_identifier = identifier_map.get(
-                    conn.parent_identifier, 'ROOT'
-                )
-            old_conn = connections_by_identifier.get(conn.identifier)
-            if old_conn and old_conn in self.current_connections:
+            if conn.parent_identifier and not conn.parent_identifier.isnumeric():
+                conn.parent_identifier = conn_map.get(conn.parent_identifier)
+            if not conn.identifier:
+                conn.identifier = conn_map.get(conn.name)
+
+            old_identifier = conn_map.get(conn.name)
+            if old_identifier:
+                old_conn = conns_by_ids.get(old_identifier)
                 self.current_connections.remove(old_conn)
                 if old_conn == conn:
                     msg_format.info_msg(f"No Changes For {type(conn).__name__} '{conn.name}'",
                                         "Guacamole",
                                         self.debug)
                     continue
+                print(old_conn)
+                print(conn)
                 conn.update(delay)
             else:
                 conn.create(delay)
-            identifier_map[conn.name] = conn.identifier
+                conn_map[conn.name] = conn.identifier
 
         for conn in self.current_connections:
             if conn not in self.connections:
                 conn.delete(delay)
 
-    def _find_group_id(self, name: str) -> str:
+    def _find_root_ids(self) -> dict:
         conn_groups = self.gconn.list_connection_groups()
+        root_ids = {}
         for identifier, group in conn_groups.items():
-            if group['name'] == name:
-                msg_format.info_msg(group,
-                                    "Guacamole",
-                                    self.debug)
-                return identifier
-        msg_format.error_msg(f"Counld Not Find Connection Group '{name}'",
-                             "Guacamole")
-        return None
+            if group.get('parentIdentifier') == 'ROOT':
+                root_ids[group['name']] = identifier
+        return root_ids
 
     def _create_connection_group(self,
                                  data: dict,
                                  name: str) -> ConnectionGroup:
-        parent = data.get('parent')
-        if not parent or parent == 'ROOT':
-            parent = self.parent_identifier
-
         group = ConnectionGroup(self.gconn,
                                 data.get('name', name),
-                                parent,
+                                data.get('parent'),
                                 data.get('type', 'ORGANIZATIONAL'),
                                 data.get('attributes'),
                                 None,
                                 debug=self.debug)
-        self._update_identifiers(group)
         msg_format.info_msg(group,
                             "Guacamole",
                             self.debug)
@@ -739,7 +755,6 @@ class NewConnections():
                                       param_copy,
                                       attr_copy,
                                       debug=self.debug)
-        self._update_identifiers(instance)
         msg_format.info_msg(instance,
                             "Guacamole",
                             self.debug)
@@ -775,18 +790,9 @@ class NewConnections():
                                      name,
                                      sharing.get('parameters'),
                                      debug=self.debug)
-            self._update_identifiers(profile)
             msg_format.info_msg(profile,
                                 "Guacamole",
                                 self.debug)
             sharing_profiles.append(profile)
 
         return sharing_profiles
-
-    def _update_identifiers(self, new_conn) -> None:
-        for old_conn in self.current_connections:
-            if new_conn.parent_identifier == old_conn.name:
-                new_conn.parent_identifier = old_conn.identifier
-            if (new_conn.name == old_conn.name and
-                    new_conn.parent_identifier == old_conn.parent_identifier):
-                new_conn.identifier = old_conn.identifier
