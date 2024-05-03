@@ -51,23 +51,7 @@ class User:
         if not isinstance(other, self.__class__):
             return False
 
-        self_vars = self._get_sorted_vars()
-        other_vars = other._get_sorted_vars()
-
-        return self_vars == other_vars
-
-    def _get_sorted_vars(self):
-        sorted_vars = {}
-        for key, value in vars(self).items():
-            if isinstance(value, dict):
-                sorted_value = sorted(value.items())
-                sorted_vars[key] = sorted_value
-            elif isinstance(value, list):
-                sorted_value = sorted(value)
-                sorted_vars[key] = sorted_value
-            else:
-                sorted_vars[key] = value
-        return sorted_vars
+        return vars(self) == vars(other)
 
     def __str__(self):
         class_name = type(self).__name__
@@ -97,23 +81,25 @@ class User:
     def _clean_empty_values(d: Dict[str, Any] | List[str]) -> Dict[str, Any]:
         """
         Removes None and empty values from a dictionary or a list,
-        and returns a deep sorted dictionary.
+        and returns a sorted object.
         """
         if not isinstance(d, (dict, list)):
             return {}
 
         if isinstance(d, list):
-            return [
+            return sorted([
                 str(item)
                 for item in d
                 if item
-            ]
+            ])
 
-        return {
-            str(key): value
-            for key, value in d.items()
-            if value
-        }
+        return_dict = {}
+        for key, value in sorted(d.items()):
+            if value:
+                value = str(value) if isinstance(value, int) else value
+                return_dict[str(key)] = value
+
+        return return_dict
 
     @staticmethod
     def _flatten_permissions(permissions: dict) -> dict:
