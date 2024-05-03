@@ -38,23 +38,25 @@ class Connection:
     def _clean_empty_values(d: Dict[str, Any] | List[str]) -> Dict[str, Any]:
         """
         Removes None and empty values from a dictionary or a list,
-        and returns a deep sorted dictionary.
+        and returns a sorted object.
         """
         if not isinstance(d, (dict, list)):
             return {}
 
         if isinstance(d, list):
-            return [
+            return sorted([
                 str(item)
                 for item in d
                 if item
-            ]
+            ])
 
-        return {
-            str(key): value
-            for key, value in d.items()
-            if value
-        }
+        return_dict = {}
+        for key, value in sorted(d.items()):
+            if value:
+                value = str(value) if isinstance(value, int) else value
+                return_dict[str(key)] = value
+
+        return return_dict
 
     def __hash__(self):
         return hash(
@@ -65,14 +67,7 @@ class Connection:
         if not isinstance(other, self.__class__):
             return False
 
-        def deep_compare(d1, d2):
-            if isinstance(d1, dict) and isinstance(d2, dict):
-                if d1.keys() != d2.keys():
-                    return False
-                return all(deep_compare(d1[key], d2[key]) for key in d1)
-            return d1 == d2
-
-        return deep_compare(vars(self), vars(other))
+        return vars(self) == vars(other)
 
     def __str__(self):
         class_name = type(self).__name__
@@ -90,17 +85,23 @@ class Connection:
         Creates a connection
         """
         if self.identifier:
-            msg_format.error_msg(f"Counld Not Create'{self.name}', {type(self).__name__} Already Exists",
-                                 "Guacamole")
+            msg_format.error_msg(
+                f"Counld Not Create'{self.name}', {type(self).__name__} Already Exists",
+                "Guacamole"
+            )
             return None
 
         if not self.parent_identifier:
-            msg_format.error_msg(f"Counld Not Create'{self.name}', {type(self).__name__} Parent Not Set",
-                                 "Guacamole")
+            msg_format.error_msg(
+                f"Counld Not Create'{self.name}', {type(self).__name__} Parent Not Set",
+                "Guacamole"
+            )
             return None
 
-        msg_format.general_msg(f"Creating {type(self).__name__} '{self.name}'",
-                               "Guacamole")
+        msg_format.general_msg(
+            f"Creating {type(self).__name__} '{self.name}' Under '{self.parent_identifier}'",
+            "Guacamole"
+        )
 
         response = self._create_connection()
 
@@ -119,12 +120,16 @@ class Connection:
         Deletes a connection
         """
         if not self.identifier:
-            msg_format.error_msg(f"Counld Not Delete'{self.name}', {type(self).__name__} Does Not Exist",
-                                 "Guacamole")
+            msg_format.error_msg(
+                f"Counld Not Delete'{self.name}', {type(self).__name__} Does Not Exist",
+                "Guacamole"
+            )
             return None
 
-        msg_format.general_msg(f"Deleting {type(self).__name__} '{self.name}'",
-                               "Guacamole")
+        msg_format.general_msg(
+            f"Deleting {type(self).__name__} '{self.name}'",
+            "Guacamole"
+        )
 
         # Delete the connection
         response = self._delete_connection()
@@ -141,17 +146,23 @@ class Connection:
         Updates a connection
         """
         if not self.identifier:
-            msg_format.error_msg(f"Counld Not Update'{self.name}', {type(self).__name__} Does Not Exist",
-                                 "Guacamole")
+            msg_format.error_msg(
+                f"Counld Not Update'{self.name}', {type(self).__name__} Does Not Exist",
+                "Guacamole"
+            )
             return None
 
         if not self.parent_identifier:
-            msg_format.error_msg(f"Counld Not Update'{self.name}', {type(self).__name__} Parent Not Set",
-                                 "Guacamole")
+            msg_format.error_msg(
+                f"Counld Not Update'{self.name}', {type(self).__name__} Parent Not Set",
+                "Guacamole"
+            )
             return None
 
-        msg_format.general_msg(f"Updating {type(self).__name__} '{self.name}'",
-                               "Guacamole")
+        msg_format.general_msg(
+            f"Updating {type(self).__name__} '{self.name}' Under '{self.parent_identifier}'",
+            "Guacamole"
+        )
 
         # Update the connection
         response = self._update_connection()
@@ -274,10 +285,8 @@ class ConnectionInstance(Connection):
         super().__init__(gconn, name, parent_identifier, identifier, debug)
 
         self.protocol = protocol
-        self.attributes = self.attributes = self._clean_empty_values(
-            attributes)
-        self.parameters = self.parameters = self._clean_empty_values(
-            parameters)
+        self.attributes = self._clean_empty_values(attributes)
+        self.parameters = self._clean_empty_values(parameters)
 
     def _create_connection(self):
         """
@@ -605,47 +614,9 @@ class NewConnections():
         }
 
         self.defaults = conn_data['defaults']
-        group_defaults = self.defaults.get('groups', {})
-        conn_defaults = self.defaults['connectionTemplates']
 
-        msg_format.general_msg("Generating New Connection Groups",
-                               "Guacamole")
-        for name, data in conn_data['groups'].items():
-            # Add current connections under parent
-            if data.get('parent') == 'ROOT':
-                identifier = parent_id_map.get(name)
-                if identifier:
-                    self.current_connections.extend(
-                        CurrentConnections(gconn,
-                                           identifier,
-                                           debug=self.debug).connections
-                    )
-                    self.parent_identifiers.append(identifier)
-            data = expand_instances(group_defaults, data)
-            for d in data:
-                self.connections.append(
-                    self._create_connection_group(d, name)
-                )
-
-        msg_format.general_msg("Generating New Connections and Sharing Profiles",
-                               "Guacamole")
-        for template, data in conn_data['connectionTemplates'].items():
-            data = expand_instances(conn_defaults, data)
-            for d in data:
-                pattern = d.get("pattern", template)
-                found = False
-                for name, address in self.addresses.items():
-                    if pattern in name:
-                        self.connections.extend(
-                            self._create_connection_instances(d, name, address)
-                        )
-                        found = True
-                if not found:
-                    msg_format.error_msg(
-                        f"Pattern '{pattern}' was not found in Heat instances",
-                        "Guacamole"
-                    )
-
+        self._create_connection_groups(conn_data, parent_id_map)
+        self._create_connections(conn_data)
 
     def create(self, delay: float = 0):
         """
@@ -715,6 +686,53 @@ class NewConnections():
             if group.get('parentIdentifier') == 'ROOT':
                 root_ids[group['name']] = identifier
         return root_ids
+
+    def _create_connection_groups(self,
+                                  conn_data: dict,
+                                  parent_id_map: dict) -> None:
+        msg_format.general_msg("Generating New Connection Groups",
+                               "Guacamole")
+        for name, data in conn_data['groups'].items():
+            # Add current connections under parent
+            if data.get('parent') == 'ROOT':
+                identifier = parent_id_map.get(name)
+                if identifier:
+                    self.current_connections.extend(
+                        CurrentConnections(self.gconn,
+                                           identifier,
+                                           debug=self.debug).connections
+                    )
+                    self.parent_identifiers.append(identifier)
+            data = expand_instances(
+                self.defaults.get('groups', {}), data
+            )
+            for d in data:
+                self.connections.append(
+                    self._create_connection_group(d, name)
+                )
+
+    def _create_connections(self,
+                            conn_data: dict) -> None:
+        msg_format.general_msg("Generating New Connections and Sharing Profiles",
+                               "Guacamole")
+        for template, data in conn_data['connectionTemplates'].items():
+            data = expand_instances(
+                self.defaults.get('connectionTemplates', {}), data
+            )
+            for d in data:
+                pattern = d.get("pattern", template)
+                found = False
+                for name, address in self.addresses.items():
+                    if pattern in name:
+                        self.connections.extend(
+                            self._create_connection_instances(d, name, address)
+                        )
+                        found = True
+                if not found:
+                    msg_format.error_msg(
+                        f"Pattern '{pattern}' was not found in Heat instances",
+                        "Guacamole"
+                    )
 
     def _create_connection_group(self,
                                  data: dict,
