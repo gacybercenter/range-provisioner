@@ -53,13 +53,14 @@ def openstack_connection(cloud: str,
     return openstack_connect
 
 
-def guacamole_connection(cloud,
-                         guacamole_clouds,
-                         debug):
+def guacamole_connection(cloud: str,
+                         guacamole_clouds: dict,
+                         debug: bool = False):
     """
     A function to establish a connection with the Guacamole service.
 
     Args:
+        cloud (str): The name of the Guacamole cloud to connect to.
         guacamole_clouds (dict): A dictionary containing the information needed
         to connect to the Guacamole service.
         debug (bool): A flag indicating whether debug logging should be enabled.
