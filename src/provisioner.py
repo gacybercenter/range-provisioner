@@ -77,11 +77,9 @@ def main() -> None:
             guacamole_globals['cloud'] = 'guac'
 
         try:
-            openstack_clouds: Dict[str, Any] = clouds[f"{heat_globals['cloud']}"]
-        except KeyError:
-            msg_format.error_msg(f"Cloud '{heat_globals['cloud']}' not found in clouds.yaml",
-                                 endpoint)
-            sys.exit(1)
+            openstack_clouds: Dict[str, Any] = clouds[heat_globals['cloud']]
+        except KeyError as err:
+            raise KeyError(f"Cloud '{heat_globals['cloud']}' not found in clouds.yaml") from err
 
         openstack_connect = connections.openstack_connection(heat_globals['cloud'],
                                                              openstack_clouds,
@@ -110,11 +108,9 @@ def main() -> None:
                            debug)
         elif arg[0] == "guacamole":
             try:
-                guacamole_clouds: Dict[str, Any] = clouds[f"{guacamole_globals['cloud']}"]
-            except KeyError:
-                msg_format.error_msg(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml",
-                                    endpoint)
-                sys.exit(1)
+                guacamole_clouds: Dict[str, Any] = clouds[guacamole_globals['cloud']]
+            except KeyError as err:
+                raise KeyError(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
 
             guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
                                                                  guacamole_clouds,
@@ -127,11 +123,9 @@ def main() -> None:
                            debug)
         elif arg[0] == "full":
             try:
-                guacamole_clouds: Dict[str, Any] = clouds[f"{guacamole_globals['cloud']}"]
-            except KeyError:
-                msg_format.error_msg(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml",
-                                    endpoint)
-                sys.exit(1)
+                guacamole_clouds: Dict[str, Any] = clouds[guacamole_globals['cloud']]
+            except KeyError as err:
+                raise KeyError(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
 
             guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
                                                                  guacamole_clouds,
@@ -168,7 +162,7 @@ def main() -> None:
                                endpoint)
 
     except Exception as error:
-        msg_format.error_msg(f"Error: {error}.\n\n {traceback.format_exc()}",
+        msg_format.error_msg(f"{error}\n\n {traceback.format_exc()}",
                              endpoint)
         sys.exit(1)
 
