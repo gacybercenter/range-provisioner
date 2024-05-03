@@ -2,6 +2,8 @@
 Helper functions for parsing templates
 """
 
+import re
+
 
 def expand_instances(data: dict,
                      default: dict) -> list:
@@ -23,7 +25,7 @@ def expand_instances(data: dict,
 
     return_data = []
     for index in range(1, count + 1):
-        copy = replace_recursively(data, str(index))
+        copy = replace_recursively(data, index)
         return_data.append(copy)
 
     return return_data
@@ -55,28 +57,34 @@ def recursive_update(d: dict,
     return copy
 
 
-def replace_recursively(data: dict,
-                        repl: str,
-                        match: str = '%index%') -> dict:
+def replace_recursively(data: dict, index: int, match: str = '%index%') -> dict:
     """
-    Recursively replaces occurrences of a match string in strings within the input data with the specified replacement string.
-    This function ensures that the match string is replaced only in strings and retains the original structure of dictionaries
-    and lists, handling nested structures as well. The original input data is not modified.
+    Recursively replaces occurrences of a match string followed by an optional
+    + or - and a number in strings within the input data with the index adjusted by the specified number.
+    This function ensures that matching expressions are replaced only in strings and retains the original
+    structure of dictionaries and lists, handling nested structures as well. The original input data is not modified.
 
     Args:
         data: The input data, which could be a dictionary, list, string, or any other type.
-        repl: The replacement value to use in place of the match string.
+        index: The index value to use for replacement.
         match: The string to match for replacement (default is '%index%').
 
     Returns:
-        A new data structure with the match string replaced by the actual replacement value within strings.
+        A new data structure with matching expressions replaced by the actual index value adjusted within strings.
     """
     if isinstance(data, dict):
-        return {k: replace_recursively(v, repl, match) for k, v in data.items()}
+        return {k: replace_recursively(v, index, match) for k, v in data.items()}
     elif isinstance(data, list):
-        return [replace_recursively(item, repl, match) for item in data]
+        return [replace_recursively(item, index, match) for item in data]
     elif isinstance(data, str):
-        return data.replace(match, repl)
+        def replace_match(match_obj):
+            operator = match_obj.group(2)
+            number = int(match_obj.group(3)) if match_obj.group(3) else 0
+            new_index = index + number if operator == '+' else index - number if operator == '-' else index
+            return str(new_index)
+
+        pattern = re.compile(fr"({re.escape(match)})([+-])?(\d+)?")
+        return pattern.sub(replace_match, data)
     else:
         return data
 
