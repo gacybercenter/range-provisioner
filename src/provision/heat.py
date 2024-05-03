@@ -23,10 +23,8 @@ def provision(conn: object,
                                             endpoint,
                                             debug)
 
-    heat_params['container_name'] = globals_dict['organization']
-    heat_params['amount'] = globals_dict['amount']
-    stack_names = generate_names(heat_params['amount'],
-                                 heat_params['container_name'])
+    stack_names = generate_names(globals_dict['amount'],
+                                 globals_dict['organization'])
     pause = heat_globals.get('pause', 0)
 
     # Format the parameters for Heat
