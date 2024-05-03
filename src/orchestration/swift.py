@@ -23,7 +23,7 @@ def provision(conn: object,
 
     if container:
         access(conn,
-                container,
+                container_name,
                 debug)
         upload_objs(conn,
                     container_name,
