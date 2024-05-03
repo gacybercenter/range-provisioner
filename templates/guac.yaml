@@ -1,79 +1,180 @@
 stacks:
-  - persistent_fake_internet
-  # - southcom-whitecell
+  # - persistent_fake_internet
+  - southcom-whitecell
+  # - southcom-mex1
+  # - southcom-mex2
+  # - southcom-mia
+  # - southcom-brb
+  # - southcom-col
+  # - southcom-per
+  # - southcom-ecu
+  # - southcom-chl
+
 
 
 groups:
+  # southcom:
+  #   parent: ROOT
   # MEX1:
-  #   parent: ROOT
+  #   parent: southcom
   # MEX2:
-  #   parent: ROOT
+  #   parent: southcom
   # MIA:
-  #   parent: ROOT
+  #   parent: southcom
   # BRB:
-  #   parent: ROOT
+  #   parent: southcom
   # COL:
-  #   parent: ROOT
+  #   parent: southcom
   # PER:
-  #   parent: ROOT
+  #   parent: southcom
   # ECU:
-  #   parent: ROOT
+  #   parent: southcom
   # CHL:
-  #   parent: ROOT
+  #   parent: southcom
   # White:
+  #   parent: southcom
+  # southcom-red:
   #   parent: ROOT
-  Red:
-    parent: ROOT
+  # Red:
+  #   parent: southcom-red
 
 connectionTemplates:
-  # mex1.ent.soc:
+  # mex1.ent.soc.analyst:
   #   parent: MEX1
-  #   count: 30
-  #   pattern: mex1.ent.soc.%index%
-  #   parameters:
-  #     username: soc.analyst%index%@mex1.south
-  # mex2.ent.soc:
-  #   parent: MEX2
-  #   count: 30
-  #   pattern: mex2.ent.soc.%index%
-  #   parameters:
-  #     username: soc.analyst%index%@mex2.south
-  # mia.ent.soc:
-  #   parent: MIA
-  #   count: 30
-  #   pattern: mia.ent.soc.%index%
-  #   parameters:
-  #     username: soc.analyst%index%@mia.south
-  # brb.ent.soc:
-  #   parent: BRB
-  #   count: 30
-  #   pattern: brb.ent.soc.%index%
-  #   parameters:
-  #     username: soc.analyst%index%@brb.south
-  # col.ent.soc:
-  #   parent: COL
-  #   count: 30
-  #   pattern: col.ent.soc.%index%
-  #   parameters:
-  #     username: soc.analyst%index%@col.south
-  # per.ent.soc:
-  #   parent: PER
-  #   count: 30
-  #   pattern: per.ent.soc.%index%
-  #   parameters:
-  #     username: soc.analyst%index%@per.south
-  # ecu.ent.soc:
-  #   parent: ECU
-  #   count: 30
-  #   pattern: ecu.ent.soc.%index%
-  #   parameters:
-  #     username: soc.analyst%index%@ecu.south
-  # chl.ent.soc:
-  #   parent: CHL
-  #   count: 30
-  #   pattern: chl.ent.soc.%index%
+  #   protocol: rdp
+  #   count: 25
+  #   pattern: mex1.ent.soc.%index%.analyst
   #   parameters:
   #     username: soc.analyst%index%
+  #     domain: mex1.south
+  # mex1.ent.soc.ubuntu:
+  #   parent: MEX1
+  #   protocol: ssh
+  #   count: 25
+  #   pattern: mex1.ent.soc.%index%.ubuntu
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: mex1.south
+  #     port: 22
+  # mex2.ent.soc.analyst:
+  #   parent: MEX2
+  #   protocol: rdp
+  #   count: 25
+  #   pattern: mex2.ent.soc.%index%.analyst
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: mex2.south
+  # mex2.ent.soc.ubuntu:
+  #   parent: MEX2
+  #   protocol: ssh
+  #   count: 25
+  #   pattern: mex2.ent.soc.%index%.ubuntu
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: mex2.south
+  #     port: 22
+  # mia.ent.soc.analyst:
+  #   parent: MIA
+  #   protocol: rdp
+  #   count: 30
+  #   pattern: mia.ent.soc.%index%.analyst
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: mia.south
+  # mia.ent.soc.ubuntu:
+  #   parent: MIA
+  #   protocol: ssh
+  #   count: 30
+  #   pattern: mia.ent.soc.%index%.ubuntu
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: mia.south
+  #     port: 22
+  # brb.ent.soc.analyst:
+  #   parent: BRB
+  #   protocol: rdp
+  #   count: 20
+  #   pattern: brb.ent.soc.%index%.analyst
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: brb.south
+  # brb.ent.soc.ubuntu:
+  #   parent: BRB
+  #   protocol: ssh
+  #   count: 20
+  #   pattern: brb.ent.soc.%index%.ubuntu
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: brb.south
+  #     port: 22
+  # col.ent.soc.analyst:
+  #   parent: COL
+  #   protocol: rdp
+  #   count: 15
+  #   pattern: col.ent.soc.%index%.analyst
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: col.south
+  # col.ent.soc.ubuntu:
+  #   parent: COL
+  #   protocol: ssh
+  #   count: 15
+  #   pattern: col.ent.soc.%index%.ubuntu
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: col.south
+  #     port: 22
+  # per.ent.soc.analyst:
+  #   parent: PER
+  #   protocol: rdp
+  #   count: 30
+  #   pattern: per.ent.soc.%index%.analyst
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: per.south
+  # per.ent.soc.ubuntu:
+  #   parent: PER
+  #   protocol: ssh
+  #   count: 30
+  #   pattern: per.ent.soc.%index%.ubuntu
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: per.south
+  #     port: 22
+  # ecu.ent.soc.analyst:
+  #   parent: ECU
+  #   protocol: rdp
+  #   count: 30
+  #   pattern: ecu.ent.soc.%index%.analyst
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: ecu.south
+  # ecu.ent.soc.ubuntu:
+  #   parent: ECU
+  #   protocol: ssh
+  #   count: 30
+  #   pattern: ecu.ent.soc.%index%.ubuntu
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: ecu.south
+  #     port: 22
+  # chl.ent.soc.analyst:
+  #   parent: CHL
+  #   protocol: rdp
+  #   count: 30
+  #   pattern: chl.ent.soc.%index%.analyst
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: chl.south
+  # chl.ent.soc.ubuntu:
+  #   parent: CHL
+  #   protocol: ssh
+  #   count: 30
+  #   pattern: chl.ent.soc.%index%.ubuntu
+  #   parameters:
+  #     username: soc.analyst%index%
+  #     domain: chl.south
+  #     port: 22
   # whitecell.ent.soc.analyst:
   #   parent: White
   #   protocol: rdp
@@ -117,56 +218,64 @@ users:
   #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
-  #       - mex1.ent.soc.%index%
+  #       - mex1.ent.soc.%index%.ubuntu
+  #       - mex1.ent.soc.%index%.analyst
   # MEX2_user:
   #   count: 30
   #   username: MEX2_user.%index%
   #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
-  #       - mex2.ent.soc.%index%
+  #       - mex2.ent.soc.%index%.ubuntu
+  #       - mex2.ent.soc.%index%.analyst
   # MIA_user:
   #   count: 30
   #   username: MIA_user.%index%
   #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
-  #       - mia.ent.soc.%index%
+  #       - mia.ent.soc.%index%.ubuntu
+  #       - mia.ent.soc.%index%.analyst
   # BRB_user:
   #   count: 30
   #   username: BRB_user.%index%
   #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
-  #       - brb.ent.soc.%index%
+  #       - brb.ent.soc.%index%.ubuntu
+  #       - brb.ent.soc.%index%.analyst
   # COL_user:
   #   count: 30
   #   username: COL_user.%index%
   #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
-  #       - col.ent.soc.%index%
+  #       - col.ent.soc.%index%.ubuntu
+  #       - col.ent.soc.%index%.analyst
   # PER_user:
   #   count: 30
   #   username: PER_user.%index%
   #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
-  #       - per.ent.soc.%index%
+  #       - per.ent.soc.%index%.ubuntu
+  #       - per.ent.soc.%index%.analyst
   # ECU_user:
   #   count: 30
   #   username: ECU_user.%index%
   #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
-  #       - ecu.ent.soc.%index%
+  #       - ecu.ent.soc.%index%.ubuntu
+  #       - ecu.ent.soc.%index%.analyst
   # CHL_user:
   #   count: 30
   #   username: CHL_user.%index%
   #   password: S0uthPAssw0rd
   #   permissions:
   #     connectionPermissions:
-  #       - chl.ent.soc.%index%
+  #       - chl.ent.soc.%index%.ubuntu
+  #       - chl.ent.soc.%index%.analyst
   # White_user:
   #   count: 15
   #   username: White_user.%index%
@@ -199,6 +308,8 @@ defaults:
       password: S0uthPAssw0rd
       security: any
       ignore-cert: 'true'
+      enable-wallpaper: 'true'
+      enable-theming: 'true'
     attributes:
       guacd-hostname: guacd
       max-connections: '1'
