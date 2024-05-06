@@ -392,21 +392,16 @@ class HeatInstances:
 
     def __init__(self,
                  oconn: openstack.connection.Connection,
-                 stack_names: list,
+                 stack_name: str,
                  debug: bool = False):
 
         self.oconn = oconn
-        self.stack_names = set(stack_names)
-        self.servers = []
-        self.addresses = {}
+        self.stack_name = stack_name
         self.debug = debug
 
-        msg_format.general_msg(f"Finding Servers in {stack_names}", "Heat")
-        for stack_name in stack_names:
-            stack = self.find_stack_by_name(stack_name)
-            servers = self.get_servers_in_stack(stack)
-            self.servers.extend(servers)
-
+        msg_format.general_msg(f"Finding Servers in {stack_name}", "Heat")
+        stack = self.find_stack_by_name(stack_name)
+        self.servers = self.get_servers_in_stack(stack)
         self.addresses = self.get_addresses(self.servers)
 
     def find_stack_by_name(self,
@@ -600,23 +595,22 @@ class NewConnections():
         self.conn_data = conn_data
         self.debug = debug
 
-        self.stacks = conn_data.get('stacks') or list(
-            conn_data['groups'].keys())
-        self.addresses = HeatInstances(oconn, self.stacks, debug).addresses
         self.parent_identifiers: List[str] = []
         self.connections: List[Connection] = []
         self.current_connections: List[Connection] = []
-        parent_ids = self._find_root_ids()
-        parent_id_map = {
-            parent: parent_ids.get(parent)
-            for parent, data in conn_data['groups'].items()
-            if data.get('parent') == 'ROOT'
-        }
+        self.defaults = conn_data.get('defaults') or {}
+        self._find_current_conns()
+        self._create_connection_groups()
 
-        self.defaults = conn_data['defaults']
+        stacks = conn_data.get('stacks') or conn_data['groups'].keys()
+        if not stacks:
+            msg_format.general_msg("No Stacks Specified, Skipping Connection Creation",
+                                   "Guacamole")
+            return
 
-        self._create_connection_groups(conn_data, parent_id_map)
-        self._create_connections(conn_data)
+        for stack in stacks:
+            addresses = HeatInstances(oconn, stack, debug).addresses
+            self._create_connections(addresses)
 
     def create(self, delay: float = 0):
         """
@@ -679,60 +673,65 @@ class NewConnections():
             if conn not in self.connections:
                 conn.delete(delay)
 
-    def _find_root_ids(self) -> dict:
-        conn_groups = self.gconn.list_connection_groups()
-        root_ids = {}
-        for identifier, group in conn_groups.items():
-            if group.get('parentIdentifier') == 'ROOT':
-                root_ids[group['name']] = identifier
-        return root_ids
+    def _find_current_conns(self) -> dict:
+        new_groups = self.conn_data.get('groups')
+        if not new_groups:
+            return
 
-    def _create_connection_groups(self,
-                                  conn_data: dict,
-                                  parent_id_map: dict) -> None:
+        conn_groups = self.gconn.list_connection_groups()
+        for identifier, group in conn_groups.items():
+            if group['name'] in new_groups and group['parentIdentifier'] == 'ROOT':
+                current_conns = CurrentConnections(self.gconn,
+                                                    identifier,
+                                                    debug=self.debug).connections
+                self.current_connections.extend(current_conns)
+                self.parent_identifiers.append(identifier)
+
+    def _create_connection_groups(self) -> None:
+        if not self.conn_data.get('groups'):
+            msg_format.general_msg("No Connection Groups Specified",
+                                    "Guacamole")
+            return
+
         msg_format.general_msg("Generating New Connection Groups",
                                "Guacamole")
-        for name, data in conn_data['groups'].items():
-            # Add current connections under parent
-            if data.get('parent') == 'ROOT':
-                identifier = parent_id_map.get(name)
-                if identifier:
-                    self.current_connections.extend(
-                        CurrentConnections(self.gconn,
-                                           identifier,
-                                           debug=self.debug).connections
-                    )
-                    self.parent_identifiers.append(identifier)
-            data = expand_instances(
-                self.defaults.get('groups', {}), data
-            )
-            for d in data:
-                self.connections.append(
-                    self._create_connection_group(d, name)
-                )
+        defaults = self.defaults.get('groups') or {}
+        for name, data in self.conn_data['groups'].items():
+            data = expand_instances(defaults, data)
+            for entry in data:
+                conn_group = self._create_connection_group(entry, name)
+                self.connections.append(conn_group)
 
     def _create_connections(self,
-                            conn_data: dict) -> None:
+                            addresses: dict) -> None:
+        if not self.conn_data.get('connectionTemplates'):
+            msg_format.general_msg("No Connection Instances Specified",
+                                    "Guacamole")
+            return
+
         msg_format.general_msg("Generating New Connections and Sharing Profiles",
                                "Guacamole")
-        for template, data in conn_data['connectionTemplates'].items():
-            data = expand_instances(
-                self.defaults.get('connectionTemplates', {}), data
-            )
-            for d in data:
-                pattern = d.get("pattern", template)
+        defaults = self.defaults.get('connectionTemplates') or {}
+        for template, data in self.conn_data['connectionTemplates'].items():
+            data = expand_instances(defaults, data)
+            for entry in data:
+                pattern = entry.get("pattern", template)
                 found = False
-                for name, address in self.addresses.items():
+                for name, address in addresses.items():
                     if pattern in name:
-                        self.connections.extend(
-                            self._create_connection_instances(d, name, address)
-                        )
+                        attibutes = entry.get('attributes') or {}
+                        guacd_name = attibutes.get('guacd-hostname')
+                        guacd_ip = self._get_guacd_ip(guacd_name,
+                                                      addresses)
+                        conn_instances = self._create_connection_instances(entry,
+                                                                           name,
+                                                                           address,
+                                                                           guacd_ip)
+                        self.connections.extend(conn_instances)
                         found = True
                 if not found:
-                    msg_format.error_msg(
-                        f"Pattern '{pattern}' was not found in Heat instances",
-                        "Guacamole"
-                    )
+                    msg_format.error_msg(f"Pattern '{pattern}' was not found in Heat instances",
+                                         "Guacamole")
 
     def _create_connection_group(self,
                                  data: dict,
@@ -752,7 +751,8 @@ class NewConnections():
     def _create_connection_instances(self,
                                      data: dict,
                                      name: str,
-                                     address: str) -> List[ConnectionInstance]:
+                                     address: str,
+                                     guacd_host: str) -> List[ConnectionInstance]:
         attributes = data.get('attributes') or {}
         parameters = data.get('parameters') or {}
         sharings = data.get('sharingProfiles') or {}
@@ -762,7 +762,7 @@ class NewConnections():
         }
         attr_copy = {
             **attributes,
-            'guacd-hostname': self._get_guacd_hostname(attributes)
+            'guacd-hostname': guacd_host
         }
         instance = ConnectionInstance(self.gconn,
                                       data.get('protocol', 'ssh'),
@@ -783,14 +783,15 @@ class NewConnections():
             )
         return instances
 
-    def _get_guacd_hostname(self,
-                            attributes: dict) -> str:
-        guacd_host = attributes.get('guacd-hostname')
+    def _get_guacd_ip(self,
+                            guacd_host: str,
+                            addresses: dict) -> str:
+
         if guacd_host:
             return next(
                 (
                     addr
-                    for name, addr in self.addresses.items()
+                    for name, addr in addresses.items()
                     if guacd_host in name
                 ), guacd_host
             )
