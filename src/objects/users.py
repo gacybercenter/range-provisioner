@@ -344,31 +344,7 @@ class NewUsers():
             gconn, organization, debug=debug
         ).users
 
-        msg_format.general_msg("Generating New Users",
-                               "Guacamole")
-        user_defaults = self.defaults.get('users') or {}
-        for name, data in guac_data['users'].items():
-            data = expand_instances(user_defaults, data)
-            for entry in data:
-                permissions = entry.get('permissions') or {}
-                attributes = entry.get('attributes') or {}
-                attributes['guac-organization'] = self.organization
-
-                conn_perms = permissions.get('connectionPermissions') or []
-                groups, conns, sharings = self._resolve_connections(conn_perms)
-                permissions['connectionGroupPermissions'] = groups
-                permissions['connectionPermissions'] = conns
-                permissions['sharingProfilePermissions'] = sharings
-                self.users.append(
-                    User(self.gconn,
-                         entry.get('username', name),
-                         entry.get('password'),
-                         attributes,
-                         permissions)
-                )
-        msg_format.info_msg(self.users,
-                            "Guacamole",
-                            self.debug)
+        self._create_users()
         self._update_passwords()
 
     def create(self, delay: float = 0) -> None:
@@ -414,6 +390,38 @@ class NewUsers():
         for user in self.current_users:
             if user not in self.users:
                 user.delete(delay)
+
+    def _create_users(self) -> None:
+        if not self.guac_data.get('users'):
+            msg_format.general_msg("No Users Specified",
+                                    "Guacamole")
+            return
+
+        msg_format.general_msg("Generating New Users",
+                               "Guacamole")
+        defaults = self.defaults.get('users') or {}
+        for name, data in self.guac_data['users'].items():
+            data = expand_instances(defaults, data)
+            for entry in data:
+                permissions = entry.get('permissions') or {}
+                attributes = entry.get('attributes') or {}
+                attributes['guac-organization'] = self.organization
+
+                conn_perms = permissions.get('connectionPermissions') or []
+                groups, conns, sharings = self._resolve_connections(conn_perms)
+                permissions['connectionGroupPermissions'] = groups
+                permissions['connectionPermissions'] = conns
+                permissions['sharingProfilePermissions'] = sharings
+                self.users.append(
+                    User(self.gconn,
+                         entry.get('username', name),
+                         entry.get('password'),
+                         attributes,
+                         permissions)
+                )
+        msg_format.info_msg(self.users,
+                            "Guacamole",
+                            self.debug)
 
     def _resolve_connections(self, names: list) -> tuple:
         """
