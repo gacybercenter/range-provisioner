@@ -519,6 +519,11 @@ def set_provisioning_flags(global_create: bool | None,
     create = local_create if global_create is None else global_create
     update = local_update
 
+    if create is None or update is None:
+        raise Exception(
+            f"Invalid provisioning and update flags: create={create}, update={update}"
+        )
+
     # Log the provisioning and update status if debug is enabled
     info_msg(f"{endpoint} provisioning is set to '{create}'",
              endpoint,
