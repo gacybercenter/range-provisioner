@@ -2,6 +2,7 @@
 User Classes
 """
 
+import re
 from time import sleep
 from secrets import choice
 from string import ascii_letters, digits
@@ -431,19 +432,19 @@ class NewUsers():
         found_connections = set()
         found_sharing_profiles = set()
 
-        for name in names:
+        for pattern_str in names:
+            pattern = re.compile(pattern_str)
             for connection in self.connections:
-                if isinstance(connection, ConnectionInstance) and name in connection.name:
+                if (isinstance(connection, ConnectionInstance)
+                    and pattern.search(connection.name)):
                     found_connections.add(connection.identifier)
-            for connection in self.connections:
-                parent = connection.parent_identifier
-                found_groups.update(
-                    self._resolve_groups(parent)
-                )
-                if (isinstance(connection, SharingProfile)
-                    and parent in found_connections
-                        and connection.identifier):
-                    found_sharing_profiles.add(connection.identifier)
+
+        for connection in self.connections:
+            parent = connection.parent_identifier
+            found_groups.update(self._resolve_groups(parent))
+            if (isinstance(connection, SharingProfile)
+                and parent in found_connections and connection.identifier):
+                found_sharing_profiles.add(connection.identifier)
 
         return found_groups, found_connections, found_sharing_profiles
 
