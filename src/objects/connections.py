@@ -411,9 +411,9 @@ class HeatInstances:
         """
         stack = self.oconn.orchestration.find_stack(stack_name)
         if not stack:
-            # msg_format.error_msg(f"Could Not Find Stack '{stack_name}'",
-            #                      "Heat")
-            raise Exception(f"Could Not Find Stack '{stack_name}'")
+            msg_format.error_msg(f"Could Not Find Stack '{stack_name}'",
+                                 "Heat")
+            # raise Exception(f"Could Not Find Stack '{stack_name}'")
 
         msg_format.info_msg(stack,
                             "Heat",
@@ -595,9 +595,9 @@ class NewConnections():
         self.conn_data = conn_data
         self.debug = debug
 
-        self.parent_identifiers: List[str] = []
+        self.parent_identifiers: set[str] = set()
         self.connections: List[Connection] = []
-        self.current_connections: List[Connection] = []
+        self.current_connections: set[Connection] = set()
         self.defaults = conn_data.get('defaults') or {}
         self._find_current_conns()
         self._create_connection_groups()
@@ -658,7 +658,8 @@ class NewConnections():
             old_identifier = conn_map.get(conn.name)
             if old_identifier:
                 old_conn = conns_by_ids.get(old_identifier)
-                self.current_connections.remove(old_conn)
+                if old_conn and old_conn in self.current_connections:
+                    self.current_connections.remove(old_conn)
                 if old_conn == conn:
                     msg_format.info_msg(f"No Changes For {type(conn).__name__} '{conn.name}'",
                                         "Guacamole",
@@ -684,8 +685,8 @@ class NewConnections():
                 current_conns = CurrentConnections(self.gconn,
                                                     identifier,
                                                     debug=self.debug).connections
-                self.current_connections.extend(current_conns)
-                self.parent_identifiers.append(identifier)
+                self.current_connections.update(current_conns)
+                self.parent_identifiers.add(identifier)
 
     def _create_connection_groups(self) -> None:
         if not self.conn_data.get('groups'):
