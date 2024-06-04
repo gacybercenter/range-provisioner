@@ -602,11 +602,9 @@ class NewConnections():
         self._find_current_conns()
         self._create_connection_groups()
 
-        stacks = conn_data.get('stacks') or conn_data['groups'].keys()
+        stacks = conn_data.get('stacks')
         if not stacks:
-            msg_format.general_msg("No Stacks Specified, Skipping Connection Creation",
-                                   "Guacamole")
-            return
+            stacks = conn_data['groups'].keys()
 
         for stack in stacks:
             addresses = HeatInstances(oconn, stack, debug).addresses

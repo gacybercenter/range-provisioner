@@ -30,6 +30,10 @@ def provision(conn: object,
                                             endpoint,
                                             debug)
 
+    if create is None:
+        msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
+        return
+
     range_name = globals_dict['organization']
     directory = swift_globals['asset_dir']
 

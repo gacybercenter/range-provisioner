@@ -519,7 +519,7 @@ def set_provisioning_flags(global_create: bool | None,
     create = local_create if global_create is None else global_create
     update = local_update
 
-    if create is None or update is None:
+    if create is None and update:
         raise Exception(
             f"Invalid provisioning and update flags: create={create}, update={update}"
         )

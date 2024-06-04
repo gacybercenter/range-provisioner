@@ -42,6 +42,10 @@ def provision(oconn: object,
                                             endpoint,
                                             debug)
 
+    if create is None:
+        msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
+        return
+
     organization = globals_dict['organization']
     delay = guacamole_globals['pause']
 
