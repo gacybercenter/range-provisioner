@@ -55,8 +55,9 @@ DIR
 |       |___ main.yaml
 |       |___ sec.yaml     (Optional)
 |       |___ env.yaml     (Optional)
-|       |___ users.yaml   (Optional)
+|       |___ guac.yaml   (Optional)
 |___ globals.yaml
+|___ clouds.yaml          (Hidden)
 |___ README.md
 |___ requirements.txt
 ```
@@ -65,41 +66,18 @@ Templates in `templates`, `assets` to be uploaded to the object store and the ba
 
 ### **Heat Orchestration Templates** 
 
-_Expected parameters within the `env.yaml`_
+_Example parameters within the `env.yaml`_
 ```yaml
 parameters: {}
 ```
 
-_Expected parameters within the `main.yaml`_  
+_Example parameters within the `main.yaml`_  
 ```yaml
-parameters:
-  username: 
-    type: string
-    default: deafualt_username
-
-  password:
-    type: string
-    default: default_password
-
-  count:
-    type: string
-    default: 3
-
-  tenant_id: 
-    type: string
-    default: openstack_project_id_value
-
-  container_name:
-    type: string
-    default: range_provisioner
-
-  conn_proto:
-    type: string
-    default: ssh
-
+parameters: {}
+resources: {}
 ```
 
-_Expected parameters within the `sec.yaml`_
+_Example parameters within the `sec.yaml`_
 ```yaml
 parameters:
   name: 
@@ -107,72 +85,97 @@ parameters:
     default: sec_group
 ```
 
-_Expected parameters within the `users.yaml`_
+_Example parameters within the `guac.yaml`_
 ```yaml
-parameters:
-  Alice:
-    password: password1
-    sharing: write
+stacks:
+  - your_stack
+
+groups:
+  your_group:
+    parent: ROOT
+    attributes:
+      max-connections: 200
+
+connectionTemplates:
+  your_connection:
+    parent: your_group
+    parameters:
+      username: username
+      password: password
+    attributes:
+      guacd-hostname: guacd # Name gets translated to heat IP address
+
+users:
+  your_user:
+    count: 3
+    username: user.%index% # Index starts at 1 and goes to count
+    password: user_pass
     permissions:
-      - CREATE_USER
-      - CREATE_USER_GROUP
-      - CREATE_CONNECTION
-      - CREATE_CONNECTION_GROUP
-      - CREATE_SHARING_PROFILE
-      - ADMINISTER
-    instances:
-      - Test_Range.Test_Name.1
-      - Test_Range.Test_Name.2
-      - Test_Range.Test_Name.3
+      connectionPermissions:
+        - your_connection.%index% # Name gets translated to heat IP address
+      systemPermissions:
+        - ADMINISTER
+        - CREATE_USER
+        - CREATE_USER_GROUP
+        - CREATE_CONNECTION
+        - CREATE_CONNECTION_GROUP
+        - CREATE_SHARING_PROFILE
+
+defaults:
+  groups:
+    type: ORGANIZATIONAL
+    attributes:
+      enable-session-affinity: ''
+      max-connections: '50'
+      max-connections-per-user: '10'
+
+  connectionTemplates:
+    protocol: rdp
+    parameters:
+      port: 3389
+      security: any
+      ignore-cert: 'true'
+    sharingProfiles:
+      - parameters:
+          read-only: 'true'
+
+  users:
+    attributes: {}
+      # guac-organization: This field becomes the organization to identify users
 ```
 #### Note: Part of a stack name followed by a '*' maps all stacks containing the entry. <sub><i>Your welcome Brent</i></sub>
 
 
 #### Mappings to `globals.yaml`
 ```yaml
+#YAML for storing range provisioning parameters
 globals:
-  debug: True # debug mode (True) or not (False)
-  num_users: 1 # number of user systems to provision
-  num_ranges: 1 # number of ranges to provision
-  user_name: Test_Name # user name prefix
-  range_name: Test_Range # range name prefix
-  org_name: Test_Org # name of organization
+  debug: False # debug mode (True) or not (False)
   artifacts: True # artifacts (True) or not (False)
+  organization: your_org # range name prefix
+  amount: 1 # number of ranges to provision
   provision: # provision range (True) or not (False)
 
 guacamole:
   provision: True # provision guacamole (True) or not (False)
-  update: False # update guacamole users (True) or not (False)
-  cloud: guac # name of cloud to use
-  mapped_only: True # only create connections for user mapped instances (True) or not (False)
-  recording: True # enable session recording (True) or not (False)
-  sharing: False # enable link sharing read (read), write (write) or not (False)
-  users:
-    test_user:
-      password: kali
-      amount: 2
-    test_admin:
-      password: analyst
-      amount: 1
-      sharing: write
-      permissions:
-        - ADMINISTER
-      instances:
-        - Test_Range*
+  update: True # update guacamole users (True) or not (False)
+  cloud: guac_cloud # name of cloud to use
+  user_dir: templates # directory containing guacamole templates
+  pause: 0.5 # pause between each guacamole action in seconds
 
 heat:
   provision: True # provision heat (True) or not (False)
   update: True # update heat (True) or not (False)
-  cloud: gcr # name of cloud to use
+  cloud: openstack_cloud # name of cloud to use
   template_dir: templates # directory containing heat templates
-  pause: 2 # pause between each heat stack action
+  pause: 60 # pause between each heat stack action in seconds
   parameters: # Update existing heat parameters
-  - username: test
-  - instructor_count: 2
+  - username: new_user_param
 
 swift:
   provision: True # provision swift (True) or not (False)
   update: True # update swift (True) or not (False)
+  cloud: openstack_cloud # name of cloud to use
   asset_dir: assets # directory containing swift assets
 ```
 ### Usage Example
