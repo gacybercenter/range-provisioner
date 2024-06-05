@@ -1,9 +1,6 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from pprint import pprint
-from src.utils.generate import (generate_password, generate_names, generate_instance_names,
-                         generate_conns, generate_users, generate_groups,
-                         format_groups, format_users)
+from src.utils.generate import (generate_password, generate_names,
+                                generate_instance_names, generate_conns)
 
 class TestGenerate(unittest.TestCase):
     """
