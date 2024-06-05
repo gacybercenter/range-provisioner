@@ -27,8 +27,8 @@ def provision(conn: object,
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
         return
 
-    stack_names = generate_names(globals_dict['amount'],
-                                 globals_dict['organization'])
+    stack_name = globals_dict.get('stack_name', globals_dict['organization'])
+    stack_names = generate_names(globals_dict['amount'], stack_name)
     pause = heat_globals.get('pause', 0)
 
     # Format the parameters for Heat

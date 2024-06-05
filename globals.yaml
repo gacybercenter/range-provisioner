@@ -2,8 +2,9 @@
 globals:
   debug: False # debug mode (True) or not (False)
   artifacts: True # artifacts (True) or not (False)
-  organization: southcom-red # range name prefix
-  amount: 1 # number of ranges to provision
+  organization: org_name # top level identifier for guac users
+  stack_name: range # top level name for heat stacks (defaults to organization)
+  amount: 1 # number of heat stacks to provision
   provision: # provision range (True) or not (False)
 
 guacamole:
