@@ -6,6 +6,7 @@ Returns:
 import unittest
 import yaml
 import openstack
+from unittest.mock import Mock, patch
 from src.utils.manage_ids import update_ids, update_env
 
 
@@ -30,7 +31,11 @@ class UpdateIDsTestCase(unittest.TestCase):
         Returns:
             None
         """
-        self.mock_connection = openstack.connect(cloud="gcr")
+        self.reset_env_file()
+        self.mock_connection = Mock(openstack.connect)
+        self.mock_connection.current_project_id = "mock_project_id"
+        self.mock_connection.orchestration = MockOrchestration()
+        self.mock_connection.close = Mock()
         self.globals_dict = MockGlobalsDict()
 
     def tearDown(self):
@@ -42,7 +47,33 @@ class UpdateIDsTestCase(unittest.TestCase):
         Returns:
             None
         """
-        self.mock_connection.close()
+        self.reset_env_file()
+
+    def reset_env_file(self):
+        """
+        Resets the env.yaml file to its original state.
+
+        This function is used to reset the env.yaml file to its original state after each test method is run.
+
+        Returns:
+            None
+        """
+        encoding = 'utf-8'
+        template_path = 'tests/templates/env.yaml'
+        env_template = {
+            'parameters': {
+                'stack1.network_id': None,
+                'stack1.subnet_id': None
+            }
+        }
+        with open(template_path, 'w', encoding=encoding) as template_file:
+            yaml.dump(
+                env_template,
+                template_file,
+                encoding=encoding,
+                default_flow_style=False,
+                sort_keys=True
+            )
 
     def test_update_env_with_new_ids(self):
         """
@@ -58,27 +89,14 @@ class UpdateIDsTestCase(unittest.TestCase):
         globals_dict = self.globals_dict
         make_entries = False
         debug = False
-
-        template_path = globals_dict.heat['template_dir'] + "/env.yaml"
-        encoding = 'utf-8'
-        with open(template_path, 'r', encoding=encoding) as template_file:
-            heat_template = yaml.safe_load(template_file)
-
-        correct_outout = {
+        correct_output = {
             'parameters': {
-                'test1_id': 'correct_id'
+                'stack1.network_id': 'network_id',
+                'stack1.subnet_id': 'subnet_id'
             }
         }
-
-        self.assertEqual(
-            update_env(conn,
-                       globals_dict,
-                       make_entries,
-                       debug),
-            correct_outout)
-
-        self.assertTrue(heat_template == correct_outout)
-
+        output = update_env(conn, globals_dict, make_entries, debug)
+        self.assertEqual(output, correct_output)
 
 class MockConnection:
     """
@@ -108,6 +126,7 @@ class MockOrchestration:
         if project_id == "mock_project_id":
             return [MockStack("stack1"), MockStack("stack2")]
         return None
+
     def find_stack(self, stack_name):
         """
         Finds a stack based on its name.
@@ -150,8 +169,8 @@ class MockResource:
     Simulates a resource.
     """
     def __init__(self, stack_name, resource_type):
-        self.logical_resource_id = f"{stack_name}_mock.{resource_type}_id"
-        self.physical_resource_id = f"mock.{resource_type}_id"
+        self.logical_resource_id = f"{stack_name}.{resource_type}"
+        self.physical_resource_id = f"{resource_type}_id"
 
 
 class MockGlobalsDict:
@@ -183,7 +202,7 @@ class MockGlobalsDict:
             "main": True,
             "sec": False,
             "update": False,
-            "template_dir": "test/templates",
+            "template_dir": "tests/templates",
             "wait": False,
             "pause": 2
         }
