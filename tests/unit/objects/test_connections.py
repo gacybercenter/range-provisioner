@@ -1,6 +1,6 @@
 import unittest
-from guacamole import session
 from unittest.mock import Mock, patch
+from guacamole import session
 from src.objects.connections import Connection
 
 class TestConnection(unittest.TestCase):
@@ -43,7 +43,7 @@ class TestConnection(unittest.TestCase):
 
     @patch('src.objects.connections.sleep')
     @patch('src.objects.connections.Connection._create_connection')
-    def test_create(self, mock_create_connection, mock_sleep):
+    def test_create(self, mock_create_connection: Mock, mock_sleep: Mock):
         test_delay = 0.1
         result = self.connection.create(test_delay)
         self.assertIsNotNone(result)
@@ -52,7 +52,7 @@ class TestConnection(unittest.TestCase):
 
     @patch('src.objects.connections.sleep')
     @patch('src.objects.connections.Connection._delete_connection')
-    def test_delete(self, mock_delete_connection, mock_sleep):
+    def test_delete(self, mock_delete_connection: Mock, mock_sleep: Mock):
         test_delay = 0.1
         self.connection.identifier = 'existing_id'
         result = self.connection.delete(test_delay)
@@ -62,7 +62,7 @@ class TestConnection(unittest.TestCase):
 
     @patch('src.objects.connections.sleep')
     @patch('src.objects.connections.Connection._update_connection')
-    def test_update(self, mock_update_connection, mock_sleep):
+    def test_update(self, mock_update_connection: Mock, mock_sleep: Mock):
         test_delay = 0.1
         self.connection.identifier = 'existing_id'
         result = self.connection.update(test_delay)
@@ -71,33 +71,33 @@ class TestConnection(unittest.TestCase):
         mock_sleep.assert_called_once_with(test_delay)
 
     @patch('src.objects.connections.msg_format')
-    def test_create_with_identifier(self, mock_msg_format):
+    def test_create_with_identifier(self, mock_msg_format: Mock):
         self.connection.identifier = 'existing_id'
         result = self.connection.create()
         self.assertIsNone(result)
         mock_msg_format.error_msg.assert_called_once()
 
     @patch('src.objects.connections.msg_format')
-    def test_create_without_parent(self, mock_msg_format):
+    def test_create_without_parent(self, mock_msg_format: Mock):
         self.connection.parent_identifier = None
         result = self.connection.create()
         self.assertIsNone(result)
         mock_msg_format.error_msg.assert_called_once()
 
     @patch('src.objects.connections.msg_format')
-    def test_delete_without_identifier(self, mock_msg_format):
+    def test_delete_without_identifier(self, mock_msg_format: Mock):
         result = self.connection.delete()
         self.assertIsNone(result)
         mock_msg_format.error_msg.assert_called_once()
 
     @patch('src.objects.connections.msg_format')
-    def test_update_without_identifier(self, mock_msg_format):
+    def test_update_without_identifier(self, mock_msg_format: Mock):
         result = self.connection.update()
         self.assertIsNone(result)
         mock_msg_format.error_msg.assert_called_once()
 
     @patch('src.objects.connections.msg_format')
-    def test_update_without_parent(self, mock_msg_format):
+    def test_update_without_parent(self, mock_msg_format: Mock):
         self.connection.parent_identifier = None
         result = self.connection.update()
         self.assertIsNone(result)
