@@ -34,26 +34,26 @@ def provision(conn: object,
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
         return
 
-    range_name = globals_dict['organization']
     directory = swift_globals['asset_dir']
+    stack_name = globals_dict.get('stack_name', globals_dict['organization'])
 
     # Provision, deprovision, or reprovision
     if update:
         swift.deprovision(conn,
-                          range_name,
+                          stack_name,
                           debug)
         swift.provision(conn,
-                        range_name,
+                        stack_name,
                         directory,
                         debug)
     elif create:
         swift.provision(conn,
-                        range_name,
+                        stack_name,
                         directory,
                         debug)
     else:
         swift.deprovision(conn,
-                          range_name,
+                          stack_name,
                           debug)
 
     msg_format.success_msg(f"Provisioning {endpoint} Complete",
