@@ -187,66 +187,8 @@ class User:
             perms_to_add = self.permissions
             perms_to_remove = {}
 
-        connection_types = {
-            'connectionGroupPermissions': 'group',
-            'connectionPermissions': 'connection',
-            'sharingProfilePermissions': 'sharing profile'
-        }
-
-        for category, connection_type in connection_types.items():
-
-            perm_to_add = perms_to_add.get(category, [])
-            perm_to_remove = perms_to_remove.get(category, [])
-            if perm_to_add:
-                result = self.gconn.update_connection_permissions(self.username,
-                                                                  perm_to_add,
-                                                                  'add',
-                                                                  connection_type)
-                msg_format.info_msg(result,
-                                    "Guacamole",
-                                    self.debug)
-            if perm_to_remove:
-                result = self.gconn.update_connection_permissions(self.username,
-                                                                  perm_to_remove,
-                                                                  'remove',
-                                                                  connection_type)
-                msg_format.info_msg(result,
-                                    "Guacamole",
-                                    self.debug)
-
-        perm_to_add = perms_to_add.get('userGroupPermissions', [])
-        perm_to_remove = perms_to_remove.get('userGroupPermissions', [])
-        if perm_to_add:
-            result = self.gconn.update_user_group(self.username,
-                                                  perm_to_add,
-                                                  'add')
-            msg_format.info_msg(result,
-                                "Guacamole",
-                                self.debug)
-        if perm_to_remove:
-            result = self.gconn.update_user_group(self.username,
-                                                  perm_to_remove,
-                                                  'remove')
-            msg_format.info_msg(result,
-                                "Guacamole",
-                                self.debug)
-
-        perm_to_add = perms_to_add.get('systemPermissions', [])
-        perm_to_remove = perms_to_remove.get('systemPermissions', [])
-        if perm_to_add:
-            result = self.gconn.update_user_permissions(self.username,
-                                                        perm_to_add,
-                                                        'add')
-            msg_format.info_msg(result,
-                                "Guacamole",
-                                self.debug)
-        if perm_to_remove:
-            result = self.gconn.update_user_permissions(self.username,
-                                                        perm_to_remove,
-                                                        'remove')
-            msg_format.info_msg(result,
-                                "Guacamole",
-                                self.debug)
+        self._update_category_permissions(perms_to_add,
+                                          perms_to_remove)
 
     def _resolve_permissions(self, old_perms: dict, new_perms: dict) -> dict:
         """
@@ -267,10 +209,46 @@ class User:
             new_perm_set = set(new_perms.get(category, []))
             old_perm_set = set(old_perms.get(category, []))
             perms_changes['add'][category] = list(new_perm_set - old_perm_set)
-            perms_changes['remove'][category] = list(
-                old_perm_set - new_perm_set)
+            perms_changes['remove'][category] = list(old_perm_set - new_perm_set)
 
         return perms_changes['add'], perms_changes['remove']
+    
+    def _update_category_permissions(self,
+                                     perms_to_add: dict,
+                                     perms_to_remove: dict):
+        connection_types = {
+            'connectionGroupPermissions': 'group',
+            'connectionPermissions': 'connection',
+            'sharingProfilePermissions': 'sharing profile',
+            'userGroupPermissions': 'user group',
+            'systemPermissions': 'system',
+        }
+        for category, connection_type in connection_types.items():
+            operations = {
+                'add': perms_to_add.get(category, []),
+                'remove': perms_to_remove.get(category, [])
+            }
+            for operation, permission in operations.items():
+                if not permission:
+                    continue
+
+                if connection_type in ['group', 'connection', 'sharing profile']:
+                    result = self.gconn.update_connection_permissions(self.username,
+                                                                    permission,
+                                                                    operation,
+                                                                    connection_type)
+                elif connection_type == 'user group':
+                    result = self.gconn.update_user_group(self.username,
+                                                        permission,
+                                                        operation)
+                elif connection_type == 'system':
+                    result = self.gconn.update_user_permissions(self.username,
+                                                                permission,
+                                                                operation)
+                if result:
+                    msg_format.info_msg(result,
+                                        "Guacamole",
+                                        self.debug)
 
 
 class CurrentUsers():
