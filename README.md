@@ -241,3 +241,30 @@ commit message:
     - if: ($CI_COMMIT_MESSAGE =~ /\[build]/ || $CI_COMMIT_MESSAGE =~ /\[delete]/)
       when: always
 ```
+
+## Unit Tests
+To run the unit tests, run the following commands:
+
+### Activate the Python Virtual Environment
+(Windows)
+```ps1
+py3 -3 -m venv .venv
+.venv\Scripts\activate
+```
+
+(Mac/Linux)
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+```
+
+### Install required Python Modules
+```bash
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
+
+### Run the tests
+```bash
+pytest tests/unit
+```
