@@ -606,9 +606,12 @@ class NewConnections():
         if not stacks:
             stacks = conn_data['groups'].keys()
 
+        all_addresses = {}
         for stack in stacks:
             addresses = HeatInstances(oconn, stack, debug).addresses
-            self._create_connections(addresses)
+            all_addresses.update(addresses)            
+
+        self._create_connections(all_addresses)
 
     def create(self, delay: float = 0):
         """
