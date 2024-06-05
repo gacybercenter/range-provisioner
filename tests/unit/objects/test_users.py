@@ -1,7 +1,8 @@
 import unittest
 from unittest.mock import Mock, patch
 from guacamole import session
-from objects.users import User
+from src.objects.users import User
+
 
 class TestUser(unittest.TestCase):
 
@@ -22,40 +23,47 @@ class TestUser(unittest.TestCase):
             debug=False
         )
 
-    # @patch('src.objects.users.sleep')
-    def test_create(self):
+    @patch('src.objects.users.sleep')
+    def test_create(self, mock_sleep: Mock):
         test_delay = 0.1
-        self.user.create(test_delay)
-        self.mock_gconn.create_user.assert_called_with(self.user.username,
-                                                       self.user.password,
-                                                       self.user.attributes)
-        # mock_sleep.assert_called_once_with(test_delay)
+        result = self.user.create(test_delay)
+        self.assertIsNotNone(result)
+        self.mock_gconn.create_user.assert_called_once_with(self.user.username,
+                                                            self.user.password,
+                                                            self.user.attributes)
+        mock_sleep.assert_any_call(test_delay)
+        self.assertEqual(mock_sleep.call_count, 2)
         self.assertEqual(self.mock_gconn.update_connection_permissions.call_count, 3)
+        # Check the add permissions calls
         self.mock_gconn.update_connection_permissions.assert_any_call(self.user.username,
-                                                                        self.user.permissions['connectionGroupPermissions'],
-                                                                        'add',
-                                                                        'group')
+                                                                      self.user.permissions['connectionGroupPermissions'],
+                                                                      'add',
+                                                                      'group')
         self.mock_gconn.update_connection_permissions.assert_any_call(self.user.username,
-                                                                         self.user.permissions['connectionPermissions'],
-                                                                         'add',
-                                                                         'connection')
+                                                                      self.user.permissions['connectionPermissions'],
+                                                                      'add',
+                                                                      'connection')
         self.mock_gconn.update_connection_permissions.assert_any_call(self.user.username,
-                                                                         self.user.permissions['sharingProfilePermissions'],
-                                                                         'add',
-                                                                         'sharing profile')
-        self.mock_gconn.update_user_group.assert_called_with(self.user.username,
-                                                             self.user.permissions['userGroupPermissions'],
-                                                             'add')
-        self.mock_gconn.update_user_permissions.assert_called_with(self.user.username,
-                                                                   self.user.permissions['systemPermissions'],
-                                                                   'add')
+                                                                      self.user.permissions['sharingProfilePermissions'],
+                                                                      'add',
+                                                                      'sharing profile')
+        self.mock_gconn.update_user_group.assert_called_once_with(self.user.username,
+                                                                  self.user.permissions['userGroupPermissions'],
+                                                                  'add')
+        self.mock_gconn.update_user_permissions.assert_called_once_with(self.user.username,
+                                                                        self.user.permissions['systemPermissions'],
+                                                                        'add')
 
-    def test_delete(self):
-        self.user.delete()
-        self.mock_gconn.delete_user.assert_called_with(self.user.username)
+    @patch('src.objects.users.sleep')
+    def test_delete(self, mock_sleep: Mock):
+        test_delay = 0.1
+        result = self.user.delete(test_delay)
+        self.assertIsNotNone(result)
+        self.mock_gconn.delete_user.assert_called_once_with(self.user.username)
+        mock_sleep.assert_called_once_with(test_delay)
 
-    # @patch('src.objects.users.sleep')
-    def test_update(self):
+    @patch('src.objects.users.sleep')
+    def test_update(self, mock_sleep: Mock):
         test_delay = 0.1
         old_perms = {
             'connectionGroupPermissions': ['group1', 'group3'],
@@ -78,50 +86,53 @@ class TestUser(unittest.TestCase):
             'userGroupPermissions': ['user3'],
             'systemPermissions': ['perm3']
         }
-        self.user.update(old_perms, test_delay)
+        result = self.user.update(old_perms, test_delay)
+        self.assertIsNotNone(result)
         self.mock_gconn.update_user.assert_called_with(self.user.username,
                                                        self.user.attributes)
-        # mock_sleep.assert_called_once_with(test_delay)
-
+        mock_sleep.assert_any_call(test_delay)
+        self.assertEqual(mock_sleep.call_count, 2)
+        self.assertEqual(self.mock_gconn.update_connection_permissions.call_count, 6)
+        self.assertEqual(self.mock_gconn.update_user_group.call_count, 2)
+        self.assertEqual(self.mock_gconn.update_user_permissions.call_count, 2)
         # Check the add permissions calls
         self.mock_gconn.update_connection_permissions.assert_any_call(self.user.username,
-                                                                         add_perms['connectionGroupPermissions'],
-                                                                         'add',
-                                                                         'group')
+                                                                      add_perms['connectionGroupPermissions'],
+                                                                      'add',
+                                                                      'group')
         self.mock_gconn.update_connection_permissions.assert_any_call(self.user.username,
-                                                                         add_perms['connectionPermissions'],
-                                                                         'add',
-                                                                         'connection')
+                                                                      add_perms['connectionPermissions'],
+                                                                      'add',
+                                                                      'connection')
         self.mock_gconn.update_connection_permissions.assert_any_call(self.user.username,
-                                                                         add_perms['sharingProfilePermissions'],
-                                                                         'add',
-                                                                         'sharing profile')
+                                                                      add_perms['sharingProfilePermissions'],
+                                                                      'add',
+                                                                      'sharing profile')
         self.mock_gconn.update_user_group.assert_any_call(self.user.username,
-                                                             add_perms['userGroupPermissions'],
-                                                             'add')
+                                                          add_perms['userGroupPermissions'],
+                                                          'add')
         self.mock_gconn.update_user_permissions.assert_any_call(self.user.username,
-                                                                   add_perms['systemPermissions'],
-                                                                   'add')
-
+                                                                add_perms['systemPermissions'],
+                                                                'add')
         # Check the remove permissions calls
         self.mock_gconn.update_connection_permissions.assert_any_call(self.user.username,
-                                                                         rem_perms['connectionGroupPermissions'],
-                                                                         'remove',
-                                                                         'group')
+                                                                      rem_perms['connectionGroupPermissions'],
+                                                                      'remove',
+                                                                      'group')
         self.mock_gconn.update_connection_permissions.assert_any_call(self.user.username,
-                                                                         rem_perms['connectionPermissions'],
-                                                                         'remove',
-                                                                         'connection')
+                                                                      rem_perms['connectionPermissions'],
+                                                                      'remove',
+                                                                      'connection')
         self.mock_gconn.update_connection_permissions.assert_any_call(self.user.username,
-                                                                         rem_perms['sharingProfilePermissions'],
-                                                                         'remove',
-                                                                         'sharing profile')
+                                                                      rem_perms['sharingProfilePermissions'],
+                                                                      'remove',
+                                                                      'sharing profile')
         self.mock_gconn.update_user_group.assert_any_call(self.user.username,
-                                                             rem_perms['userGroupPermissions'],
-                                                             'remove')
-        self.mock_gconn.update_user_permissions.assert_any_call(self.user.username, 
-                                                                   rem_perms['systemPermissions'],
-                                                                   'remove')
+                                                          rem_perms['userGroupPermissions'],
+                                                          'remove')
+        self.mock_gconn.update_user_permissions.assert_any_call(self.user.username,
+                                                                rem_perms['systemPermissions'],
+                                                                'remove')
 
 
 if __name__ == '__main__':
