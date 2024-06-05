@@ -137,6 +137,8 @@ class User:
                                "Guacamole")
         sleep(delay)
 
+        return result
+
     def delete(self, delay: float = 0):
         """
         Deletes a user
@@ -148,6 +150,8 @@ class User:
         msg_format.general_msg(f"Deleted {self.username}",
                                "Guacamole")
         sleep(delay)
+
+        return result
 
     def update(self,
                old_perms: dict | None = None,
@@ -166,6 +170,8 @@ class User:
         msg_format.general_msg(f"Updated {self.username}",
                                "Guacamole")
         sleep(delay)
+
+        return result
 
     def detail(self):
         """
