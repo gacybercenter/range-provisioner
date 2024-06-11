@@ -476,6 +476,7 @@ class CurrentConnections():
     def __init__(self,
                  gconn: guacamole.session,
                  parent_identifier: str = 'ROOT',
+                 names: list | str | None = None,
                  debug: bool = False):
 
         self.gconn = gconn
@@ -490,7 +491,22 @@ class CurrentConnections():
         self.tree = gconn.detail_connection_group_connections(
             parent_identifier
         )
-        self.connections = self.extract_connections(self.tree)
+
+        connections = self.extract_connections(self.tree)
+        if isinstance(names, str):
+            self.connections = [
+                conn
+                for conn in connections
+                if names == conn.name
+            ]
+        elif isinstance(names, list):
+            self.connections = [
+                conn
+                for conn in connections
+                if any(name == conn.name for name in names)
+            ]
+        else:
+            self.connections = connections
 
     def extract_connections(self,
                             obj: dict,
@@ -578,6 +594,15 @@ class CurrentConnections():
                             self.debug)
         return conn
 
+    def delete(self, delay: float = 0):
+        """
+        Deletes the Guacamole connections
+        """
+        msg_format.general_msg("Deleting Connections",
+                               "Guacamole")
+        for conn in self.connections:
+            conn.delete(delay)
+
 
 class NewConnections():
     """
@@ -595,7 +620,7 @@ class NewConnections():
         self.conn_data = conn_data
         self.debug = debug
 
-        self.parent_identifiers: set[str] = set()
+        self.parent_groups: set[ConnectionGroup] = set()
         self.connections: List[Connection] = []
         self.current_connections: set[Connection] = set()
         self.defaults = conn_data.get('defaults') or {}
@@ -634,9 +659,8 @@ class NewConnections():
         """
         msg_format.general_msg("Deleting Connections",
                                "Guacamole")
-        for conn in self.connections:
-            if conn.identifier in self.parent_identifiers:
-                conn.delete(delay)
+        for groups in self.parent_groups:
+            groups.delete(delay)
 
     def update(self, delay: float = 0):
         """
@@ -676,18 +700,26 @@ class NewConnections():
                 conn.delete(delay)
 
     def _find_current_conns(self) -> dict:
-        new_groups = self.conn_data.get('groups')
+        new_groups = self.conn_data.get('groups', self.conn_data['stacks'])
         if not new_groups:
             return
 
         conn_groups = self.gconn.list_connection_groups()
         for identifier, group in conn_groups.items():
             if group['name'] in new_groups and group['parentIdentifier'] == 'ROOT':
+                parent_group = ConnectionGroup(self.gconn,
+                                               group['name'],
+                                               'ROOT',
+                                               group['type'],
+                                               group.get('attributes'),
+                                               identifier,
+                                               debug=self.debug)
                 current_conns = CurrentConnections(self.gconn,
                                                     identifier,
+                                                    None,
                                                     debug=self.debug).connections
                 self.current_connections.update(current_conns)
-                self.parent_identifiers.add(identifier)
+                self.parent_groups.add(parent_group)
 
     def _create_connection_groups(self) -> None:
         if not self.conn_data.get('groups'):
@@ -815,3 +847,82 @@ class NewConnections():
             sharing_profiles.append(profile)
 
         return sharing_profiles
+
+
+
+
+
+# class NewConnections():
+#     """
+#     An object that holds connection groups, instances and sharing profiles
+#     """
+
+#     def __init__(self,
+#                  gconn: guacamole.session,
+#                  oconn: openstack.connect,
+#                  conn_data: dict,
+#                  debug: bool = False):
+
+#         self.gconn = gconn
+#         self.oconn = oconn
+#         self.conn_data = conn_data
+#         self.debug = debug
+
+#     def create(self, delay: float = 0):
+#         self._create_or_update_connections(delay, "create")
+
+#     def update(self, delay: float = 0):
+#         self._create_or_update_connections(delay, "update")
+
+#     def delete(self, delay: float = 0):
+#         self._delete_connections(delay)
+
+#     def _create_or_update_connections(self, delay: float, action: str):
+#         msg_format.general_msg(f"{action.title()} Connections",
+#                                 "Guacamole")
+#         action_fn = self._create_connection if action == "create" else self._update_connection
+#         for conn in self._generate_connections():
+#             action_fn(conn, delay)
+
+#     def _delete_connections(self, delay: float):
+#         msg_format.general_msg("Deleting Connections",
+#                                "Guacamole")
+#         for groups in self._get_parent_groups():
+#             groups.delete(delay)
+
+#     def _generate_connections(self):
+#         conn_data = self.conn_data
+#         stacks = conn_data.get('stacks')
+#         if not stacks:
+#             stacks = list(conn_data['groups'].keys())
+
+#         addresses = self._get_addresses(stacks)
+#         yield from self._create_connections(addresses)
+
+#     def _get_parent_groups(self):
+#         conn_data = self.conn_data
+#         self._find_current_conns(conn_data)
+#         yield from self._create_connection_groups(conn_data)
+
+#     def _get_addresses(self, stacks):
+#         oconn = self.oconn
+#         return {name: HeatInstances(oconn, stack, self.debug).addresses
+#                 for stack in stacks
+#                 for name in HeatInstances(oconn, stack, self.debug).names}
+
+#     def _create_connection(self, conn, delay):
+#         conn.create(delay)
+
+#     def _update_connection(self, conn, delay):
+#         old_conn = self._get_old_connection(conn)
+#         if old_conn:
+#             self._delete_connection(old_conn, delay)
+#         conn.create(delay)
+
+#     def _delete_connection(self, conn, delay):
+#         conn.delete(delay)
+
+#     def _get_old_connection(self, conn):
+#         return next((c for c in self.current_connections
+#                      if c.name == conn.name), None)
+

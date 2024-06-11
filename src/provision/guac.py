@@ -9,8 +9,8 @@ Description:
 """
 from utils import msg_format
 from utils.generate import set_provisioning_flags
-from objects.users import NewUsers
-from objects.connections import NewConnections
+from objects.users import NewUsers, CurrentUsers
+from objects.connections import NewConnections, CurrentConnections
 
 
 def provision(oconn: object,
@@ -49,30 +49,41 @@ def provision(oconn: object,
     organization = globals_dict['organization']
     delay = guacamole_globals['pause']
 
-    new_conns = NewConnections(gconn,
-                               oconn,
-                               conn_params,
-                               debug)
+    if not create:
+        names = [
+            group
+            for group, data in conn_params['groups'].items()
+            if data.get('parent') == 'ROOT'
+        ]
+        current_connections = CurrentConnections(gconn,
+                                                 'ROOT',
+                                                 names,
+                                                 debug)
+        current_connections.delete(delay)
 
-    if update:
-        new_conns.update(delay)
-    elif create:
-        new_conns.create(delay)
+        current_users = CurrentUsers(gconn,
+                                     organization,
+                                     debug)
+        current_users.delete(delay)
+
     else:
-        new_conns.delete(delay)
+        new_connections = NewConnections(gconn,
+                            oconn,
+                            conn_params,
+                            debug)
 
-    new_users = NewUsers(gconn,
-                         conn_params,
-                         organization,
-                         new_conns.connections,
-                         debug)
+        new_users = NewUsers(gconn,
+                            conn_params,
+                            organization,
+                            new_connections.connections,
+                            debug)
+        if update:
+            new_connections.update(delay)
+            new_users.update(delay)
+        else:
+            new_connections.create(delay)
+            new_users.create(delay)
 
-    if update:
-        new_users.update(delay)
-    elif create:
-        new_users.create(delay)
-    else:
-        new_users.delete(delay)
 
     msg_format.success_msg(f"Provisioning {endpoint} Complete",
                            endpoint)

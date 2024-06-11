@@ -305,6 +305,14 @@ class CurrentUsers():
 
         return user
 
+    def delete(self, delay: float = 0) -> None:
+        """
+        Deletes the Guacamole users
+        """
+        msg_format.general_msg("Deleting Users",
+                               "Guacamole")
+        for user in self.users:
+            user.delete(delay)
 
 class NewUsers():
     """
