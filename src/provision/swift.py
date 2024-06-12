@@ -35,25 +35,25 @@ def provision(conn: object,
         return
 
     directory = swift_globals['asset_dir']
-    stack_name = globals_dict.get('stack_name', globals_dict['organization'])
+    container_name = swift_globals.get('container_name', globals_dict['organization'])
 
     # Provision, deprovision, or reprovision
     if update:
         swift.deprovision(conn,
-                          stack_name,
+                          container_name,
                           debug)
         swift.provision(conn,
-                        stack_name,
+                        container_name,
                         directory,
                         debug)
     elif create:
         swift.provision(conn,
-                        stack_name,
+                        container_name,
                         directory,
                         debug)
     else:
         swift.deprovision(conn,
-                          stack_name,
+                          container_name,
                           debug)
 
     msg_format.success_msg(f"Provisioning {endpoint} Complete",

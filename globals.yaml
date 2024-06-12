@@ -2,8 +2,7 @@
 globals:
   debug: False # debug mode (True) or not (False)
   artifacts: True # artifacts (True) or not (False)
-  organization: org_name # top level identifier for guac users
-  stack_name: range # top level name for heat stacks (defaults to organization)
+  organization: comp1313 # top level identifier for guac users
   amount: 1 # number of heat stacks to provision
   provision: # provision range (True) or not (False)
 
@@ -29,4 +28,5 @@ swift:
   update: True # update swift (True) or not (False)
   cloud: gcr-persistent # name of cloud to use
   asset_dir: assets # directory containing swift assets
+  container_name: container # name of the swift container. Default is organization's name
   pause: 2 # pause between each swift action in seconds TODO: make configurable
