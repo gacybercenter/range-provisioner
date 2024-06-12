@@ -631,12 +631,9 @@ class NewConnections():
         if not stacks:
             stacks = conn_data['groups'].keys()
 
-        all_addresses = {}
         for stack in stacks:
             addresses = HeatInstances(oconn, stack, debug).addresses
-            all_addresses.update(addresses)            
-
-        self._create_connections(all_addresses)
+            self._create_connections(addresses, stack)
 
     def create(self, delay: float = 0):
         """
@@ -737,7 +734,8 @@ class NewConnections():
                 self.connections.append(conn_group)
 
     def _create_connections(self,
-                            addresses: dict) -> None:
+                            addresses: dict,
+                            stack: str | None = None) -> None:
         if not self.conn_data.get('connectionTemplates'):
             msg_format.general_msg("No Connection Instances Specified",
                                     "Guacamole")
@@ -747,6 +745,7 @@ class NewConnections():
                                "Guacamole")
         defaults = self.defaults.get('connectionTemplates') or {}
         for template, data in self.conn_data['connectionTemplates'].items():
+            template_found = False
             data = expand_instances(defaults, data)
             for entry in data:
                 pattern = entry.get("pattern", template)
@@ -763,9 +762,15 @@ class NewConnections():
                                                                            guacd_ip)
                         self.connections.extend(conn_instances)
                         found = True
-                if not found:
-                    msg_format.error_msg(f"Pattern '{pattern}' was not found in Heat instances",
-                                         "Guacamole")
+                        template_found = True
+                if not found and stack:
+                    msg_format.info_msg(f"Pattern '{pattern}' was not found in stack '{stack}'",
+                                         "Guacamole",
+                                         self.debug)
+            if not template_found and stack:
+                msg_format.error_msg(f"Template '{template}' was not found in stack '{stack}'",
+                                     "Guacamole",
+                                     self.debug)
 
     def _create_connection_group(self,
                                  data: dict,
