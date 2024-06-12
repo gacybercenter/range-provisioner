@@ -745,11 +745,10 @@ class NewConnections():
                                "Guacamole")
         defaults = self.defaults.get('connectionTemplates') or {}
         for template, data in self.conn_data['connectionTemplates'].items():
-            template_found = False
             data = expand_instances(defaults, data)
+            found = False
             for entry in data:
                 pattern = entry.get("pattern", template)
-                found = False
                 for name, address in addresses.items():
                     if pattern in name:
                         attibutes = entry.get('attributes') or {}
@@ -762,15 +761,11 @@ class NewConnections():
                                                                            guacd_ip)
                         self.connections.extend(conn_instances)
                         found = True
-                        template_found = True
-                if not found and stack:
-                    msg_format.info_msg(f"Pattern '{pattern}' was not found in stack '{stack}'",
-                                         "Guacamole",
-                                         self.debug)
-            if not template_found and stack:
-                msg_format.error_msg(f"Template '{template}' was not found in stack '{stack}'",
-                                     "Guacamole",
-                                     self.debug)
+            if not found and stack:
+                msg_format.info_msg(f"Pattern '{pattern}' was not found in stack '{stack}'",
+                                        "Guacamole",
+                                        self.debug)
+
 
     def _create_connection_group(self,
                                  data: dict,
