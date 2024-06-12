@@ -36,6 +36,7 @@ def provision(conn: object,
 
     directory = swift_globals['asset_dir']
     container_name = swift_globals.get('container_name', globals_dict['organization'])
+    # pause = swift_globals.get('pause', 0)
 
     # Provision, deprovision, or reprovision
     if update:
