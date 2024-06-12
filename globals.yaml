@@ -18,6 +18,7 @@ heat:
   update: True # update heat (True) or not (False)
   cloud: gcr-persistent # name of cloud to use
   template_dir: templates # directory containing heat templates
+  stack_name: stack # name of the heat stack. Default is organization's name
   pause: 60 # pause between each heat stack action in seconds
   parameters: # Update existing heat parameters
   - username: test
