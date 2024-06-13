@@ -3,6 +3,7 @@ Connection Classes
 """
 from time import sleep
 from typing import Dict, Any, List
+import re
 import openstack.connection
 import guacamole
 from objects.parse import expand_instances
@@ -748,9 +749,9 @@ class NewConnections():
             data = expand_instances(defaults, data)
             found = False
             for entry in data:
-                pattern = entry.get("pattern", template)
+                pattern = re.compile(entry.get("pattern", template))
                 for name, address in addresses.items():
-                    if pattern in name:
+                    if pattern.search(name):
                         attibutes = entry.get('attributes') or {}
                         guacd_name = attibutes.get('guacd-hostname')
                         guacd_ip = self._get_guacd_ip(guacd_name,
