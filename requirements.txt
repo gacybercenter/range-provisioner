@@ -4,4 +4,3 @@ requests
 pyyaml
 jinja2
 colorama
-munch
