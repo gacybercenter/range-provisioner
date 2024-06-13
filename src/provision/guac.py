@@ -68,28 +68,31 @@ def provision(oconn: object,
 
     else:
         new_connections = NewConnections(gconn,
-                            oconn,
-                            conn_params,
-                            debug)
+                                        oconn,
+                                        conn_params,
+                                        debug)
+
+        if update:
+            new_connections.update(delay)
+        else:
+            new_connections.create(delay)
 
         new_users = NewUsers(gconn,
                             conn_params,
                             organization,
                             new_connections.connections,
                             debug)
+
         if update:
-            new_connections.update(delay)
             new_users.update(delay)
         else:
-            new_connections.create(delay)
             new_users.create(delay)
 
+        msg_format.general_msg("Displaying User Artifacts",
+                            endpoint)
+        for user in new_users.users:
+            msg_format.general_msg(f"Username: {user.username}, Password: {user.password}",
+                                endpoint)
 
     msg_format.success_msg(f"Provisioning {endpoint} Complete",
                            endpoint)
-
-    msg_format.general_msg("Displaying User Artifacts",
-                           endpoint)
-    for user in new_users.users:
-        msg_format.general_msg(f"Username: {user.username}, Password: {user.password}",
-                               endpoint)
