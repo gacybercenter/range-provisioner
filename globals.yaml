@@ -1,6 +1,6 @@
 #YAML for storing range provisioning parameters
 globals:
-  debug: False # debug mode (True) or not (False)
+  debug: True # debug mode (True) or not (False)
   artifacts: True # artifacts (True) or not (False)
   organization: comp1313 # top level identifier for guac users
   amount: 1 # number of heat stacks to provision
@@ -9,14 +9,14 @@ globals:
 guacamole:
   provision: True # provision guacamole (True) or not (False)
   update: True # update guacamole users (True) or not (False)
-  cloud: training-guac # name of cloud to use
+  cloud: guac # name of cloud to use
   user_dir: templates # directory containing guacamole templates
   pause: 0.5 # pause between each guacamole action in seconds TODO: make configurable
 
 heat:
   provision: True # provision heat (True) or not (False)
   update: True # update heat (True) or not (False)
-  cloud: gcr-persistent # name of cloud to use
+  cloud: gcr # name of cloud to use
   template_dir: templates # directory containing heat templates
   stack_name: stack # name of the heat stack. Default is organization's name
   pause: 60 # pause between each heat stack action in seconds
@@ -27,7 +27,7 @@ heat:
 swift:
   provision: True # provision swift (True) or not (False)
   update: True # update swift (True) or not (False)
-  cloud: gcr-persistent # name of cloud to use
+  cloud: gcr # name of cloud to use
   asset_dir: assets # directory containing swift assets
   container_name: container # name of the swift container. Default is organization's name
   pause: 2 # pause between each swift action in seconds TODO: make configurable

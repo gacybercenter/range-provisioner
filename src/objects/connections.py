@@ -6,7 +6,7 @@ from typing import Dict, Any, List
 import re
 import openstack.connection
 import guacamole
-from objects.parse import expand_instances
+from objects.parse import recursive_update
 from utils import msg_format
 
 
@@ -729,10 +729,9 @@ class NewConnections():
                                "Guacamole")
         defaults = self.defaults.get('groups') or {}
         for name, data in self.conn_data['groups'].items():
-            data = expand_instances(defaults, data)
-            for entry in data:
-                conn_group = self._create_connection_group(entry, name)
-                self.connections.append(conn_group)
+            new_data = recursive_update(defaults, data)
+            conn_group = self._create_connection_group(new_data, name)
+            self.connections.append(conn_group)
 
     def _create_connections(self,
                             addresses: dict,
@@ -746,22 +745,21 @@ class NewConnections():
                                "Guacamole")
         defaults = self.defaults.get('connectionTemplates') or {}
         for template, data in self.conn_data['connectionTemplates'].items():
-            data = expand_instances(defaults, data)
+            new_data = recursive_update(defaults, data)
             found = False
-            for entry in data:
-                pattern = re.compile(entry.get("pattern", template))
-                for name, address in addresses.items():
-                    if pattern.search(name):
-                        attibutes = entry.get('attributes') or {}
-                        guacd_name = attibutes.get('guacd-hostname')
-                        guacd_ip = self._get_guacd_ip(guacd_name,
-                                                      addresses)
-                        conn_instances = self._create_connection_instances(entry,
-                                                                           name,
-                                                                           address,
-                                                                           guacd_ip)
-                        self.connections.extend(conn_instances)
-                        found = True
+            pattern = re.compile(new_data.get("pattern", template))
+            for name, address in addresses.items():
+                if pattern.search(name):
+                    attibutes = new_data.get('attributes') or {}
+                    guacd_name = attibutes.get('guacd-hostname')
+                    guacd_ip = self._get_guacd_ip(guacd_name,
+                                                    addresses)
+                    conn_instances = self._create_connection_instances(new_data,
+                                                                        name,
+                                                                        address,
+                                                                        guacd_ip)
+                    self.connections.extend(conn_instances)
+                    found = True
             if not found and stack:
                 msg_format.info_msg(f"Pattern '{pattern}' was not found in stack '{stack}'",
                                         "Guacamole",

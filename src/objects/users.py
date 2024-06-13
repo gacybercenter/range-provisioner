@@ -9,7 +9,7 @@ from string import ascii_letters, digits
 from typing import List, Dict, Any
 import guacamole
 from objects.connections import ConnectionGroup, ConnectionInstance, SharingProfile, Connection
-from objects.parse import clean_dict, expand_instances
+from objects.parse import clean_dict, recursive_update
 from utils import msg_format
 
 
@@ -369,7 +369,7 @@ class NewUsers():
             user.username: user for user in self.current_users}
         for user in self.users:
             old_user = current_users_by_username.get(user.username)
-            if old_user:
+            if old_user and old_user in self.current_users:
                 self.current_users.remove(old_user)
                 if old_user == user:
                     msg_format.info_msg(f"No Changes For {type(self).__name__} '{user.username}'",
@@ -393,24 +393,25 @@ class NewUsers():
                                "Guacamole")
         defaults = self.defaults.get('users') or {}
         for name, data in self.guac_data['users'].items():
-            data = expand_instances(defaults, data)
-            for entry in data:
-                permissions = entry.get('permissions') or {}
-                attributes = entry.get('attributes') or {}
-                attributes['guac-organization'] = self.organization
+            new_data = recursive_update(defaults, data)
 
-                conn_perms = permissions.get('connectionPermissions') or []
-                groups, conns, sharings = self._resolve_connections(conn_perms)
-                permissions['connectionGroupPermissions'] = groups
-                permissions['connectionPermissions'] = conns
-                permissions['sharingProfilePermissions'] = sharings
-                self.users.append(
-                    User(self.gconn,
-                         entry.get('username', name),
-                         entry.get('password'),
-                         attributes,
-                         permissions)
-                )
+            permissions = new_data.get('permissions') or {}
+            attributes = new_data.get('attributes') or {}
+            attributes['guac-organization'] = self.organization
+
+            conn_perms = permissions.get('connectionPermissions') or []
+            groups, conns, sharings = self._resolve_connections(conn_perms)
+            permissions['connectionGroupPermissions'] = groups
+            permissions['connectionPermissions'] = conns
+            permissions['sharingProfilePermissions'] = sharings
+            self.users.append(
+                User(self.gconn,
+                        new_data.get('username', name),
+                        new_data.get('password'),
+                        attributes,
+                        permissions)
+            )
+
         msg_format.info_msg(self.users,
                             "Guacamole",
                             self.debug)

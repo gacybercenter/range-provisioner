@@ -1,9 +1,9 @@
 """
 Loads a template file and returns a dictionary
 """
-from munch import Munch
+from jinja2 import Template
 from yaml import safe_load
-from utils.msg_format import error_msg, info_msg, general_msg, success_msg
+from utils.msg_format import info_msg, general_msg, success_msg
 
 
 def load_template(template,
@@ -25,7 +25,14 @@ def load_template(template,
 
     try:
         with open(template, 'r', encoding='utf-8') as file:
-            parameters = Munch(safe_load(file))
+            file_content = file.read()
+        
+        if not file_content:
+            general_msg(f"Template {template} is empty",
+                        endpoint)
+            return {}
+
+        parameters = safe_load(Template(file_content).render())
 
     except FileNotFoundError:
         info_msg(f"Cannot find {template}",
@@ -34,9 +41,7 @@ def load_template(template,
         return {}
 
     except Exception as error:
-        error_msg(f"Cannot load template. {error}",
-                  endpoint)
-        return {}
+        raise error
 
     return parameters
 

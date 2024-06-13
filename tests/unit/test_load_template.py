@@ -15,11 +15,11 @@ class TestLoadTemplate(unittest.TestCase):
         'src.utils.load_template.open',
         new_callable=mock_open, read_data='name: Test\nvalue: 42'
     )
-    @patch('src.utils.load_template.Munch')
+    @patch('src.utils.load_template.safe_load')
     @patch('src.utils.load_template.info_msg')
-    def test_load_template_success(self, mock_info_msg, mock_munch, mock_file):
+    def test_load_template_success(self, mock_info_msg, mock_safe_load, mock_file):
         template_path = 'path/to/template.yaml'
-        mock_munch.return_value = {'name': 'Test', 'value': 42}
+        mock_safe_load.return_value = {'name': 'Test', 'value': 42}
 
         result = load_template(template_path)
         
