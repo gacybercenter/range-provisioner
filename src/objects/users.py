@@ -295,7 +295,6 @@ class CurrentUsers():
         user_data['permissions'] = self.gconn.detail_user_permissions(
             user_data['username']
         )
-        del user_data['permissions']['activeConnectionPermissions']
         user_data = clean_dict(user_data)
         user = User(self.gconn,
                     user_data['username'],
