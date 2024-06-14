@@ -1,0 +1,19 @@
+defaults:
+  groups:
+    type: ORGANIZATIONAL
+    attributes:
+      enable-session-affinity: ''
+      max-connections: '50'
+      max-connections-per-user: '10'
+
+  connectionTemplates:
+    protocol: rdp
+    parameters:
+      port: 3389
+      password: vividctf
+      username: vividctf
+      security: any
+      ignore-cert: 'true'
+    sharingProfiles:
+      - parameters:
+          read-only: 'true'

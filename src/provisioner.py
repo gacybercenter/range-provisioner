@@ -6,14 +6,13 @@ Provisioning and deprovisioning for swift, heat, and guacamole
 """
 
 
-
 import sys
 import time
-import json
 import traceback
 from typing import Dict, Any
 from provision import swift, heat, guac
 from utils import connections, load_template, manage_ids, msg_format
+
 
 def main() -> None:
     """
@@ -26,6 +25,8 @@ def main() -> None:
     None
     """
     endpoint = 'Pipeline'
+
+    msg_format.general_msg("Begining Range Provisioner", endpoint)
 
     try:
         # Parse and validate command line arguments
@@ -46,7 +47,7 @@ def main() -> None:
 
         start_time = time.time()
 
-        globals_vars = load_template.load_yaml_file("globals.yaml")
+        globals_vars = load_template.load_template("globals.yaml")
         globals_dict: Dict[str, Any] = globals_vars['globals']
         swift_globals: Dict[str, Any] = globals_vars['swift']
         heat_globals: Dict[str, Any] = globals_vars['heat']
@@ -55,31 +56,21 @@ def main() -> None:
         user_dir = guacamole_globals['user_dir']
         debug: bool = globals_dict['debug']
 
-        heat_params = load_template.load_yaml_file("main.yaml", template_dir, debug).get('parameters')
-        sec_params = load_template.load_yaml_file("sec.yaml", template_dir, debug).get('parameters')
-        env_params = load_template.load_yaml_file("env.yaml", template_dir, debug).get('parameters')
-        conn_params = load_template.load_yaml_file("guac.yaml", user_dir, debug)
-
-        msg_format.info_msg(json.dumps(globals_vars, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(conn_params, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(heat_params, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(sec_params, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(env_params, indent=4), endpoint, debug)
-
-        clouds = load_template.load_template(
-            'clouds.yaml', debug
-        )['clouds']
-
-        # Backwards compatibility
-        if not heat_globals.get('cloud'):
-            heat_globals['cloud'] = globals_dict['cloud']
-        if not guacamole_globals.get('cloud'):
-            guacamole_globals['cloud'] = 'guac'
+        heat_params = load_template.load_yaml_file(
+            "main.yaml", template_dir, debug).get('parameters')
+        sec_params = load_template.load_yaml_file(
+            "sec.yaml", template_dir, debug).get('parameters')
+        env_params = load_template.load_yaml_file(
+            "env.yaml", template_dir, debug).get('parameters')
+        conn_params = load_template.load_yaml_file(
+            "guac.yaml", user_dir, debug)
+        clouds = load_template.load_template('clouds.yaml')['clouds']
 
         try:
             openstack_clouds: Dict[str, Any] = clouds[heat_globals['cloud']]
         except KeyError as err:
-            raise KeyError(f"Cloud '{heat_globals['cloud']}' not found in clouds.yaml") from err
+            raise KeyError(
+                f"Cloud '{heat_globals['cloud']}' not found in clouds.yaml") from err
 
         openstack_connect = connections.openstack_connection(heat_globals['cloud'],
                                                              openstack_clouds,
@@ -97,7 +88,8 @@ def main() -> None:
                                       True,
                                       debug)
                 heat_params, sec_params, env_params = manage_ids.update_ids(openstack_connect,
-                                                                            [heat_params, sec_params, env_params],
+                                                                            [heat_params, sec_params,
+                                                                                env_params],
                                                                             [],
                                                                             False,
                                                                             debug)
@@ -108,9 +100,11 @@ def main() -> None:
                            debug)
         elif arg[0] == "guacamole":
             try:
-                guacamole_clouds: Dict[str, Any] = clouds[guacamole_globals['cloud']]
+                guacamole_clouds: Dict[str,
+                                       Any] = clouds[guacamole_globals['cloud']]
             except KeyError as err:
-                raise KeyError(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
+                raise KeyError(
+                    f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
 
             guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
                                                                  guacamole_clouds,
@@ -123,9 +117,11 @@ def main() -> None:
                            debug)
         elif arg[0] == "full":
             try:
-                guacamole_clouds: Dict[str, Any] = clouds[guacamole_globals['cloud']]
+                guacamole_clouds: Dict[str,
+                                       Any] = clouds[guacamole_globals['cloud']]
             except KeyError as err:
-                raise KeyError(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
+                raise KeyError(
+                    f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
 
             guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
                                                                  guacamole_clouds,
@@ -140,7 +136,8 @@ def main() -> None:
                                       True,
                                       debug)
                 heat_params, sec_params, env_params = manage_ids.update_ids(openstack_connect,
-                                                                            [heat_params, sec_params, env_params],
+                                                                            [heat_params, sec_params,
+                                                                                env_params],
                                                                             [],
                                                                             False,
                                                                             debug)

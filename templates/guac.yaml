@@ -1,68 +1,61 @@
-stacks:
-  - playground
+# JINJA Variables
+# AMOUNT is replaced via ci.yaml with amount from globals
+{% set amount = 5 %}
+{% set systems = 5 %}
 
+# USERS
+users:
+  {% for index in  range(1, amount+1) %}
+    {% for system in range(1, systems+1) %}
+  org_name.{{ index }}.user.{{ system }}:
+    username: org_name.{{ index }}.user.{{ system }}
+    password: vividctf
+    permissions:
+      connectionPermissions:
+        - org_name.{{ index }}.day1.{{ system }}
+        - org_name.{{ index }}.kali.{{ system }}
+        - org_name.{{ index }}.analyst.{{ system }}
+    {% endfor %}
+  {% endfor %}
+
+# Stacks
+stacks:
+  {% for index in  range(1, amount+1) %}
+  - org_name.{{ index }}
+  {% endfor %}
+
+# Groups
 groups:
-  playground:
+  org_name:
     parent: ROOT
     attributes:
       max-connections: 200
 
+# Specific Connection Templates
 connectionTemplates:
-  playground.kali:
-    parent: playground
+  {% for system in range(1, systems+1) %}
+  org_name.day1.{{ system }}:
+    parent: org_name
+    pattern: org_name.(\d+).day1.{{ system }}
     parameters:
-      username: kali
-      password: password
-    attributes:
-      guacd-hostname: guacd
-  win11:
-    parent: playground
-    attributes:
-      guacd-hostname: guacd
+      username: vividctf
+      password: vividctf
 
-{% set passwords = vars | from_yaml %}
-{% set amount = 10 %}
+  
+  org_name.kali.{{ system }}:
+    parent: org_name
+    pattern: org_name.(\d+).kali.{{ system }}
+    parameters:
+      username: vividctf
+      password: vividctf
 
-users:
-  {% for index in  range(1, amount+1) %}
-  playground.user.{{ index }}:
-    username: playground.user.{{ index }}
-    password: {{ passwords[index] }}
-    permissions:
-      connectionPermissions:
-        - kali
+  org_name.analyst.{{ system }}:
+    parent: org_name
+    pattern: org_name.(\d+).analyst.{{ system }}
+    parameters:
+      username: vividctf
+      password: vividctf
   {% endfor %}
 
-
-defaults:
-  groups:
-    type: ORGANIZATIONAL
-    attributes:
-      enable-session-affinity: ''
-      max-connections: '50'
-      max-connections-per-user: '10'
-
-  connectionTemplates:
-    protocol: rdp
-    parameters:
-      port: 3389
-      password: fak3int3rn3t
-      username: root
-      security: any
-      ignore-cert: 'true'
-    sharingProfiles:
-      - parameters:
-          read-only: 'true'
-
-  users:
-    password: 'CHANGME'
-    attributes: {}
-      # guac-organization: cyber-range-testing
-    permissions:
-      systemPermissions:
-        - ADMINISTER
-        - CREATE_USER
-        - CREATE_USER_GROUP
-        - CREATE_CONNECTION
-        - CREATE_CONNECTION_GROUP
-        # - CREATE_SHARING_PROFILE
+# Defaults
+{% include 'def.yaml' %}
