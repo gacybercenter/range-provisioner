@@ -461,10 +461,10 @@ class HeatInstances:
         """
         addresses = {}
         for server in servers:
-            ip_addr = server.addresses.get('public')[0]['addr']
-            if not ip_addr:
-                ip_addr = list(server.addresses.values())[0][0]['addr']
-            addresses[server.name] = ip_addr
+            ip_data = server.addresses.get('public')
+            if not ip_data:
+                ip_data = list(server.addresses.values())[0]
+            addresses[server.name] = ip_data[0]['addr']
             
         msg_format.info_msg(addresses,
                             "Heat",
