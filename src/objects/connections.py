@@ -459,10 +459,13 @@ class HeatInstances:
         """
         Get all addresses for all servers in the stack
         """
-        addresses = {
-            server.name: list(server.addresses.values())[0][0]['addr']
-            for server in servers
-        }
+        addresses = {}
+        for server in servers:
+            ip_addr = server.addresses.get('public')[0]['addr']
+            if not ip_addr:
+                ip_addr = list(server.addresses.values())[0][0]['addr']
+            addresses[server.name] = ip_addr
+            
         msg_format.info_msg(addresses,
                             "Heat",
                             self.debug)
