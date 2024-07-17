@@ -64,19 +64,22 @@ def provision(conn: object,
 
     # Provision, deprovision, or reprovision
     if create:
+        msg_format.general_msg("Provisioning Heat",
+                               endpoint)
         if sec_params:
-            name = heat_params['container_name']
             heat.provision(conn,
-                           f"{name}-sec",
+                           f"{stack_name}-sec",
                            f"{heat_globals['template_dir']}/sec.yaml",
                            sec_params,
                            True,
                            update,
                            debug)
             time.sleep(pause)
+            msg_format.general_msg("Provisioned security group parameters",
+                                   endpoint)
         else:
             msg_format.general_msg("No security group parameters were provided",
-                        endpoint)
+                                   endpoint)
         for name in stack_names:
             last_stack = name == stack_names[-1]
             heat.provision(conn,
@@ -87,7 +90,12 @@ def provision(conn: object,
                            update,
                            debug)
             time.sleep(pause)
+
+        msg_format.success_msg("Provisioned Heat",
+                               endpoint)
     else:
+        msg_format.general_msg("Deprovisioning Heat",
+                               endpoint)
         for name in stack_names:
             last_stack = name == stack_names[-1]
             heat.deprovision(conn,
@@ -95,3 +103,6 @@ def provision(conn: object,
                              last_stack,
                              debug)
             time.sleep(pause)
+
+        msg_format.success_msg("Deprovisioned Heat",
+                               endpoint)

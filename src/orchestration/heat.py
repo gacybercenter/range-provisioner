@@ -7,16 +7,11 @@ from utils.msg_format import error_msg, info_msg, success_msg, general_msg
 def provision(conn: object,
               stack: str,
               template: str,
-              parameters: dict,
+              parameters: dict | None = None,
               last_stack=False,
               update_stack=False,
               debug=False) -> None:
     """Provision container and upload assets"""
-
-    endpoint = 'Heat'
-
-    general_msg("Provisioning Heat",
-                endpoint)
 
     if update_stack:
         update(conn,
@@ -33,9 +28,6 @@ def provision(conn: object,
                last_stack,
                debug)
 
-    success_msg("Provisioned Heat",
-                endpoint)
-
 
 def deprovision(conn: object,
                 stack: str,
@@ -43,18 +35,10 @@ def deprovision(conn: object,
                 debug=False) -> None:
     """Deprovision container and delete assets"""
 
-    endpoint = 'Heat'
-
-    general_msg("Deprovisioning Heat",
-                endpoint)
-
     delete(conn,
            stack,
            wait,
            debug)
-
-    success_msg("Deprovisioned Heat",
-                endpoint)
 
 
 def search(conn: object,
@@ -68,11 +52,13 @@ def search(conn: object,
                 endpoint)
     result = conn.search_stacks(name_or_id=stack_name)
     if result:
-        success_msg(f"{stack_name} stack exists",
+        general_msg(f"Found stack '{stack_name}'",
                     endpoint)
-        info_msg(result, debug)
+        info_msg(result,
+                 debug,
+                 endpoint)
         return result
-    general_msg(f"{stack_name} stack doesn't exist",
+    general_msg(f"Did not find stack '{stack_name}'",
                 endpoint)
     return None
 
@@ -80,7 +66,7 @@ def search(conn: object,
 def create(conn: object,
            stack: str,
            template: str,
-           parameters: dict,
+           parameters: dict | None = None,
            last_stack=False,
            debug=False) -> None:
     """Create a new stack with the provided parameters."""
@@ -91,7 +77,7 @@ def create(conn: object,
                     stack,
                     debug)
     if exists:
-        error_msg(f"The stack '{stack}' already exists",
+        error_msg(f"Stack '{stack}' already exists, Skipping creation...",
                   endpoint)
         return None
 
@@ -127,7 +113,7 @@ def create(conn: object,
 def update(conn: object,
            stack: str,
            template: str,
-           parameters: dict,
+           parameters: dict | None = None,
            last_stack=False,
            debug=False) -> None:
     """Update a deployed stack"""
@@ -153,10 +139,10 @@ def update(conn: object,
                 wait=last_stack,
                 **parameters,
             )
-        success_msg(f"'{stack}' has been updated",
+        success_msg(f"Stack '{stack}' has been updated",
                     endpoint)
     else:
-        error_msg(f"'{stack}' cannot be updated, it doesn't exist",
+        error_msg(f"Stack '{stack}' cannot be updated, it doesn't exist",
                   endpoint)
 
 
