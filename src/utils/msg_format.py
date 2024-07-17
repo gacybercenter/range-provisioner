@@ -2,7 +2,6 @@
 Contains all the main functions for message formatting
 """
 
-from pprint import pprint
 from colorama import Fore
 
 
@@ -23,14 +22,7 @@ def error_msg(text: str | list | dict,
         endpoint = endpoint.ljust(12)
 
     print(Fore.RED + endpoint + "[ERROR]".ljust(12) + Fore.RESET, end='')
-
-    if isinstance(text, str):
-        print(text)
-    else:
-        print()
-        pprint(text,
-               indent=1,
-               sort_dicts=False)
+    print(text)
 
 
 def info_msg(text: str | list | dict,
@@ -55,15 +47,7 @@ def info_msg(text: str | list | dict,
         endpoint = endpoint.ljust(12)
 
     print(Fore.BLUE + endpoint + "[INFO]".ljust(12) + Fore.RESET, end='')
-
-    if isinstance(text, str):
-        print(text)
-    else:
-        text = remove_none_and_empty(text)
-        print()
-        pprint(text,
-               indent=1,
-               sort_dicts=False)
+    print(text)
 
 
 def success_msg(text: str | list | dict,
@@ -83,14 +67,7 @@ def success_msg(text: str | list | dict,
         endpoint = endpoint.ljust(12)
 
     print(Fore.GREEN + endpoint + "[SUCCESS]".ljust(12) + Fore.RESET, end='')
-
-    if isinstance(text, str):
-        print(text)
-    else:
-        print()
-        pprint(text,
-               indent=1,
-               sort_dicts=False)
+    print(text)
 
 
 def general_msg(text: str | list | dict,
@@ -110,36 +87,4 @@ def general_msg(text: str | list | dict,
         endpoint = endpoint.ljust(12)
 
     print(Fore.YELLOW + endpoint + "[INFO]".ljust(12) + Fore.RESET, end='')
-
-    if isinstance(text, str):
-        print(text)
-    else:
-        print()
-        pprint(text,
-               indent=1,
-               sort_dicts=False)
-
-
-def remove_none_and_empty(obj: object) -> object:
-    """
-    Recursively removes None and empty values from a dictionary or a list.
-
-    Parameters:
-    obj (dict or list): The dictionary or list to remove None and empty values from.
-
-    Returns:
-    dict or list: The dictionary or list with None and empty values removed.
-    """
-    if isinstance(obj, dict):
-        return {
-            key: remove_none_and_empty(value)
-            for key, value in obj.items()
-            if value not in (None, '')
-        }
-    if isinstance(obj, list):
-        return [
-            remove_none_and_empty(item)
-            for item in obj
-            if item not in (None, '')
-        ]
-    return obj
+    print(text)
