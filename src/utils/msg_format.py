@@ -60,7 +60,7 @@ def success_msg(text: str | list | dict,
     - endpoint: An optional string representing the endpoint prefix.
 
     Returns:
-    None
+        None
     """
 
     if endpoint:
@@ -76,8 +76,8 @@ def general_msg(text: str | list | dict,
     Prints the given text or list or dictionary to the console with an optional endpoint prefix.
 
     Parameters:
-        - text (str | list | dict): The text or list or dictionary to be printed.
-        - endpoint (str): The optional endpoint prefix to be added to the printed text.
+    - text (str | list | dict): The text or list or dictionary to be printed.
+    - endpoint (str): The optional endpoint prefix to be added to the printed text.
 
     Returns:
         None
