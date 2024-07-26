@@ -438,9 +438,11 @@ class HeatInstances:
                 # Check if resource is a Resource Group and recurse
                 elif res.resource_type == 'OS::Heat::ResourceGroup':
                     nested_resources = self.oconn.orchestration.resources(
-                        res.physical_resource_id)
+                        res.physical_resource_id
+                    )
                     server_resources.extend(
-                        get_server_resources(nested_resources))
+                        get_server_resources(nested_resources)
+                    )
             return server_resources
 
         # List all top-level resources in the stack
@@ -448,10 +450,14 @@ class HeatInstances:
         all_server_resources = get_server_resources(top_level_resources)
 
         # Get server objects using the physical_resource_id (which is the server id)
-        servers = [
-            self.oconn.compute.get_server(res.physical_resource_id)
-            for res in all_server_resources
-        ]
+        servers = []
+        for res in all_server_resources:
+            try:
+                servers.append(
+                    self.oconn.compute.get_server(res.physical_resource_id)
+                )
+            except Exception as e:
+                msg_format.error_msg(e, "Heat")
 
         return servers
 
@@ -671,11 +677,13 @@ class NewConnections():
                                "Guacamole")
         conns_by_ids = {}
         conn_map = {'ROOT': 'ROOT'}
+        # create a map of the current connections
         for conn in self.current_connections:
             conns_by_ids[conn.identifier] = conn
             conn_map.setdefault(conn.name, conn.identifier)
 
         for conn in self.connections:
+            # replace parent identifier with ID instead of name
             if conn.parent_identifier and not conn.parent_identifier.isnumeric():
                 conn.parent_identifier = conn_map.get(conn.parent_identifier)
             if not conn.identifier:
@@ -684,8 +692,8 @@ class NewConnections():
             old_identifier = conn_map.get(conn.name)
             if old_identifier:
                 old_conn = conns_by_ids.get(old_identifier)
-                if old_conn and old_conn in self.current_connections:
-                    self.current_connections.remove(old_conn)
+                # if old_conn and old_conn in self.current_connections:
+                #     self.current_connections.remove(old_conn)
                 if old_conn == conn:
                     msg_format.info_msg(f"No Changes For {type(conn).__name__} '{conn.name}'",
                                         "Guacamole",
@@ -820,8 +828,8 @@ class NewConnections():
         return instances
 
     def _get_guacd_ip(self,
-                            guacd_host: str,
-                            addresses: dict) -> str:
+                        guacd_host: str,
+                        addresses: dict) -> str:
 
         if guacd_host:
             return next(
@@ -831,6 +839,8 @@ class NewConnections():
                     if guacd_host in name
                 ), guacd_host
             )
+        msg_format.error_msg(f"Guacd host '{guacd_host}' not found in {addresses}",
+                             "Guacamole")
         return ''
 
     def _create_sharing_profiles(self,
