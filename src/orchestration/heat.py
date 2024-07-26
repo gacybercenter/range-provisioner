@@ -55,8 +55,8 @@ def search(conn: object,
         general_msg(f"Found stack '{stack_name}'",
                     endpoint)
         info_msg(result,
-                 debug,
-                 endpoint)
+                 endpoint,
+                 debug)
         return result
     general_msg(f"Did not find stack '{stack_name}'",
                 endpoint)
