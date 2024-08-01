@@ -300,7 +300,8 @@ class CurrentUsers():
                     user_data['username'],
                     '*',
                     user_data.get('attributes'),
-                    user_data.get('permissions'))
+                    user_data.get('permissions'),
+                    debug=self.debug)
 
         return user
 
