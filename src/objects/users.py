@@ -419,7 +419,8 @@ class NewUsers():
                         new_data.get('username', name),
                         new_data.get('password'),
                         attributes,
-                        permissions)
+                        permissions,
+                        debug=self.debug)
             )
 
         msg_format.info_msg(self.users,
