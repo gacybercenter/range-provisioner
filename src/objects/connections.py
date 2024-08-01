@@ -677,6 +677,7 @@ class NewConnections():
                                "Guacamole")
         conns_by_ids = {}
         conn_map = {'ROOT': 'ROOT'}
+        conn_ids = set()
         # create a map of the current connections
         for conn in self.current_connections:
             conns_by_ids[conn.identifier] = conn
@@ -691,9 +692,8 @@ class NewConnections():
 
             old_identifier = conn_map.get(conn.name)
             if old_identifier:
+                conn_ids.add(conn.identifier)
                 old_conn = conns_by_ids.get(old_identifier)
-                # if old_conn and old_conn in self.current_connections:
-                #     self.current_connections.remove(old_conn)
                 if old_conn == conn:
                     msg_format.info_msg(f"No Changes For {type(conn).__name__} '{conn.name}'",
                                         "Guacamole",
@@ -702,10 +702,12 @@ class NewConnections():
                 conn.update(delay)
             else:
                 conn.create(delay)
-                conn_map[conn.name] = conn.identifier
+                conn_ids.add(conn.identifier)
+
+            conn_map[conn.name] = conn.identifier
 
         for conn in self.current_connections:
-            if conn not in self.connections:
+            if conn.identifier and conn.identifier not in conn_ids:
                 conn.delete(delay)
 
     def _find_current_conns(self) -> dict:
@@ -764,7 +766,7 @@ class NewConnections():
                     attibutes = new_data.get('attributes') or {}
                     guacd_name = attibutes.get('guacd-hostname')
                     guacd_ip = self._get_guacd_ip(guacd_name,
-                                                    addresses)
+                                                    addresses) if guacd_name else ""
                     conn_instances = self._create_connection_instances(new_data,
                                                                         name,
                                                                         address,
@@ -840,7 +842,7 @@ class NewConnections():
                 ), guacd_host
             )
         msg_format.error_msg(f"Guacd host '{guacd_host}' not found in {addresses}",
-                             "Guacamole")
+                            "Guacamole")
         return ''
 
     def _create_sharing_profiles(self,
