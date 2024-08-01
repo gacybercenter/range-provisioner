@@ -55,6 +55,12 @@ def provision(oconn: object,
             for group, data in conn_params['groups'].items()
             if data.get('parent') == 'ROOT'
         ]
+        
+        if not names:
+            msg_format.error_msg("No Connection Groups Specified in guac.yaml",
+                                 "Guacamole")
+            return
+        
         current_connections = CurrentConnections(gconn,
                                                  'ROOT',
                                                  names,
