@@ -120,7 +120,9 @@ def update(conn: object,
 
     endpoint = 'Heat'
 
-    exists = search(conn, stack, debug)
+    exists = search(conn,
+                    stack,
+                    debug)
     if exists:
         general_msg(f"Updating stack '{stack}'",
                     endpoint)
