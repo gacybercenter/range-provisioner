@@ -482,7 +482,7 @@ class NewUsers():
         for connection in self.connection_groups:
             if connection.identifier == parent_identifier:
                 groups.add(connection)
-                groups.update(self._resolve_groups(connection))
+                groups.update(self._resolve_groups(connection.parent_identifier))
 
         return groups
 
