@@ -55,12 +55,12 @@ def provision(oconn: object,
             for group, data in conn_params['groups'].items()
             if data.get('parent') == 'ROOT'
         ]
-        
+
         if not names:
             msg_format.error_msg("No Connection Groups Specified in guac.yaml",
                                  "Guacamole")
             return
-        
+
         current_connections = CurrentConnections(gconn,
                                                  'ROOT',
                                                  names,
@@ -74,9 +74,9 @@ def provision(oconn: object,
 
     else:
         new_connections = NewConnections(gconn,
-                                        oconn,
-                                        conn_params,
-                                        debug)
+                                         oconn,
+                                         conn_params,
+                                         debug)
 
         if update:
             new_connections.update(delay)
@@ -84,10 +84,10 @@ def provision(oconn: object,
             new_connections.create(delay)
 
         new_users = NewUsers(gconn,
-                            conn_params,
-                            organization,
-                            new_connections.connections,
-                            debug)
+                             conn_params,
+                             organization,
+                             new_connections.connections,
+                             debug)
 
         if update:
             new_users.update(delay)
@@ -95,10 +95,10 @@ def provision(oconn: object,
             new_users.create(delay)
 
         msg_format.general_msg("Displaying User Artifacts",
-                            endpoint)
+                               endpoint)
         for user in new_users.users:
             msg_format.general_msg(f"Username: {user.username}, Password: {user.password}",
-                                endpoint)
+                                   endpoint)
 
     msg_format.success_msg(f"Provisioning {endpoint} Complete",
                            endpoint)
