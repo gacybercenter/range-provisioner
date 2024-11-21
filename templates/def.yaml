@@ -10,8 +10,6 @@ defaults:
     protocol: rdp
     parameters:
       port: 3389
-      password: vividctf
-      username: vividctf
       security: any
       ignore-cert: 'true'
     sharingProfiles:
