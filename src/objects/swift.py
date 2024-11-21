@@ -110,7 +110,7 @@ class SwiftContainer:
         self.container = None
         return False
 
-    def _create_container(self, wait: bool = True):
+    def _create_container(self):
         """
         Default implementation for creating a container
         """
@@ -147,7 +147,7 @@ class SwiftContainer:
 
         return container
 
-    def _delete_container(self, wait: bool = True):
+    def _delete_container(self):
         """
         Default implementation for deleting a container
         """
@@ -180,7 +180,7 @@ class SwiftContainer:
 
         return None
 
-    def _update_container(self, wait: bool = True):
+    def _update_container(self):
         """
         Default implementation for creating a container
         """
@@ -217,7 +217,9 @@ class SwiftContainer:
 
     def _set_access(self,
                     access: str = "public") -> object | None:
-        """Set container access to public"""
+        """
+        Set container access. Can be public or private. Default is public.
+        """
 
         conn = self.conn
         name = self.name
@@ -228,19 +230,19 @@ class SwiftContainer:
                                endpoint)
         container = conn.set_container_access(name=name,
                                               access=access)
-        if container:
-            msg_format.success_msg(f"Container '{name}' is now public",
-                                   endpoint)
-            msg_format.info_msg(container,
-                                endpoint,
-                                debug)
+        if not container:
+            msg_format.error_msg(f"Failed to set {access} for container '{name}'",
+                                 endpoint)
+            return None
 
-            self.container = container
-            return container
+        msg_format.general_msg(f"Container '{name}' is now {access}",
+                               endpoint)
+        msg_format.info_msg(container,
+                            endpoint,
+                            debug)
 
-        msg_format.error_msg(f"Failed to set access for container '{name}'",
-                             endpoint)
-        return None
+        self.container = container
+        return container
 
     def _upload_objects(self) -> None:
         """Create directory markers and upload objects"""
@@ -277,8 +279,9 @@ class SwiftContainer:
                                endpoint)
 
         for file in files:
+            file = file.replace('\\', '/')
             swift_object = conn.create_object(container=name,
-                                              name=file.replace('\\', '/'),
+                                              name=file,
                                               filename=file)
             if swift_object:
                 swift_objects.append(swift_object)
