@@ -1,7 +1,7 @@
 """
 Handles the logic for provisioning Swift
 """
-from objects.swift import SwiftContainer
+import orchestration.swift as swift
 from utils.generate import set_provisioning_flags
 from utils import msg_format
 
@@ -38,31 +38,24 @@ def provision(conn: object,
     container_name = swift_globals.get('container_name', globals_dict['organization'])
     # pause = swift_globals.get('pause', 0)
 
-    container = SwiftContainer(conn,
-                            container_name,
-                            directory,
-                            debug)
-    
-    container.update()
-
-    # # Provision, deprovision, or reprovision
-    # if update:
-    #     swift.deprovision(conn,
-    #                       container_name,
-    #                       debug)
-    #     swift.provision(conn,
-    #                     container_name,
-    #                     directory,
-    #                     debug)
-    # elif create:
-    #     swift.provision(conn,
-    #                     container_name,
-    #                     directory,
-    #                     debug)
-    # else:
-    #     swift.deprovision(conn,
-    #                       container_name,
-    #                       debug)
+    # Provision, deprovision, or reprovision
+    if update:
+        swift.deprovision(conn,
+                          container_name,
+                          debug)
+        swift.provision(conn,
+                        container_name,
+                        directory,
+                        debug)
+    elif create:
+        swift.provision(conn,
+                        container_name,
+                        directory,
+                        debug)
+    else:
+        swift.deprovision(conn,
+                          container_name,
+                          debug)
 
     msg_format.success_msg(f"Provisioning {endpoint} Complete",
                            endpoint)
