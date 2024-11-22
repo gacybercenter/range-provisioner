@@ -110,15 +110,15 @@ class SwiftContainer:
                                  endpoint)
             return None
 
-        msg_format.general_msg(f"Deleting container '{name}'",
-                               endpoint)
-
         deleted = self._delete_objects()
 
         if not deleted:
             msg_format.error_msg(f"Could not delete all objects in container '{name}'",
                                  endpoint)
             return None
+
+        msg_format.general_msg(f"Deleting container '{name}'",
+                               endpoint)
 
         conn.object_store.delete_container(container=name)
 
