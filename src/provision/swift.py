@@ -5,6 +5,7 @@ from objects.swift import SwiftContainer
 from utils.generate import set_provisioning_flags
 from utils import msg_format
 
+
 def provision(conn: object,
               globals_dict: dict,
               swift_globals: dict,
@@ -35,15 +36,16 @@ def provision(conn: object,
         return
 
     directory = swift_globals['asset_dir']
-    delay = swift_globals.get('pause', 0)
-    container_name = swift_globals.get('container_name', globals_dict['organization'])
-    # pause = swift_globals.get('pause', 0)
+    pause = swift_globals.get('pause', 0)
+    container_name = swift_globals.get(
+        'container_name', globals_dict['organization']
+    )
 
     container = SwiftContainer(conn,
-                            container_name,
-                            directory,
-                            delay,
-                            debug)
+                               container_name,
+                               directory,
+                               pause,
+                               debug)
 
     # Provision, deprovision, or reprovision
     if update:
