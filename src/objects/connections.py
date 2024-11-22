@@ -6,8 +6,7 @@ from typing import Dict, Any, List
 import re
 import openstack.connection
 import guacamole
-from objects.parse import recursive_update
-from utils import msg_format
+from utils import msg_format, parse
 
 
 class Connection:
@@ -742,7 +741,7 @@ class NewConnections():
                                "Guacamole")
         defaults = self.defaults.get('groups') or {}
         for name, data in self.conn_data['groups'].items():
-            new_data = recursive_update(defaults, data)
+            new_data = parse.recursive_update(defaults, data)
             conn_group = self._create_connection_group(new_data, name)
             self.connections.append(conn_group)
 
@@ -758,7 +757,7 @@ class NewConnections():
                                "Guacamole")
         defaults = self.defaults.get('connectionTemplates') or {}
         for template, data in self.conn_data['connectionTemplates'].items():
-            new_data = recursive_update(defaults, data)
+            new_data = parse.recursive_update(defaults, data)
             found = False
             pattern = re.compile(new_data.get("pattern", template))
             for name, address in addresses.items():

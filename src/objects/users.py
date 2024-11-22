@@ -9,8 +9,7 @@ from string import ascii_letters, digits
 from typing import List, Dict, Set, Tuple, Any
 import guacamole
 from objects.connections import ConnectionGroup, ConnectionInstance, SharingProfile, Connection
-from objects.parse import clean_dict, recursive_update
-from utils import msg_format
+from utils import msg_format, parse
 
 
 class User:
@@ -295,7 +294,7 @@ class CurrentUsers():
         user_data['permissions'] = self.gconn.detail_user_permissions(
             user_data['username']
         )
-        user_data = clean_dict(user_data)
+        user_data = parse.clean_dict(user_data)
         user = User(self.gconn,
                     user_data['username'],
                     '*',
@@ -404,7 +403,7 @@ class NewUsers():
                                "Guacamole")
         defaults = self.defaults.get('users') or {}
         for name, data in self.guac_data['users'].items():
-            new_data = recursive_update(defaults, data)
+            new_data = parse.recursive_update(defaults, data)
 
             permissions = new_data.get('permissions') or {}
             attributes = new_data.get('attributes') or {}

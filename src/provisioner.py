@@ -10,8 +10,8 @@ import sys
 import time
 import traceback
 from typing import Dict, Any
-from provision import swift, heat, guac
-from utils import connections, load_template, manage_ids, msg_format
+from provision import heat, swift, guac
+from utils import connections, load_template, msg_format
 
 
 def main() -> None:
@@ -52,18 +52,28 @@ def main() -> None:
         swift_globals: Dict[str, Any] = globals_vars['swift']
         heat_globals: Dict[str, Any] = globals_vars['heat']
         guacamole_globals: Dict[str, Any] = globals_vars['guacamole']
-        template_dir = heat_globals['template_dir']
-        user_dir = guacamole_globals['user_dir']
-        debug: bool = globals_dict['debug']
 
-        heat_params = load_template.load_yaml_file(
-            "main.yaml", template_dir, debug).get('parameters')
-        sec_params = load_template.load_yaml_file(
-            "sec.yaml", template_dir, debug).get('parameters')
-        env_params = load_template.load_yaml_file(
-            "env.yaml", template_dir, debug).get('parameters')
-        conn_params = load_template.load_yaml_file(
-            "guac.yaml", user_dir, debug)
+        debug: bool = globals_dict['debug']
+        heat_file = heat_globals.get('heat_file')
+        guac_file = guacamole_globals.get('guac_file')
+        
+        # Backwards Compatibility
+        if not heat_file:
+            heat_file = heat_globals['template_dir'] + '/main.yaml'
+            heat_globals['heat_file'] = heat_file
+        if not guac_file:
+            guac_file = guacamole_globals['user_dir'] + '/guac.yaml'
+            guacamole_globals['guac_file'] = guac_file
+
+        template_dir = globals_dict.get('template_dir')
+
+        heat_vars = load_template.load_yaml_file(heat_file,
+                                                   template_dir,
+                                                   debug)
+        heat_params: Dict[str, Any] = heat_vars.get('parameters')
+        conn_params = load_template.load_yaml_file(guac_file,
+                                                   template_dir,
+                                                   debug)
         clouds = load_template.load_template('clouds.yaml')['clouds']
 
         try:
@@ -82,26 +92,14 @@ def main() -> None:
                             swift_globals,
                             debug)
         elif arg[0] == "heat":
-            if env_params:
-                manage_ids.update_env(openstack_connect,
-                                      globals_dict,
-                                      True,
-                                      debug)
-                heat_params, sec_params, env_params = manage_ids.update_ids(openstack_connect,
-                                                                            [heat_params, sec_params,
-                                                                                env_params],
-                                                                            [],
-                                                                            False,
-                                                                            debug)
             heat.provision(openstack_connect,
-                           globals_dict, heat_globals,
+                           globals_dict,
+                           heat_globals,
                            heat_params,
-                           sec_params,
                            debug)
         elif arg[0] == "guacamole":
             try:
-                guacamole_clouds: Dict[str,
-                                       Any] = clouds[guacamole_globals['cloud']]
+                guacamole_clouds: Dict[str, Any] = clouds[guacamole_globals['cloud']]
             except KeyError as err:
                 raise KeyError(
                     f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
@@ -130,22 +128,10 @@ def main() -> None:
                             globals_dict,
                             swift_globals,
                             debug)
-            if env_params:
-                manage_ids.update_env(openstack_connect,
-                                      globals_dict,
-                                      True,
-                                      debug)
-                heat_params, sec_params, env_params = manage_ids.update_ids(openstack_connect,
-                                                                            [heat_params, sec_params,
-                                                                                env_params],
-                                                                            [],
-                                                                            False,
-                                                                            debug)
             heat.provision(openstack_connect,
                            globals_dict,
                            heat_globals,
                            heat_params,
-                           sec_params,
                            debug)
             guac.provision(openstack_connect,
                            guacamole_connect,

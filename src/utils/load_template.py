@@ -35,13 +35,12 @@ def load_template(template_name: str,
     return parameters
 
 def load_yaml_file(file_name: str,
-                   heat_template_dir: str = '.',
+                   template_dir: str | None = None,
                    debug: bool = False) -> dict | None:
     """
     Load a YAML file from the specified directory.
 
     Parameters:
-        heat_template_dir (str): The directory path where the heat template files are located.
         file_name (str): The name of the YAML file to load.
         debug (bool): Flag to indicate whether debug messages should be displayed.
 
@@ -55,7 +54,11 @@ def load_yaml_file(file_name: str,
         msg_format.general_msg(f"'{file_name}' is not a YAML file", endpoint)
         return {}
 
-    yaml_file_path = f"{heat_template_dir}/{file_name}"
+    if template_dir:
+        yaml_file_path = f"{template_dir}/{file_name}"
+    else:
+        template_dir = '.'
+        yaml_file_path = file_name
 
     if not os.path.exists(yaml_file_path):
         msg_format.general_msg(f"Cannot find '{yaml_file_path}'", endpoint)
@@ -66,7 +69,7 @@ def load_yaml_file(file_name: str,
         return {}
 
     msg_format.general_msg(f"Loading '{yaml_file_path}'", endpoint)
-    yaml_dict = load_template(file_name, heat_template_dir)
+    yaml_dict = load_template(file_name, template_dir)
 
     if yaml_dict:
         msg_format.success_msg(f"'{yaml_file_path}' loaded", endpoint)

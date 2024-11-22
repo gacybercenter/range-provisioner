@@ -24,15 +24,17 @@ class HeatStack:
                  name: str,
                  template_file: str,
                  parameters: dict | None = None,
+                 wait: bool = True,
                  debug: bool = False):
 
         self.conn = conn
         self.name = name
         self.template_file = template_file
         self.parameters = parameters
+        self.wait = wait
         self.debug = debug
         self.stack = None
-        
+
         self._search()
 
     def __hash__(self):
@@ -57,33 +59,126 @@ class HeatStack:
     def __repr__(self):
         return self.__str__()
 
-    def create(self,
-               wait: bool = True,
-               delay: float = 0):
-        """Create a new stack with the provided parameters."""
+    def create(self):
+        """
+        Default implementation for creating a stack
+        """
 
-        response = self._create_stack(wait)
-        sleep(delay)
+        conn = self.conn
+        name = self.name
+        template_file = self.template_file
+        parameters = self.parameters
+        wait = self.wait
+        endpoint = 'Heat'
+
+        if self.stack:
+            msg_format.error_msg(f"Can't create stack. '{name}' already exists.",
+                                 endpoint)
+            return None
+
+        msg_format.general_msg(f"Creating stack '{name}'",
+                               endpoint)
+        if parameters is None:
+            response = conn.create_stack(
+                name=name,
+                template_file=template_file,
+                wait=wait,
+                rollback=False,
+            )
+        else:
+            if 'name' in parameters.keys():
+                name = parameters['name']
+                self.name = name
+
+            response = conn.create_stack(
+                name=name,
+                template_file=template_file,
+                wait=wait,
+                rollback=False,
+                **parameters,
+            )
+
+        self.stack = response
+        msg_format.success_msg(f"Created stack '{name}'",
+                               endpoint)
+        msg_format.info_msg(response,
+                            endpoint,
+                            self.debug)
 
         return response
 
-    def delete(self,
-               wait: bool = True,
-               delay: float = 0):
-        """Delete a new stack with the provided parameters."""
+    def delete(self):
+        """
+        Default implementation for creating a stack
+        """
 
-        response = self._delete_stack(wait)
-        sleep(delay)
+        conn = self.conn
+        name = self.name
+        wait = self.wait
+        endpoint = 'Heat'
+
+        if not self.stack:
+            msg_format.error_msg(f"Stack '{name}' doesn't exist.",
+                                 endpoint)
+            return None
+
+        msg_format.general_msg(f"Deleting stack '{name}'",
+                               endpoint)
+
+        response = conn.delete_stack(name_or_id=name,
+                                     wait=wait)
+
+        self.stack = None
+        msg_format.success_msg(f"Deleted stack '{name}'",
+                               endpoint)
 
         return response
 
-    def update(self,
-               wait: bool = True,
-               delay: float = 0):
-        """Update a new stack with the provided parameters."""
+    def update(self):
+        """
+        Default implementation for creating a stack
+        """
 
-        response = self._update_stack(wait)
-        sleep(delay)
+        conn = self.conn
+        name = self.name
+        template_file = self.template_file
+        parameters = self.parameters
+        wait = self.wait
+        endpoint = 'Heat'
+
+        if not self.stack:
+            msg_format.error_msg(f"Can't update stack. '{name}' doesn't exist.",
+                                 endpoint)
+            return None
+
+        msg_format.general_msg(f"Updating stack '{name}'",
+                               endpoint)
+        if parameters is None:
+            response = conn.update_stack(
+                name_or_id=name,
+                template_file=template_file,
+                wait=wait,
+                rollback=False,
+            )
+        else:
+            if 'name' in parameters.keys():
+                name = parameters['name']
+                self.name = name
+
+            response = conn.update_stack(
+                name_or_id=name,
+                template_file=template_file,
+                wait=wait,
+                rollback=False,
+                **parameters,
+            )
+
+        self.stack = response
+        msg_format.success_msg(f"Updated stack '{name}'",
+                               endpoint)
+        msg_format.info_msg(response,
+                            endpoint,
+                            self.debug)
 
         return response
 
@@ -171,126 +266,3 @@ class HeatStack:
                                endpoint)
         self.stack = None
         return False
-
-    def _create_stack(self, wait: bool = True):
-        """
-        Default implementation for creating a stack
-        """
-
-        conn = self.conn
-        name = self.name
-        template_file = self.template_file
-        parameters = self.parameters
-        endpoint = 'Heat'
-
-        if self.stack:
-            msg_format.error_msg(f"Can't create stack. '{name}' already exists.",
-                                 endpoint)
-            return None
-
-        msg_format.general_msg(f"Creating stack '{name}'",
-                               endpoint)
-        if parameters is None:
-            response = conn.create_stack(
-                name=name,
-                template_file=template_file,
-                wait=wait,
-                rollback=True,
-            )
-        else:
-            if 'name' in parameters.keys():
-                name = parameters['name']
-                self.name = name
-
-            response = conn.create_stack(
-                name=name,
-                template_file=template_file,
-                wait=wait,
-                rollback=True,
-                **parameters,
-            )
-
-        self._search()
-        msg_format.success_msg(f"Created stack '{name}'",
-                               endpoint)
-        msg_format.info_msg(response,
-                            endpoint,
-                            self.debug)
-
-        return response
-
-    def _delete_stack(self, wait: bool = True):
-        """
-        Default implementation for creating a stack
-        """
-
-        conn = self.conn
-        name = self.name
-        endpoint = 'Heat'
-
-        if not self.stack:
-            msg_format.error_msg(f"Stack '{name}' doesn't exist.",
-                                 endpoint)
-            return None
-
-        msg_format.error_msg(f"Can't delete stack. '{name}' doesn't exist.",
-                             endpoint)
-        response = conn.delete_stack(name_or_id=name,
-                                     wait=wait)
-
-        self.stack = None
-        msg_format.success_msg(f"Deleted stack '{name}'",
-                               endpoint)
-        msg_format.info_msg(response,
-                            endpoint,
-                            self.debug)
-
-        return response
-
-    def _update_stack(self, wait: bool = True):
-        """
-        Default implementation for creating a stack
-        """
-
-        conn = self.conn
-        name = self.name
-        template_file = self.template_file
-        parameters = self.parameters
-        endpoint = 'Heat'
-
-        if not self.stack:
-            msg_format.error_msg(f"Can't update stack. '{name}' doesn't exist.",
-                                 endpoint)
-            return None
-
-        msg_format.general_msg(f"Updating stack '{name}'",
-                               endpoint)
-        if parameters is None:
-            response = conn.update_stack(
-                name=name,
-                template_file=template_file,
-                wait=wait,
-                rollback=True,
-            )
-        else:
-            if 'name' in parameters.keys():
-                name = parameters['name']
-                self.name = name
-
-            response = conn.update_stack(
-                name=name,
-                template_file=template_file,
-                wait=wait,
-                rollback=True,
-                **parameters,
-            )
-
-        self._search()
-        msg_format.success_msg(f"Updated stack '{name}'",
-                               endpoint)
-        msg_format.info_msg(response,
-                            endpoint,
-                            self.debug)
-
-        return response
-

@@ -37,4 +37,4 @@ users:
 
 
 # Defaults
-{% include 'def.yaml' %}
+{% include 'templates/def.yaml' %}

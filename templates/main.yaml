@@ -67,21 +67,19 @@ parameters:
 
   nameserver:
     type: string
-    default: 10.100.10.1
+    default: 10.100.10.3
     description: >
       DNS Server for Georgia Cyber Range
-
-  conn_proto:
-    type: comma_delimited_list
-    default: "rdp"
 
   count:
     type: string
     default: 2
 
-  disable.updates:
-    default: true
-    type: boolean
+  kali.image:
+    type: string
+    default: kali24
+    description: Kali image to use
+
 
 resources:
 ## Networks / Subnets ##
@@ -102,7 +100,7 @@ resources:
       gateway_ip: 192.168.1.1
       enable_dhcp: true
       network_id: { get_resource: student.network }
-      dns_nameservers: [{ get_param: apt_cache_proxy }, 10.100.10.1]
+      dns_nameservers: [{ get_param: nameserver }]
       ip_version: 4
 
 ## INFRASTRUCTURE ROUTER ##
@@ -127,7 +125,7 @@ resources:
     properties:
       name:
         list_join: [ '.', [ { get_param: "OS::stack_name"}, 'guacd.server']]
-      image: ubuntu2004
+      image: ubuntu2204
       flavor: r1.small
       diskConfig: AUTO
       config_drive: true
@@ -148,7 +146,7 @@ resources:
             echo "nameserver __nameserver_ip__" > /etc/resolv.conf
             chattr +i /etc/resolv.conf
 
-            echo 'Acquire::http::proxy "http://__cache_proxy__:3142";' > /etc/apt/apt.conf.d/02proxy
+            echo 'Acquire::http::proxy "http://__apt_cache_proxy__:3142";' > /etc/apt/apt.conf.d/02proxy
 
             echo "root:__rootpass__" | chpasswd
             echo "ubuntu:__rootpass__" | chpasswd
@@ -166,11 +164,10 @@ resources:
 
           params:
             __system_name__: "guacd"
-            __disable_updates__: { get_param: disable.updates }
             __rootpass__: { get_param: root_password }
             __studentpass__: { get_param: password }
             __tenant_id__: { get_param: tenant_id }
-            __cache_proxy__: { get_param: apt_cache_proxy }
+            __apt_cache_proxy__: { get_param: apt_cache_proxy }
             __container_name__: { get_param: container_name }
             __dashboard__: { get_param: dashboard }
             __dashboard_record__: { get_param: dashboard_record }
@@ -186,8 +183,7 @@ resources:
           - subnet_id: { get_resource: student.subnet }
             ip_address: 192.168.1.4
         port_security_enabled: true
-        security_groups:
-          - any
+        security_groups: []
 
   guacd.server.float:
     type: OS::Neutron::FloatingIP
@@ -210,13 +206,12 @@ resources:
         properties:
           name:
             list_join: [ '.', [ { get_param: "OS::stack_name"}, 'analyst', '%index%']]
-          image: kali_2204
+          image: { get_param: kali.image }
           flavor: d1.medium
           config_drive: true
           networks:
           - network: { get_resource: student.network }
-          security_groups:
-          - any
+          security_groups: []
           user_data_format: RAW
           user_data: { get_resource: kali.system.config }
 
@@ -232,7 +227,7 @@ resources:
             echo "nameserver __nameserver_ip__" > /etc/resolv.conf
             chattr +i /etc/resolv.conf
 
-            echo 'Acquire::http::proxy "http://__cache_proxy__:3142";' > /etc/apt/apt.conf.d/02proxy
+            echo 'Acquire::http::proxy "http://__apt_cache_proxy__:3142";' > /etc/apt/apt.conf.d/02proxy
 
             useradd -m -U -s /bin/bash __username__
             usermod -aG sudo,netdev __username__
@@ -257,7 +252,7 @@ resources:
             __rootpass__: { get_param: root_password }
             __userpass__: { get_param: password }
             __tenant_id__: { get_param: tenant_id }
-            __cache_proxy__: { get_param: apt_cache_proxy }
+            __apt_cache_proxy__: { get_param: apt_cache_proxy }
             __container_name__: { get_param: container_name }
             __dashboard__: { get_param: dashboard }
             __dashboard_record__: { get_param: dashboard_record }
