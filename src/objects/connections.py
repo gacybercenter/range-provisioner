@@ -534,7 +534,7 @@ class NewConnections():
 
     def __init__(self,
                  gconn: guacamole.session,
-                 oconn: openstack.connect,
+                 oconn: openstack.connection.Connection,
                  conn_data: dict,
                  debug: bool = False):
 
@@ -559,6 +559,8 @@ class NewConnections():
                               stack_name,
                               debug=debug)
             if not stack.stack:
+                msg_format.error_msg(f"Failed to gather IP addresses from stack '{stack_name}'",
+                                      "Guacamole")
                 continue
 
             addresses = stack.get_ip_addresses()
