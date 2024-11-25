@@ -41,6 +41,7 @@ class User:
         )
         self.permissions['userPermissions'] = [username]
         self.debug = debug
+        self.endpoint = "Guacamole"
 
     def __hash__(self):
         return hash(
@@ -120,34 +121,38 @@ class User:
 
         return flattened_permissions
 
-    def create(self, delay: float = 0):
+    def create(self,
+               delay: float = 0):
         """
         Creates a connection group
         """
+
         result = self.gconn.create_user(self.username,
                                         self.password,
                                         self.attributes)
         msg_format.info_msg(result,
-                            "Guacamole",
+                            self.endpoint,
                             self.debug)
         sleep(delay)
-        self.manage_permissions()
+        self.manage_permissions(delay=delay)
         msg_format.general_msg(f"Created {self.username}",
-                               "Guacamole")
+                               self.endpoint)
         sleep(delay)
 
         return result
 
-    def delete(self, delay: float = 0):
+    def delete(self,
+               delay: float = 0):
         """
         Deletes a user
         """
+
         result = self.gconn.delete_user(self.username)
         msg_format.info_msg(result,
-                            "Guacamole",
+                            self.endpoint,
                             self.debug)
         msg_format.general_msg(f"Deleted {self.username}",
-                               "Guacamole")
+                               self.endpoint)
         sleep(delay)
 
         return result
@@ -158,28 +163,35 @@ class User:
         """
         Updates a user
         """
+
         old_perms = old_perms if old_perms else {}
         result = self.gconn.update_user(self.username,
                                         self.attributes)
         if result:
             msg_format.error_msg(result,
-                                "Guacamole")
+                                 self.endpoint)
         sleep(delay)
-        self.manage_permissions(old_perms)
+        self.manage_permissions(old_perms,
+                                delay=delay)
         msg_format.general_msg(f"Updated {self.username}",
-                               "Guacamole")
+                               self.endpoint)
         sleep(delay)
 
         return result
 
-    def detail(self):
+    def detail(self,
+               delay: float = 0):
         """
         Returns user details
         """
-        return self.gconn.detail_user_permissions(self.username)
+        result = self.gconn.detail_user_permissions(self.username)
+        sleep(delay)
+
+        return result
 
     def manage_permissions(self,
-                           old_perms: dict | None = None):
+                           old_perms: dict | None = None,
+                           delay: float = 0):
         """
         Sets permissions
         """
@@ -193,9 +205,12 @@ class User:
             perms_to_remove = {}
 
         self._update_category_permissions(perms_to_add,
-                                          perms_to_remove)
+                                          perms_to_remove,
+                                          delay=delay)
 
-    def _resolve_permissions(self, old_perms: dict, new_perms: dict) -> dict:
+    def _resolve_permissions(self,
+                             old_perms: dict,
+                             new_perms: dict) -> dict:
         """
         Find the difference between two sets of permissions.
 
@@ -214,13 +229,23 @@ class User:
             new_perm_set = set(new_perms.get(category, []))
             old_perm_set = set(old_perms.get(category, []))
             perms_changes['add'][category] = list(new_perm_set - old_perm_set)
-            perms_changes['remove'][category] = list(old_perm_set - new_perm_set)
+            perms_changes['remove'][category] = list(
+                old_perm_set - new_perm_set)
 
         return perms_changes['add'], perms_changes['remove']
-    
+
     def _update_category_permissions(self,
                                      perms_to_add: dict,
-                                     perms_to_remove: dict):
+                                     perms_to_remove: dict,
+                                     delay: float = 0):
+        """
+        Updates user permissions
+        
+        Args:
+            perms_to_add (dict): Permissions to add.
+            perms_to_remove (dict): Permissions to remove.
+            delay (float, optional): Delay between requests. Defaults to 0.
+        """
         connection_types = {
             'connectionGroupPermissions': 'group',
             'connectionPermissions': 'connection',
@@ -239,20 +264,21 @@ class User:
 
                 if connection_type in ['group', 'connection', 'sharing profile']:
                     result = self.gconn.update_connection_permissions(self.username,
-                                                                    permission,
-                                                                    operation,
-                                                                    connection_type)
+                                                                      permission,
+                                                                      operation,
+                                                                      connection_type)
                 elif connection_type == 'user group':
                     result = self.gconn.update_user_group(self.username,
-                                                        permission,
-                                                        operation)
+                                                          permission,
+                                                          operation)
                 elif connection_type == 'system':
                     result = self.gconn.update_user_permissions(self.username,
                                                                 permission,
                                                                 operation)
+                sleep(delay)
                 if result:
                     msg_format.info_msg(result,
-                                        "Guacamole",
+                                        self.endpoint,
                                         self.debug)
 
 
@@ -269,15 +295,16 @@ class CurrentUsers():
         self.gconn = gconn
         self.organization = organization
         self.debug = debug
+        self.endpoint = "Guacamole"
 
-        msg_format.general_msg("Getting Current Users",
-                               "Guacamole")
+        msg_format.general_msg("Getting current users...",
+                               self.endpoint)
         self.users = [
             self._create_user(user_data)
             for user_data in self._get_user_data()
         ]
         msg_format.info_msg(self.users,
-                            "Guacamole",
+                            self.endpoint,
                             self.debug)
 
     def _get_user_data(self) -> List[dict]:
@@ -290,7 +317,8 @@ class CurrentUsers():
             ]
         return list(users_data.values())
 
-    def _create_user(self, user_data: dict) -> User:
+    def _create_user(self,
+                     user_data: dict) -> User:
         user_data['permissions'] = self.gconn.detail_user_permissions(
             user_data['username']
         )
@@ -304,14 +332,19 @@ class CurrentUsers():
 
         return user
 
-    def delete(self, delay: float = 0) -> None:
+    def delete(self,
+               delay: float = 0) -> None:
         """
         Deletes the Guacamole users
         """
-        msg_format.general_msg("Deleting Users",
-                               "Guacamole")
+
+        msg_format.general_msg("Deleting users...",
+                               self.endpoint)
         for user in self.users:
-            user.delete(delay)
+            user.delete(delay=delay)
+
+        msg_format.success_msg("Deleted users.",
+                               self.endpoint)
 
 class NewUsers():
     """
@@ -331,6 +364,7 @@ class NewUsers():
         self.users: List[User] = []
         self.defaults = guac_data.get('defaults', {})
         self.debug = debug
+        self.endpoint = "Guacamole"
         self.current_users = CurrentUsers(
             gconn, organization, debug=debug
         ).users
@@ -349,32 +383,44 @@ class NewUsers():
         self._create_users()
         self._update_passwords()
 
-    def create(self, delay: float = 0) -> None:
+    def create(self,
+               delay: float = 0) -> None:
         """
         Creates the Guacamole users
         """
-        msg_format.general_msg("Creating Users",
-                               "Guacamole")
+
+        msg_format.general_msg("Creating users...",
+                               self.endpoint)
         for user in self.users:
             if user.password != '*':
-                user.create(delay)
+                user.create(delay=delay)
 
-    def delete(self, delay: float = 0) -> None:
+        msg_format.success_msg("Created users.",
+                               self.endpoint)
+
+    def delete(self,
+               delay: float = 0) -> None:
         """
         Deletes the Guacamole users
         """
-        msg_format.general_msg("Deleting Users",
-                               "Guacamole")
+
+        msg_format.general_msg("Deleting users...",
+                               self.endpoint)
         for user in self.current_users:
             if user.password == '*':
-                user.delete(delay)
+                user.delete(delay=delay)
 
-    def update(self, delay: float = 0) -> None:
+        msg_format.success_msg("Deleted users.",
+                               self.endpoint)
+
+    def update(self,
+               delay: float = 0) -> None:
         """
         Updates the Guacamole users
         """
-        msg_format.general_msg("Updating Users",
-                               "Guacamole")
+
+        msg_format.general_msg("Updating users...",
+                               self.endpoint)
         current_users_by_username = {
             user.username: user for user in self.current_users}
         for user in self.users:
@@ -382,24 +428,32 @@ class NewUsers():
             if old_user and old_user in self.current_users:
                 self.current_users.remove(old_user)
                 if old_user == user:
-                    msg_format.general_msg(f"No Changes For {type(user).__name__} '{user.username}'",
-                                           "Guacamole")
+                    msg_format.general_msg(f"No changes needed for {type(user).__name__} '{user.username}'",
+                                           self.endpoint)
                     continue
-                user.update(old_user.permissions, delay)
+                user.update(old_user.permissions,
+                            delay=delay)
             else:
-                user.create(delay)
+                user.create(delay=delay)
         for user in self.current_users:
             if user not in self.users:
-                user.delete(delay)
+                user.delete(delay=delay)
+
+        msg_format.success_msg("Updated users.",
+                               self.endpoint)
 
     def _create_users(self) -> None:
+        """
+        Creates the Guacamole users and assigns them permissions
+        """
+
         if not self.guac_data.get('users'):
             msg_format.general_msg("No Users Specified",
-                                    "Guacamole")
+                                   self.endpoint)
             return
 
         msg_format.general_msg("Generating New Users",
-                               "Guacamole")
+                               self.endpoint)
         defaults = self.defaults.get('users') or {}
         for name, data in self.guac_data['users'].items():
             new_data = parse.recursive_update(defaults, data)
@@ -415,25 +469,26 @@ class NewUsers():
             permissions['sharingProfilePermissions'] = sharings
             self.users.append(
                 User(self.gconn,
-                        new_data.get('username', name),
-                        new_data.get('password'),
-                        attributes,
-                        permissions,
-                        debug=self.debug)
+                     new_data.get('username', name),
+                     new_data.get('password'),
+                     attributes,
+                     permissions,
+                     debug=self.debug)
             )
 
         msg_format.info_msg(self.users,
-                            "Guacamole",
+                            self.endpoint,
                             self.debug)
 
-    def _resolve_connections(self, names: List[str]) -> Tuple[List['ConnectionInstance'], List['ConnectionInstance'], List['SharingProfile']]:
+    def _resolve_connections(self,
+                             names: List[str]) -> Tuple[List['ConnectionInstance'], List['ConnectionInstance'], List['SharingProfile']]:
         """
         Recursively search for connections based on a list of names
         and return all parent groups in the hierarchy.
 
         Parameters:
         - names (list): The names of the connections to resolve.
-        
+
         Returns:
         - list: A list of all parent group ids in the hierarchy.
         - list: A list of all connection ids in the hierarchy.
@@ -457,7 +512,8 @@ class NewUsers():
 
         group_ids = [group.identifier for group in groups]
         connection_ids = [connection.identifier for connection in connections]
-        sharing_profile_ids = [sharing_profile.identifier for sharing_profile in sharing_profiles]
+        sharing_profile_ids = [
+            sharing_profile.identifier for sharing_profile in sharing_profiles]
 
         return group_ids, connection_ids, sharing_profile_ids
 
@@ -480,7 +536,8 @@ class NewUsers():
         for connection in self.connection_groups:
             if connection.identifier == parent_identifier:
                 groups.add(connection)
-                groups.update(self._resolve_groups(connection.parent_identifier))
+                groups.update(self._resolve_groups(
+                    connection.parent_identifier))
 
         return groups
 
@@ -502,7 +559,6 @@ class NewUsers():
                 sharing_profiles.add(sharing_profile)
 
         return sharing_profiles
-
 
     def _update_passwords(self) -> None:
         for new_user in self.users:

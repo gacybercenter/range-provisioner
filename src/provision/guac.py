@@ -66,7 +66,7 @@ def provision(oconn: object,
         ]
 
         if not names:
-            msg_format.error_msg("No Connection Groups Specified in guac.yaml",
+            msg_format.error_msg("No connection groups specified.",
                                  "Guacamole")
             return
 

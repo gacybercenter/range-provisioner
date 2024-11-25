@@ -11,7 +11,7 @@ class HeatStack:
     Stack Object for Heat
 
     Args:
-        conn (Connection): OpenStack Connection
+        self.conn (self.connection): OpenStack self.connection
         name (str): Name of the stack
         template_file (str): Template file for the stack
         parameters (dict): Parameters for the stack
@@ -30,6 +30,7 @@ class HeatStack:
         self.template_file = template_file
         self.parameters = parameters
         self.debug = debug
+        self.endpoint = 'Heat'
         self.stack = None
 
         self._search()
@@ -73,52 +74,44 @@ class HeatStack:
         Creates the heat stack if it doesn't exist
         """
 
-        conn = self.conn
-        name = self.name
-        template_file = self.template_file
-        parameters = self.parameters
-        debug = self.debug
-        endpoint = 'Heat'
-
-        if not template_file:
+        if not self.template_file:
             msg_format.error_msg(f"Can't create stack. No template file specified.",
-                                 endpoint)
+                                 self.endpoint)
             return None
 
         if self.stack:
-            msg_format.error_msg(f"Can't create stack. '{name}' already exists.",
-                                 endpoint)
+            msg_format.error_msg(f"Can't create stack. '{self.name}' already exists.",
+                                 self.endpoint)
             return None
 
-        msg_format.general_msg(f"Creating stack '{name}'",
-                               endpoint)
-        if parameters is None:
-            response = conn.create_stack(
-                name=name,
-                template_file=template_file,
+        msg_format.general_msg(f"Creating stack '{self.name}'...",
+                               self.endpoint)
+        if self.parameters is None:
+            response = self.conn.create_stack(
+                name=self.name,
+                template_file=self.template_file,
                 wait=True,
                 rollback=False,
             )
         else:
-            if 'name' in parameters.keys():
-                name = parameters['name']
-                self.name = name
+            if 'name' in self.parameters.keys():
+                self.name = self.parameters['name']
 
-            response = conn.create_stack(
-                name=name,
-                template_file=template_file,
+            response = self.conn.create_stack(
+                name=self.name,
+                template_file=self.template_file,
                 wait=True,
                 rollback=False,
-                **parameters,
+                **self.parameters,
             )
         sleep(delay)
 
         self.stack = response
-        msg_format.success_msg(f"Created stack '{name}'",
-                               endpoint)
+        msg_format.success_msg(f"Created stack '{self.name}'",
+                               self.endpoint)
         msg_format.info_msg(response,
-                            endpoint,
-                            debug)
+                            self.endpoint,
+                            self.debug)
 
         return response
 
@@ -127,25 +120,21 @@ class HeatStack:
         Deletes the heat stack if it exists
         """
 
-        conn = self.conn
-        name = self.name
-        endpoint = 'Heat'
-
         if not self.stack:
-            msg_format.error_msg(f"Stack '{name}' doesn't exist.",
-                                 endpoint)
+            msg_format.error_msg(f"Stack '{self.name}' doesn't exist.",
+                                 self.endpoint)
             return None
 
-        msg_format.general_msg(f"Deleting stack '{name}'",
-                               endpoint)
+        msg_format.general_msg(f"Deleting stack '{self.name}'...",
+                               self.endpoint)
 
-        response = conn.delete_stack(name_or_id=name,
+        response = self.conn.delete_stack(name_or_id=self.name,
                                      wait=True)
         sleep(delay)
 
         self.stack = None
-        msg_format.success_msg(f"Deleted stack '{name}'",
-                               endpoint)
+        msg_format.success_msg(f"Deleted stack '{self.name}'",
+                               self.endpoint)
 
         return response
 
@@ -154,52 +143,44 @@ class HeatStack:
         Updates the heat stack if it exists
         """
 
-        conn = self.conn
-        name = self.name
-        template_file = self.template_file
-        parameters = self.parameters
-        debug = self.debug
-        endpoint = 'Heat'
-
-        if not template_file:
+        if not self.template_file:
             msg_format.error_msg(f"Can't update stack. No template file specified.",
-                                 endpoint)
+                                 self.endpoint)
             return None
 
         if not self.stack:
-            msg_format.error_msg(f"Can't update stack. '{name}' doesn't exist.",
-                                 endpoint)
+            msg_format.error_msg(f"Can't update stack '{self.name}' because it doesn't exist.",
+                                 self.endpoint)
             return None
 
-        msg_format.general_msg(f"Updating stack '{name}'",
-                               endpoint)
-        if parameters is None:
-            response = conn.update_stack(
-                name_or_id=name,
-                template_file=template_file,
+        msg_format.general_msg(f"Updating stack '{self.name}'...",
+                               self.endpoint)
+        if self.parameters is None:
+            response = self.conn.update_stack(
+                name_or_id=self.name,
+                template_file=self.template_file,
                 wait=True,
                 rollback=False,
             )
         else:
-            if 'name' in parameters.keys():
-                name = parameters['name']
-                self.name = name
+            if 'name' in self.parameters.keys():
+                self.name = self.parameters['name']
 
-            response = conn.update_stack(
-                name_or_id=name,
-                template_file=template_file,
+            response = self.conn.update_stack(
+                name_or_id=self.name,
+                template_file=self.template_file,
                 wait=True,
                 rollback=False,
-                **parameters,
+                **self.parameters,
             )
         sleep(delay)
 
         self.stack = response
-        msg_format.success_msg(f"Updated stack '{name}'",
-                               endpoint)
+        msg_format.success_msg(f"Updated stack '{self.name}'",
+                               self.endpoint)
         msg_format.info_msg(response,
-                            endpoint,
-                            debug)
+                            self.endpoint,
+                            self.debug)
 
         return response
 
@@ -208,38 +189,34 @@ class HeatStack:
         Returns the IP addresses of the server instances in the stack
         """
 
-        name = self.name
-        debug = self.debug
-        endpoint = 'Heat'
         ip_addresses = {}
-
         if not self.stack:
-            msg_format.error_msg(f"Can't get stack IPs. '{name}' doesn't exist.",
-                                 endpoint)
+            msg_format.error_msg(f"Can't get stack IPs. '{self.name}'. doesn't exist.",
+                                 self.endpoint)
             return ip_addresses
 
-        msg_format.general_msg(f"Getting instance IPs from stack '{name}'",
-                               endpoint)
+        msg_format.general_msg(f"Getting instance IPs from stack '{self.name}'...",
+                               self.endpoint)
 
         instances = self.get_stack_instances(delay=delay)
         for instance in instances:
-            server = self.conn.search_servers(
+            server = self.conn.get_server(
                 name_or_id=instance['physical_resource_id']
-            )[0]
+            )
             sleep(delay)
             hostname = server['public_v4'] if server['public_v4'] else server['private_v4']
             ip_addresses[server['name']] = hostname
             msg_format.general_msg(f"Found IP address '{hostname}' for instance '{server['name']}'",
-                                   endpoint)
+                                   self.endpoint)
             msg_format.info_msg(server,
-                                endpoint,
-                                debug)
+                                self.endpoint,
+                                self.debug)
 
-        msg_format.success_msg(f"Found all IPs in stack '{name}'",
-                               endpoint)
+        msg_format.success_msg(f"Found all IPs in stack '{self.name}'",
+                               self.endpoint)
         msg_format.info_msg(ip_addresses,
-                            endpoint,
-                            debug)
+                            self.endpoint,
+                            self.debug)
 
         return ip_addresses
 
@@ -248,45 +225,42 @@ class HeatStack:
         Returns the server instances in the stack
         """
 
-        conn = self.conn
-        name = self.name
-        endpoint = 'Heat'
-        instances = []
 
+        instances = []
         if not self.stack:
-            msg_format.error_msg(f"Can't get stack instances. '{name}' doesn't exist.",
-                                 endpoint)
+            msg_format.error_msg(f"Can't get stack instances. '{self.name}'. doesn't exist.",
+                                 self.endpoint)
             return instances
 
-        msg_format.general_msg(f"Getting stack instances in '{name}'",
-                               endpoint)
+        msg_format.general_msg(f"Getting stack instances in '{self.name}'...",
+                               self.endpoint)
 
-        resources = conn.orchestration.resources(name)
+        resources = self.conn.orchestration.resources(self.name)
         sleep(delay)
         for resource in resources:
             if resource.resource_type == 'OS::Nova::Server':
                 instances.append(resource)
                 msg_format.general_msg(f"Found instance '{resource['logical_resource_id']}'",
-                                       endpoint)
+                                       self.endpoint)
                 msg_format.info_msg(resource,
-                                    endpoint,
+                                    self.endpoint,
                                     self.debug)
             elif resource.resource_type == 'OS::Heat::ResourceGroup':
-                children = conn.orchestration.resources(resource.physical_resource_id)
+                children = self.conn.orchestration.resources(resource.physical_resource_id)
                 sleep(delay)
                 for child in children:
                     if child.resource_type == 'OS::Nova::Server':
                         instances.append(child)
                         msg_format.general_msg(f"Found resource group instance '{resource['logical_resource_id']}'",
-                                               endpoint)
+                                               self.endpoint)
                         msg_format.info_msg(resource,
-                                            endpoint,
+                                            self.endpoint,
                                             self.debug)
 
-        msg_format.general_msg(f"Found {len(instances)} stack instances in '{name}'",
-                               endpoint)
+        msg_format.general_msg(f"Found {len(instances)} stack instances in '{self.name}'",
+                               self.endpoint)
         msg_format.info_msg(instances,
-                            endpoint,
+                            self.endpoint,
                             self.debug)
 
         return instances
@@ -296,25 +270,20 @@ class HeatStack:
         Search for the heat stack in OpenStack
         """
 
-        conn = self.conn
-        name = self.name
-        debug = self.debug
-        endpoint = 'Heat'
-
-        msg_format.general_msg(f"Searching for stack '{name}'...",
-                               endpoint)
-        result = conn.get_stack(name_or_id=name)
+        msg_format.general_msg(f"Searching for stack '{self.name}'...",
+                               self.endpoint)
+        result = self.conn.get_stack(name_or_id=self.name)
         sleep(delay)
         if result:
-            msg_format.general_msg(f"Found stack '{name}'",
-                                   endpoint)
+            msg_format.general_msg(f"Found stack '{self.name}'",
+                                   self.endpoint)
             msg_format.info_msg(result,
-                                endpoint,
-                                debug)
+                                self.endpoint,
+                                self.debug)
             self.stack = result
             return True
 
-        msg_format.general_msg(f"Didn't find stack '{name}'",
-                               endpoint)
+        msg_format.general_msg(f"Didn't find stack '{self.name}'",
+                               self.endpoint)
         self.stack = None
         return False

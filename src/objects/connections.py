@@ -34,6 +34,7 @@ class Connection:
         self.parent_identifier = parent_identifier
         self.identifier = identifier
         self.debug = debug
+        self.endpoint = "Guacamole"
 
     @staticmethod
     def _clean_empty_values(d: Dict[str, Any] | List[str]) -> Dict[str, Any]:
@@ -87,24 +88,21 @@ class Connection:
         """
         if self.identifier:
             msg_format.error_msg(
-                f"Counld Not Create'{self.name}', {
-                    type(self).__name__} Already Exists",
-                "Guacamole"
+                f"Counld not create'{self.name}'. {type(self).__name__} already exists.",
+                self.endpoint
             )
             return None
 
         if not self.parent_identifier:
             msg_format.error_msg(
-                f"Counld Not Create'{self.name}', {
-                    type(self).__name__} Parent Not Set",
-                "Guacamole"
+                f"Counld not create'{self.name}'. {type(self).__name__} parent not set.",
+                self.endpoint
             )
             return None
 
         msg_format.general_msg(
-            f"Creating {type(self).__name__} '{self.name}' Under '{
-                self.parent_identifier}'",
-            "Guacamole"
+            f"Creating {type(self).__name__} '{self.name}' under '{self.parent_identifier}'...",
+            self.endpoint
         )
 
         response = self._create_connection()
@@ -113,7 +111,7 @@ class Connection:
             self.identifier = response.get('identifier', self.identifier)
 
         msg_format.info_msg(response,
-                            "Guacamole",
+                            self.endpoint,
                             self.debug)
         sleep(delay)
 
@@ -125,22 +123,20 @@ class Connection:
         """
         if not self.identifier:
             msg_format.error_msg(
-                f"Counld Not Delete'{self.name}', {
-                    type(self).__name__} Does Not Exist",
-                "Guacamole"
+                f"Counld not delete'{self.name}'. {type(self).__name__} does not exist.",
+                self.endpoint
             )
             return None
 
         msg_format.general_msg(
-            f"Deleting {type(self).__name__} '{self.name}'",
-            "Guacamole"
+            f"Deleting {type(self).__name__} '{self.name}'...",
+            self.endpoint
         )
 
-        # Delete the connection
         response = self._delete_connection()
 
         msg_format.info_msg(response,
-                            "Guacamole",
+                            self.endpoint,
                             self.debug)
         sleep(delay)
 
@@ -152,31 +148,28 @@ class Connection:
         """
         if not self.identifier:
             msg_format.error_msg(
-                f"Counld Not Update'{self.name}', {
-                    type(self).__name__} Does Not Exist",
-                "Guacamole"
+                f"Counld not update'{self.name}'. {type(self).__name__} does not exist.",
+                self.endpoint
             )
             return None
 
         if not self.parent_identifier:
             msg_format.error_msg(
-                f"Counld Not Update'{self.name}', {
-                    type(self).__name__} Parent Not Set",
-                "Guacamole"
+                f"Counld not update'{self.name}'. {type(self).__name__} parent not set.",
+                self.endpoint
             )
             return None
 
         msg_format.general_msg(
-            f"Updating {type(self).__name__} '{self.name}' Under '{
-                self.parent_identifier}'",
-            "Guacamole"
+            f"Updating {type(self).__name__} '{self.name}' under '{self.parent_identifier}'...",
+            self.endpoint
         )
 
-        # Update the connection
         response = self._update_connection()
+
         if response:
             msg_format.error_msg(response,
-                                "Guacamole")
+                                 self.endpoint)
         sleep(delay)
 
         return response
@@ -228,7 +221,11 @@ class ConnectionGroup(Connection):
                  identifier: str | None = None,
                  debug: bool = False):
 
-        super().__init__(gconn, name, parent_identifier, identifier, debug)
+        super().__init__(gconn,
+                         name,
+                         parent_identifier,
+                         identifier,
+                         debug)
 
         self.type = group_type
         self.attributes = self._clean_empty_values(attributes)
@@ -288,7 +285,11 @@ class ConnectionInstance(Connection):
                  identifier: str | None = None,
                  debug: bool = False):
 
-        super().__init__(gconn, name, parent_identifier, identifier, debug)
+        super().__init__(gconn,
+                         name,
+                         parent_identifier,
+                         identifier,
+                         debug)
 
         self.protocol = protocol
         self.attributes = self._clean_empty_values(attributes)
@@ -353,10 +354,13 @@ class SharingProfile(Connection):
                  identifier: str | None = None,
                  debug: bool = False):
 
-        super().__init__(gconn, name, parent_identifier, identifier, debug)
+        super().__init__(gconn,
+                         name,
+                         parent_identifier,
+                         identifier,
+                         debug)
 
-        self.parameters = self.parameters = self._clean_empty_values(
-            parameters)
+        self.parameters = self._clean_empty_values(parameters)
 
     def _create_connection(self):
         """
@@ -405,12 +409,11 @@ class CurrentConnections():
         self.gconn = gconn
         self.parent_identifier = parent_identifier or 'ROOT'
         self.debug = debug
-        if self.parent_identifier == 'ROOT':
-            msg_format.general_msg("Getting All Current Connections, Parent DNE",
-                                   "Guacamole")
-        else:
-            msg_format.general_msg(f"Getting Current Connections Under ID '{parent_identifier}'",
-                                   "Guacamole")
+        self.endpoint = "Guacamole"
+
+
+        msg_format.general_msg(f"Getting current connections under ID '{parent_identifier}'",
+                               self.endpoint)
         self.tree = gconn.detail_connection_group_connections(
             parent_identifier
         )
@@ -444,7 +447,6 @@ class CurrentConnections():
         Returns:
         object: The extracted connection groups, connections, and sharing groups.
         """
-
         conns = []
 
         if isinstance(obj, dict):
@@ -513,18 +515,22 @@ class CurrentConnections():
             conn.detail()
 
         msg_format.info_msg(f"Found {type(conn).__name__} '{conn.name}'",
-                            "Guacamole",
+                            self.endpoint,
                             self.debug)
         return conn
 
-    def delete(self, delay: float = 0):
+    def delete(self,
+               delay: float = 0):
         """
         Deletes the Guacamole connections
         """
-        msg_format.general_msg("Deleting Connections",
-                               "Guacamole")
+        msg_format.general_msg("Deleting connections...",
+                               self.endpoint)
         for conn in self.connections:
-            conn.delete(delay)
+            conn.delete(delay=delay)
+            
+        msg_format.success_msg("Deleted connections.",
+                               self.endpoint)
 
 
 class NewConnections():
@@ -542,6 +548,7 @@ class NewConnections():
         self.oconn = oconn
         self.conn_data = conn_data
         self.debug = debug
+        self.endpoint = "Guacamole"
 
         self.parent_groups: set[ConnectionGroup] = set()
         self.connections: List[Connection] = []
@@ -559,44 +566,52 @@ class NewConnections():
                               stack_name,
                               debug=debug)
             if not stack.stack:
-                msg_format.error_msg(f"Failed to gather IP addresses from stack '{stack_name}'. DNE",
-                                      "Guacamole")
+                msg_format.error_msg(f"Stack '{stack_name}' doesn't exist.",
+                                     self.endpoint)
                 continue
 
             addresses = stack.get_ip_addresses()
             self._create_connections(addresses,
                                      stack_name)
 
-    def create(self, delay: float = 0):
+    def create(self,
+               delay: float = 0):
         """
         Creates the Guacamole connections
         """
-        msg_format.general_msg("Creating Connections",
-                               "Guacamole")
+        msg_format.general_msg("Creating connections...",
+                               self.endpoint)
         identifier_map = {}
         for conn in self.connections:
             if not conn.parent_identifier.isnumeric():
                 conn.parent_identifier = identifier_map.get(
                     conn.parent_identifier, 'ROOT'
                 )
-            conn.create(delay)
+            conn.create(delay=delay)
             identifier_map[conn.name] = conn.identifier
+        
+        msg_format.success_msg("Created connections.",
+                               self.endpoint)
 
     def delete(self, delay: float = 0):
         """
         Deletes the Guacamole connections
         """
-        msg_format.general_msg("Deleting Connections",
-                               "Guacamole")
+        msg_format.general_msg("Deleting connections...",
+                               self.endpoint)
         for groups in self.parent_groups:
-            groups.delete(delay)
+            groups.delete(delay=delay)
 
-    def update(self, delay: float = 0):
+        msg_format.success_msg("Deleted connections.",
+                               self.endpoint)
+
+    def update(self,
+               delay: float = 0):
         """
         Updates the Guacamole connections
         """
-        msg_format.general_msg("Updating Connections",
-                               "Guacamole")
+        msg_format.general_msg("Updating connections...",
+                               self.endpoint)
         conns_by_ids = {}
         conn_map = {'ROOT': 'ROOT'}
         conn_ids = set()
@@ -618,19 +633,22 @@ class NewConnections():
                 conn_ids.add(conn.identifier)
                 old_conn = conns_by_ids.get(old_identifier)
                 if old_conn == conn:
-                    msg_format.general_msg(f"No Changes For {type(conn).__name__} '{conn.name}'",
-                                           "Guacamole")
+                    msg_format.general_msg(f"No changes needed for {type(conn).__name__} '{conn.name}'",
+                                           self.endpoint)
                     continue
-                conn.update(delay)
+                conn.update(delay=delay)
             else:
-                conn.create(delay)
+                conn.create(delay=delay)
                 conn_ids.add(conn.identifier)
 
             conn_map[conn.name] = conn.identifier
 
         for conn in self.current_connections:
             if conn.identifier and conn.identifier not in conn_ids:
-                conn.delete(delay)
+                conn.delete(delay=delay)
+
+        msg_format.success_msg("Updated connections.",
+                               self.endpoint)
 
     def _find_current_conns(self) -> dict:
         new_groups = self.conn_data.get('groups', self.conn_data['stacks'])
@@ -656,12 +674,12 @@ class NewConnections():
 
     def _create_connection_groups(self) -> None:
         if not self.conn_data.get('groups'):
-            msg_format.general_msg("No Connection Groups Specified",
-                                   "Guacamole")
+            msg_format.general_msg("No connection groups specified.",
+                                   self.endpoint)
             return
 
-        msg_format.general_msg("Generating New Connection Groups",
-                               "Guacamole")
+        msg_format.general_msg("Generating new connection groups...",
+                               self.endpoint)
         defaults = self.defaults.get('groups') or {}
         for name, data in self.conn_data['groups'].items():
             new_data = parse.recursive_update(defaults, data)
@@ -672,12 +690,12 @@ class NewConnections():
                             addresses: dict,
                             stack: str) -> None:
         if not self.conn_data.get('connectionTemplates'):
-            msg_format.general_msg("No Connection Instances Specified",
-                                   "Guacamole")
+            msg_format.general_msg("No connection instances specified.",
+                                   self.endpoint)
             return
 
-        msg_format.general_msg("Generating New Connections and Sharing Profiles",
-                               "Guacamole")
+        msg_format.general_msg("Generating new connections...",
+                               self.endpoint)
         defaults = self.defaults.get('connectionTemplates') or {}
         for template, data in self.conn_data['connectionTemplates'].items():
             new_data = parse.recursive_update(defaults, data)
@@ -697,7 +715,7 @@ class NewConnections():
                     found = True
             if not found:
                 msg_format.info_msg(f"Pattern '{pattern}' was not found in stack '{stack}'",
-                                    "Guacamole",
+                                    self.endpoint,
                                     self.debug)
 
     def _create_connection_group(self,
@@ -711,7 +729,7 @@ class NewConnections():
                                 None,
                                 debug=self.debug)
         msg_format.info_msg(group,
-                            "Guacamole",
+                            self.endpoint,
                             self.debug)
         return group
 
@@ -739,7 +757,7 @@ class NewConnections():
                                       attr_copy,
                                       debug=self.debug)
         msg_format.info_msg(instance,
-                            "Guacamole",
+                            self.endpoint,
                             self.debug)
         instances = [instance]
         if sharings:
@@ -759,11 +777,11 @@ class NewConnections():
                 (
                     addr
                     for name, addr in addresses.items()
-                    if guacd_host in name
+                    if re.search(guacd_host, name)
                 ), guacd_host
             )
-        msg_format.error_msg(f"Guacd host '{guacd_host}' not found in {addresses}",
-                             "Guacamole")
+        msg_format.error_msg(f"Guacd host '{guacd_host}' not found in {addresses}.",
+                             self.endpoint)
         return ''
 
     def _create_sharing_profiles(self,
@@ -777,7 +795,7 @@ class NewConnections():
                                      sharing.get('parameters'),
                                      debug=self.debug)
             msg_format.info_msg(profile,
-                                "Guacamole",
+                                self.endpoint,
                                 self.debug)
             sharing_profiles.append(profile)
 
