@@ -1,22 +1,21 @@
 """
-Connection Classes
+Heat Classes
 """
-from time import sleep
-from typing import Dict, Any, List
 from openstack.connection import Connection
 from utils import msg_format
 
 
 class HeatStack:
     """
-    Connection Template Object for Guacamole
+    Stack Object for Heat
 
     Args:
-        gconn: Specific type of Connection object
-        name: Name of the connection
-        protocol: Protocol of the connection
-        identifier: Identifier of the connection
-        debug: Debug mode
+        conn (Connection): OpenStack Connection
+        name (str): Name of the stack
+        template_file (str): Template file for the stack
+        parameters (dict): Parameters for the stack
+        wait (bool): Wait for the stack to complete
+        debug (bool): Debug mode
     """
 
     def __init__(self,
@@ -38,17 +37,26 @@ class HeatStack:
         self._search()
 
     def __hash__(self):
+        """
+        Hash function for the HeatStack object
+        """
         return hash(
             tuple(sorted(vars(self)))
         )
 
     def __eq__(self, other):
+        """
+        Equality function for the HeatStack object
+        """
         if not isinstance(other, self.__class__):
             return False
 
         return vars(self) == vars(other)
 
     def __str__(self):
+        """
+        String function for the HeatStack object
+        """
         class_name = type(self).__name__
         output = f'{class_name}(\n'
         for key, value in self.__dict__.items():
@@ -57,11 +65,14 @@ class HeatStack:
         return output
 
     def __repr__(self):
+        """
+        Representation function for the HeatStack object
+        """
         return self.__str__()
 
     def create(self):
         """
-        Default implementation for creating a stack
+        Creates the heat stack if it doesn't exist
         """
 
         conn = self.conn
@@ -114,7 +125,7 @@ class HeatStack:
 
     def delete(self):
         """
-        Default implementation for creating a stack
+        Deletes the heat stack if it exists
         """
 
         conn = self.conn
@@ -141,7 +152,7 @@ class HeatStack:
 
     def update(self):
         """
-        Default implementation for creating a stack
+        Updates the heat stack if it exists
         """
 
         conn = self.conn
@@ -193,7 +204,9 @@ class HeatStack:
         return response
 
     def get_ip_addresses(self):
-        """Get the IP address of the stack."""
+        """
+        Returns the IP addresses of the server instances in the stack
+        """
 
         name = self.name
         endpoint = 'Heat'
@@ -229,7 +242,9 @@ class HeatStack:
         return ip_addresses
 
     def get_stack_instances(self):
-        """Get the server instances in the stack."""
+        """
+        Returns the server instances in the stack
+        """
 
         conn = self.conn
         name = self.name
@@ -273,7 +288,9 @@ class HeatStack:
         return instances
 
     def _search(self):
-        """Search for a stack and return the stack if it exists."""
+        """
+        Search for the heat stack in OpenStack
+        """
 
         conn = self.conn
         name = self.name
