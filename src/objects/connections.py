@@ -7,6 +7,7 @@ import re
 import openstack.connection
 import guacamole
 from utils import msg_format, parse
+from objects.heat import HeatStack
 
 
 class Connection:
@@ -86,20 +87,23 @@ class Connection:
         """
         if self.identifier:
             msg_format.error_msg(
-                f"Counld Not Create'{self.name}', {type(self).__name__} Already Exists",
+                f"Counld Not Create'{self.name}', {
+                    type(self).__name__} Already Exists",
                 "Guacamole"
             )
             return None
 
         if not self.parent_identifier:
             msg_format.error_msg(
-                f"Counld Not Create'{self.name}', {type(self).__name__} Parent Not Set",
+                f"Counld Not Create'{self.name}', {
+                    type(self).__name__} Parent Not Set",
                 "Guacamole"
             )
             return None
 
         msg_format.general_msg(
-            f"Creating {type(self).__name__} '{self.name}' Under '{self.parent_identifier}'",
+            f"Creating {type(self).__name__} '{self.name}' Under '{
+                self.parent_identifier}'",
             "Guacamole"
         )
 
@@ -121,7 +125,8 @@ class Connection:
         """
         if not self.identifier:
             msg_format.error_msg(
-                f"Counld Not Delete'{self.name}', {type(self).__name__} Does Not Exist",
+                f"Counld Not Delete'{self.name}', {
+                    type(self).__name__} Does Not Exist",
                 "Guacamole"
             )
             return None
@@ -147,30 +152,31 @@ class Connection:
         """
         if not self.identifier:
             msg_format.error_msg(
-                f"Counld Not Update'{self.name}', {type(self).__name__} Does Not Exist",
+                f"Counld Not Update'{self.name}', {
+                    type(self).__name__} Does Not Exist",
                 "Guacamole"
             )
             return None
 
         if not self.parent_identifier:
             msg_format.error_msg(
-                f"Counld Not Update'{self.name}', {type(self).__name__} Parent Not Set",
+                f"Counld Not Update'{self.name}', {
+                    type(self).__name__} Parent Not Set",
                 "Guacamole"
             )
             return None
 
         msg_format.general_msg(
-            f"Updating {type(self).__name__} '{self.name}' Under '{self.parent_identifier}'",
+            f"Updating {type(self).__name__} '{self.name}' Under '{
+                self.parent_identifier}'",
             "Guacamole"
         )
 
         # Update the connection
         response = self._update_connection()
-
         if response:
-            msg_format.info_msg(response,
-                                "Guacamole",
-                                self.debug)
+            msg_format.error_msg(response,
+                                "Guacamole")
         sleep(delay)
 
         return response
@@ -385,98 +391,6 @@ class SharingProfile(Connection):
         return self.parameters
 
 
-class HeatInstances:
-    """
-    Provides a list of instances for a given stack
-    """
-
-    def __init__(self,
-                 oconn: openstack.connection.Connection,
-                 stack_name: str,
-                 debug: bool = False):
-
-        self.oconn = oconn
-        self.stack_name = stack_name
-        self.debug = debug
-
-        msg_format.general_msg(f"Finding Servers in {stack_name}", "Heat")
-        stack = self.find_stack_by_name(stack_name)
-        self.servers = self.get_servers_in_stack(stack)
-        self.addresses = self.get_addresses(self.servers)
-
-    def find_stack_by_name(self,
-                           stack_name):
-        """
-        Find the stack by name
-        """
-        stack = self.oconn.orchestration.find_stack(stack_name)
-        if not stack:
-            msg_format.error_msg(f"Could Not Find Stack '{stack_name}'",
-                                 "Heat")
-            # raise Exception(f"Could Not Find Stack '{stack_name}'")
-
-        msg_format.info_msg(stack,
-                            "Heat",
-                            self.debug)
-        return stack
-
-    def get_servers_in_stack(self, stack=None):
-        """
-        Get all servers in the stack
-        """
-        if not stack:
-            return []
-
-        # Method to recursively get server resources
-        def get_server_resources(resources):
-            server_resources = []
-            for res in resources:
-                # Check if resource is a server
-                if res.resource_type == 'OS::Nova::Server':
-                    server_resources.append(res)
-                # Check if resource is a Resource Group and recurse
-                elif res.resource_type == 'OS::Heat::ResourceGroup':
-                    nested_resources = self.oconn.orchestration.resources(
-                        res.physical_resource_id
-                    )
-                    server_resources.extend(
-                        get_server_resources(nested_resources)
-                    )
-            return server_resources
-
-        # List all top-level resources in the stack
-        top_level_resources = self.oconn.orchestration.resources(stack.id)
-        all_server_resources = get_server_resources(top_level_resources)
-
-        # Get server objects using the physical_resource_id (which is the server id)
-        servers = []
-        for res in all_server_resources:
-            try:
-                servers.append(
-                    self.oconn.compute.get_server(res.physical_resource_id)
-                )
-            except Exception as e:
-                msg_format.error_msg(e, "Heat")
-
-        return servers
-
-    def get_addresses(self, servers):
-        """
-        Get all addresses for all servers in the stack
-        """
-        addresses = {}
-        for server in servers:
-            ip_data = server.addresses.get('public')
-            if not ip_data:
-                ip_data = list(server.addresses.values())[0]
-            addresses[server.name] = ip_data[0]['addr']
-            
-        msg_format.info_msg(addresses,
-                            "Heat",
-                            self.debug)
-        return addresses
-
-
 class CurrentConnections():
     """
     An object that holds connection groups, instances and sharing profiles
@@ -636,13 +550,20 @@ class NewConnections():
         self._find_current_conns()
         self._create_connection_groups()
 
-        stacks = conn_data.get('stacks')
-        if not stacks:
-            stacks = conn_data['groups'].keys()
+        stack_names = conn_data.get('stacks')
+        if not stack_names:
+            stack_names = conn_data['groups'].keys()
 
-        for stack in stacks:
-            addresses = HeatInstances(oconn, stack, debug).addresses
-            self._create_connections(addresses, stack)
+        for stack_name in stack_names:
+            stack = HeatStack(oconn,
+                              stack_name,
+                              debug=debug)
+            if not stack.stack:
+                continue
+
+            addresses = stack.get_ip_addresses()
+            self._create_connections(addresses,
+                                     stack_name)
 
     def create(self, delay: float = 0):
         """
@@ -689,14 +610,14 @@ class NewConnections():
             if not conn.identifier:
                 conn.identifier = conn_map.get(conn.name)
 
+            # update or create the connection
             old_identifier = conn_map.get(conn.name)
             if old_identifier:
                 conn_ids.add(conn.identifier)
                 old_conn = conns_by_ids.get(old_identifier)
                 if old_conn == conn:
-                    msg_format.info_msg(f"No Changes For {type(conn).__name__} '{conn.name}'",
-                                        "Guacamole",
-                                        self.debug)
+                    msg_format.general_msg(f"No Changes For {type(conn).__name__} '{conn.name}'",
+                                           "Guacamole")
                     continue
                 conn.update(delay)
             else:
@@ -725,16 +646,16 @@ class NewConnections():
                                                identifier,
                                                debug=self.debug)
                 current_conns = CurrentConnections(self.gconn,
-                                                    identifier,
-                                                    None,
-                                                    debug=self.debug).connections
+                                                   identifier,
+                                                   None,
+                                                   debug=self.debug).connections
                 self.current_connections.update(current_conns)
                 self.parent_groups.add(parent_group)
 
     def _create_connection_groups(self) -> None:
         if not self.conn_data.get('groups'):
             msg_format.general_msg("No Connection Groups Specified",
-                                    "Guacamole")
+                                   "Guacamole")
             return
 
         msg_format.general_msg("Generating New Connection Groups",
@@ -747,10 +668,10 @@ class NewConnections():
 
     def _create_connections(self,
                             addresses: dict,
-                            stack: str | None = None) -> None:
+                            stack: str) -> None:
         if not self.conn_data.get('connectionTemplates'):
             msg_format.general_msg("No Connection Instances Specified",
-                                    "Guacamole")
+                                   "Guacamole")
             return
 
         msg_format.general_msg("Generating New Connections and Sharing Profiles",
@@ -765,18 +686,17 @@ class NewConnections():
                     attibutes = new_data.get('attributes') or {}
                     guacd_name = attibutes.get('guacd-hostname')
                     guacd_ip = self._get_guacd_ip(guacd_name,
-                                                    addresses) if guacd_name else ""
+                                                  addresses) if guacd_name else ""
                     conn_instances = self._create_connection_instances(new_data,
-                                                                        name,
-                                                                        address,
-                                                                        guacd_ip)
+                                                                       name,
+                                                                       address,
+                                                                       guacd_ip)
                     self.connections.extend(conn_instances)
                     found = True
-            if not found and stack:
+            if not found:
                 msg_format.info_msg(f"Pattern '{pattern}' was not found in stack '{stack}'",
-                                        "Guacamole",
-                                        self.debug)
-
+                                    "Guacamole",
+                                    self.debug)
 
     def _create_connection_group(self,
                                  data: dict,
@@ -829,8 +749,8 @@ class NewConnections():
         return instances
 
     def _get_guacd_ip(self,
-                        guacd_host: str,
-                        addresses: dict) -> str:
+                      guacd_host: str,
+                      addresses: dict) -> str:
 
         if guacd_host:
             return next(
@@ -841,7 +761,7 @@ class NewConnections():
                 ), guacd_host
             )
         msg_format.error_msg(f"Guacd host '{guacd_host}' not found in {addresses}",
-                            "Guacamole")
+                             "Guacamole")
         return ''
 
     def _create_sharing_profiles(self,
@@ -860,82 +780,3 @@ class NewConnections():
             sharing_profiles.append(profile)
 
         return sharing_profiles
-
-
-
-
-
-# class NewConnections():
-#     """
-#     An object that holds connection groups, instances and sharing profiles
-#     """
-
-#     def __init__(self,
-#                  gconn: guacamole.session,
-#                  oconn: openstack.connect,
-#                  conn_data: dict,
-#                  debug: bool = False):
-
-#         self.gconn = gconn
-#         self.oconn = oconn
-#         self.conn_data = conn_data
-#         self.debug = debug
-
-#     def create(self, delay: float = 0):
-#         self._create_or_update_connections(delay, "create")
-
-#     def update(self, delay: float = 0):
-#         self._create_or_update_connections(delay, "update")
-
-#     def delete(self, delay: float = 0):
-#         self._delete_connections(delay)
-
-#     def _create_or_update_connections(self, delay: float, action: str):
-#         msg_format.general_msg(f"{action.title()} Connections",
-#                                 "Guacamole")
-#         action_fn = self._create_connection if action == "create" else self._update_connection
-#         for conn in self._generate_connections():
-#             action_fn(conn, delay)
-
-#     def _delete_connections(self, delay: float):
-#         msg_format.general_msg("Deleting Connections",
-#                                "Guacamole")
-#         for groups in self._get_parent_groups():
-#             groups.delete(delay)
-
-#     def _generate_connections(self):
-#         conn_data = self.conn_data
-#         stacks = conn_data.get('stacks')
-#         if not stacks:
-#             stacks = list(conn_data['groups'].keys())
-
-#         addresses = self._get_addresses(stacks)
-#         yield from self._create_connections(addresses)
-
-#     def _get_parent_groups(self):
-#         conn_data = self.conn_data
-#         self._find_current_conns(conn_data)
-#         yield from self._create_connection_groups(conn_data)
-
-#     def _get_addresses(self, stacks):
-#         oconn = self.oconn
-#         return {name: HeatInstances(oconn, stack, self.debug).addresses
-#                 for stack in stacks
-#                 for name in HeatInstances(oconn, stack, self.debug).names}
-
-#     def _create_connection(self, conn, delay):
-#         conn.create(delay)
-
-#     def _update_connection(self, conn, delay):
-#         old_conn = self._get_old_connection(conn)
-#         if old_conn:
-#             self._delete_connection(old_conn, delay)
-#         conn.create(delay)
-
-#     def _delete_connection(self, conn, delay):
-#         conn.delete(delay)
-
-#     def _get_old_connection(self, conn):
-#         return next((c for c in self.current_connections
-#                      if c.name == conn.name), None)
-

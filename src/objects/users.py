@@ -161,9 +161,9 @@ class User:
         old_perms = old_perms if old_perms else {}
         result = self.gconn.update_user(self.username,
                                         self.attributes)
-        msg_format.info_msg(result,
-                            "Guacamole",
-                            self.debug)
+        if result:
+            msg_format.error_msg(result,
+                                "Guacamole")
         sleep(delay)
         self.manage_permissions(old_perms)
         msg_format.general_msg(f"Updated {self.username}",
@@ -382,9 +382,8 @@ class NewUsers():
             if old_user and old_user in self.current_users:
                 self.current_users.remove(old_user)
                 if old_user == user:
-                    msg_format.info_msg(f"No Changes For {type(self).__name__} '{user.username}'",
-                                           "Guacamole",
-                                           self.debug)
+                    msg_format.general_msg(f"No Changes For {type(self).__name__} '{user.username}'",
+                                           "Guacamole")
                     continue
                 user.update(old_user.permissions, delay)
             else:

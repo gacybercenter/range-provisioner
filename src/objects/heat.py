@@ -22,7 +22,7 @@ class HeatStack:
     def __init__(self,
                  conn: Connection,
                  name: str,
-                 template_file: str,
+                 template_file: str | None = None,
                  parameters: dict | None = None,
                  wait: bool = True,
                  debug: bool = False):
@@ -70,6 +70,11 @@ class HeatStack:
         parameters = self.parameters
         wait = self.wait
         endpoint = 'Heat'
+
+        if not template_file:
+            msg_format.error_msg(f"Can't create stack. No template file specified.",
+                                 endpoint)
+            return None
 
         if self.stack:
             msg_format.error_msg(f"Can't create stack. '{name}' already exists.",
@@ -146,6 +151,11 @@ class HeatStack:
         wait = self.wait
         endpoint = 'Heat'
 
+        if not template_file:
+            msg_format.error_msg(f"Can't update stack. No template file specified.",
+                                 endpoint)
+            return None
+
         if not self.stack:
             msg_format.error_msg(f"Can't update stack. '{name}' doesn't exist.",
                                  endpoint)
@@ -187,23 +197,28 @@ class HeatStack:
 
         name = self.name
         endpoint = 'Heat'
+        ip_addresses = {}
 
         if not self.stack:
             msg_format.error_msg(f"Can't get stack IPs. '{name}' doesn't exist.",
                                  endpoint)
-            return None
+            return ip_addresses
 
         msg_format.general_msg(f"Getting instance IPs from stack '{name}'",
                                endpoint)
 
         instances = self.get_stack_instances()
-        ip_addresses = [
-            {
-                'name': instance['name'],
-                'hostname': instance['public_v4'] if instance['public_v4'] else instance['private_v4']
-            }
-            for instance in instances
-        ]
+        for instance in instances:
+            server = self.conn.search_servers(
+                name_or_id=instance['physical_resource_id']
+            )[0]
+            hostname = server['public_v4'] if server['public_v4'] else server['private_v4']
+            ip_addresses[server['name']] = hostname
+            msg_format.general_msg(f"Found IP address '{hostname}' for instance '{server['name']}'",
+                                   endpoint)
+            msg_format.info_msg(server,
+                                endpoint,
+                                self.debug)
 
         msg_format.success_msg(f"Found all IPs in stack '{name}'",
                                endpoint)
@@ -219,22 +234,37 @@ class HeatStack:
         conn = self.conn
         name = self.name
         endpoint = 'Heat'
+        instances = []
 
         if not self.stack:
             msg_format.error_msg(f"Can't get stack instances. '{name}' doesn't exist.",
                                  endpoint)
-            return None
+            return instances
 
-        msg_format.general_msg(f"Getting instances from stack '{name}'",
+        msg_format.general_msg(f"Getting stack instances from stack '{name}'",
                                endpoint)
 
         resources = conn.orchestration.resources(name)
-        instances = [
-            resource
-            for resource in resources
-            if resource.resource_type == 'OS::Nova::Server'
-        ]
-        msg_format.success_msg(f"Found {len(instances)} instances in stack '{name}'",
+        for resource in resources:
+            if resource.resource_type == 'OS::Nova::Server':
+                instances.append(resource)
+                msg_format.general_msg(f"Found stack instance '{resource['logical_resource_id']}'",
+                                       endpoint)
+                msg_format.info_msg(resource,
+                                    endpoint,
+                                    self.debug)
+            elif resource.resource_type == 'OS::Heat::ResourceGroup':
+                children = conn.orchestration.resources(resource.physical_resource_id)
+                for child in children:
+                    if child.resource_type == 'OS::Nova::Server':
+                        instances.append(child)
+                        msg_format.general_msg(f"Found stack instance resource group '{resource['logical_resource_id']}'",
+                                               endpoint)
+                        msg_format.info_msg(resource,
+                                            endpoint,
+                                            self.debug)
+
+        msg_format.general_msg(f"Found {len(instances)} instances in stack '{name}'",
                                endpoint)
         msg_format.info_msg(instances,
                             endpoint,
