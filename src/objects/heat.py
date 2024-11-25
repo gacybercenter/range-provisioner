@@ -256,14 +256,14 @@ class HeatStack:
                                  endpoint)
             return instances
 
-        msg_format.general_msg(f"Getting stack instances from stack '{name}'",
+        msg_format.general_msg(f"Getting stack instances in '{name}'",
                                endpoint)
 
         resources = conn.orchestration.resources(name)
         for resource in resources:
             if resource.resource_type == 'OS::Nova::Server':
                 instances.append(resource)
-                msg_format.general_msg(f"Found stack instance '{resource['logical_resource_id']}'",
+                msg_format.general_msg(f"Found instance '{resource['logical_resource_id']}'",
                                        endpoint)
                 msg_format.info_msg(resource,
                                     endpoint,
@@ -273,13 +273,13 @@ class HeatStack:
                 for child in children:
                     if child.resource_type == 'OS::Nova::Server':
                         instances.append(child)
-                        msg_format.general_msg(f"Found stack instance resource group '{resource['logical_resource_id']}'",
+                        msg_format.general_msg(f"Found resource group instance '{resource['logical_resource_id']}'",
                                                endpoint)
                         msg_format.info_msg(resource,
                                             endpoint,
                                             self.debug)
 
-        msg_format.general_msg(f"Found {len(instances)} instances in stack '{name}'",
+        msg_format.general_msg(f"Found {len(instances)} stack instances in '{name}'",
                                endpoint)
         msg_format.info_msg(instances,
                             endpoint,
