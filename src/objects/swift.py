@@ -1,23 +1,22 @@
 """
-Connection Classes
+Swift Classes
 """
 from time import sleep
 from os import path, walk
-from typing import Dict, Any, List
 from openstack.connection import Connection
 from utils import msg_format
 
 
 class SwiftContainer:
     """
-    Connection Template Object for Guacamole
+    Swift Container Object for OpenStack
 
     Args:
-        gconn: Specific type of Connection object
-        name: Name of the connection
-        protocol: Protocol of the connection
-        identifier: Identifier of the connection
-        debug: Debug mode
+        conn (Connection): OpenStack Connection
+        name (str): Container name
+        assets_dir (str): Directory containing assets
+        delay (float): Delay between each action in seconds
+        debug (bool): Debug flag
     """
 
     def __init__(self,
@@ -37,17 +36,26 @@ class SwiftContainer:
         self._search()
 
     def __hash__(self):
+        """
+        Hash function for the SwiftContainer object
+        """
         return hash(
             tuple(sorted(vars(self)))
         )
 
     def __eq__(self, other):
+        """
+        Equality function for the SwiftContainer object
+        """
         if not isinstance(other, self.__class__):
             return False
 
         return vars(self) == vars(other)
 
     def __str__(self):
+        """
+        String function for the SwiftContainer object
+        """
         class_name = type(self).__name__
         output = f'{class_name}(\n'
         for key, value in self.__dict__.items():
@@ -56,11 +64,14 @@ class SwiftContainer:
         return output
 
     def __repr__(self):
+        """
+        Representation function for the SwiftContainer object
+        """
         return self.__str__()
 
     def create(self):
         """
-        Default implementation for creating a container
+        Creates the swift container and assets if they don't exist
         """
 
         conn = self.conn
@@ -98,7 +109,7 @@ class SwiftContainer:
 
     def delete(self):
         """
-        Default implementation for deleting a container
+        Deletes the swift container and assets if they exist
         """
 
         conn = self.conn
@@ -130,7 +141,7 @@ class SwiftContainer:
 
     def update(self):
         """
-        Default implementation for creating a container
+        Updates the swift container and assets if they exist
         """
 
         name = self.name
@@ -149,7 +160,6 @@ class SwiftContainer:
                                  endpoint)
             return None
 
-        # if self.container.metadata
         container = self._set_access()
 
         if not container:
@@ -159,7 +169,6 @@ class SwiftContainer:
 
         self._upload_objects()
 
-        # self.container = container
         msg_format.success_msg(f"Updated container '{name}'.",
                                endpoint)
         msg_format.info_msg(container,
@@ -169,7 +178,9 @@ class SwiftContainer:
         return container
 
     def _search(self):
-        """Search for a container and return the container if it exists."""
+        """
+        Search for the swift container in OpenStack
+        """
 
         conn = self.conn
         name = self.name
@@ -201,7 +212,8 @@ class SwiftContainer:
     def _set_access(self,
                     access: str = "public") -> object | None:
         """
-        Set container access. Can be public or private. Default is public.
+        Set the swift container access.
+        Can be 'public' or 'private'. Default is public.
         """
 
         conn = self.conn
@@ -226,7 +238,9 @@ class SwiftContainer:
         return container
 
     def _upload_objects(self) -> None:
-        """Create directory markers and upload objects"""
+        """
+        Upload assets to the swift container
+        """
 
         conn = self.conn
         name = self.name
@@ -271,7 +285,9 @@ class SwiftContainer:
         return None
 
     def _delete_objects(self) -> bool:
-        """Delete container objects"""
+        """
+        Delete assets from the swift container
+        """
 
         conn = self.conn
         name = self.name
@@ -310,8 +326,10 @@ class SwiftContainer:
 
         return True
 
-    def _list_objects(self) -> List[object]:
-        """List container objects"""
+    def _list_objects(self) -> list | None:
+        """
+        List the objects in the swift container
+        """
 
         conn = self.conn
         name = self.name
