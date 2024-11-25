@@ -559,7 +559,7 @@ class NewConnections():
                               stack_name,
                               debug=debug)
             if not stack.stack:
-                msg_format.error_msg(f"Failed to gather IP addresses from stack '{stack_name}'",
+                msg_format.error_msg(f"Failed to gather IP addresses from stack '{stack_name}'. DNE",
                                       "Guacamole")
                 continue
 
