@@ -15,7 +15,6 @@ class SwiftContainer:
         conn (Connection): OpenStack Connection
         name (str): Container name
         assets_dir (str): Directory containing assets
-        delay (float): Delay between each action in seconds
         debug (bool): Debug flag
     """
 

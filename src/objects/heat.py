@@ -15,7 +15,6 @@ class HeatStack:
         name (str): Name of the stack
         template_file (str): Template file for the stack
         parameters (dict): Parameters for the stack
-        wait (bool): Wait for the stack to complete
         debug (bool): Debug mode
     """
 
@@ -223,7 +222,6 @@ class HeatStack:
                                endpoint)
 
         instances = self.get_stack_instances(delay=delay)
-        sleep(delay)
         for instance in instances:
             server = self.conn.search_servers(
                 name_or_id=instance['physical_resource_id']
