@@ -63,15 +63,12 @@ def provision(conn: object,
                           True,
                           debug)
 
-        ip_addrs = stack.get_ip_addresses()
-        print(ip_addrs)
-
-        # if update:
-        #     stack.update()
-        # elif create:
-        #     stack.create()
-        # else:
-        #     stack.delete()
+        if update:
+            stack.update()
+        elif create:
+            stack.create()
+        else:
+            stack.delete()
 
         if pause > 0 and stack_name != stack_names[-1]:
             msg_format.general_msg(f"Pausing for {pause} seconds...",
