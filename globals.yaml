@@ -1,6 +1,6 @@
 #YAML for storing range provisioning parameters
 globals:
-  debug: True # debug mode (True) or not (False)
+  debug: False # debug mode (True) or not (False)
   artifacts: True # artifacts (True) or not (False)
   organization: automation # top level identifier for guac users
   # template_dir: templates # directory containing templates
@@ -11,16 +11,18 @@ guacamole:
   update: True # update guacamole users (True) or not (False)
   cloud: guac # name of cloud to use
   guac_file: templates/guac.yaml # name of guacamole config file
-  pause: 0.5 # pause between each guacamole action in seconds TODO: make configurable
+  org_name: automation # name of the guacamole organization
+  pause: 0.5 # pause between each guacamole action in seconds
 
 heat:
-  provision: True # provision heat (True) or not (False)
-  update: True # update heat (True) or not (False)
+  provision: False # provision heat (True) or not (False)
+  update: False # update heat (True) or not (False)
   cloud: gcr # name of cloud to use
   amount: 2 # number of heat stacks to provision
   heat_file: templates/main.yaml # name of guacamole config file
   stack_name: stack # name of the heat stack. Default is organization's name
-  pause: 60 # pause between each heat stack action in seconds
+  stack_delay: 30 # delay between each heat stack in seconds
+  pause: 0.5 # pause between each heat action in seconds
   parameters: # Update existing heat parameters
   - username: test
   - count: 2
@@ -29,6 +31,6 @@ swift:
   provision: False # provision swift (True) or not (False)
   update: False # update swift (True) or not (False)
   cloud: gcr # name of cloud to use
-  asset_dir: assets # directory containing swift assets
+  assets_dir: assets # directory containing swift assets
   container_name: container # name of the swift container. Default is organization's name
-  pause: 2 # pause between each swift action in seconds TODO: make configurable
+  pause: 0.5 # pause between each swift action in seconds
