@@ -46,8 +46,17 @@ def provision(oconn: object,
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
         return
 
-    organization = globals_dict['organization']
-    delay = guacamole_globals['pause']
+    if not guacamole_globals.get('org_name'):
+        organization = globals_dict.get('organization')
+        msg_format.general_msg(f"The {endpoint} var 'org_name' is unset. Using global organization '{organization}'...",
+                               endpoint)
+        guacamole_globals['org_name'] = organization
+    org_name = guacamole_globals.get('org_name')
+
+    if not guacamole_globals.get('pause'):
+        msg_format.general_msg(f"The {endpoint} var 'pause' is unset. Using default pause of 0.5 seconds...",
+                               endpoint)    
+    pause = guacamole_globals.get('pause', 0.5)
 
     if not create:
         names = [
@@ -65,12 +74,12 @@ def provision(oconn: object,
                                                  'ROOT',
                                                  names,
                                                  debug)
-        current_connections.delete(delay)
+        current_connections.delete(delay=pause)
 
         current_users = CurrentUsers(gconn,
-                                     organization,
+                                     org_name,
                                      debug)
-        current_users.delete(delay)
+        current_users.delete(delay=pause)
 
     else:
         new_connections = NewConnections(gconn,
@@ -79,20 +88,20 @@ def provision(oconn: object,
                                          debug)
 
         if update:
-            new_connections.update(delay)
+            new_connections.update(delay=pause)
         else:
-            new_connections.create(delay)
+            new_connections.create(delay=pause)
 
         new_users = NewUsers(gconn,
                              conn_params,
-                             organization,
+                             org_name,
                              new_connections.connections,
                              debug)
 
         if update:
-            new_users.update(delay)
+            new_users.update(delay=pause)
         else:
-            new_users.create(delay)
+            new_users.create(delay=pause)
 
         msg_format.general_msg("Displaying User Artifacts",
                                endpoint)
