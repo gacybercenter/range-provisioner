@@ -39,8 +39,21 @@ def provision(conn: object,
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
         return
 
-    heat_file = heat_globals['heat_file']
-    pause = heat_globals.get('pause', 0)
+    if not heat_globals.get('heat_file'):
+        msg_format.error_msg(f"The {endpoint} var 'heat_file' is unset. Create and Update wont work.",
+                             endpoint)
+    heat_file = heat_globals.get('heat_file')
+
+    if not heat_globals.get('pause'):
+        msg_format.general_msg(f"The {endpoint} var 'pause' is unset. Using default pause of 0.5 seconds...",
+                               endpoint)    
+    pause = heat_globals.get('pause', 0.5)
+
+    if not heat_globals.get('stack_delay'):
+        msg_format.general_msg(f"The {endpoint} var 'stack_delay' is unset. Using default stack delay of 30 seconds...",
+                               endpoint)    
+    stack_delay = heat_globals.get('stack_delay', 30)
+
     amount = heat_globals['amount'] if 'amount' in heat_globals else globals_dict.get(
         'amount', 1
     )
@@ -60,20 +73,19 @@ def provision(conn: object,
                           stack_name,
                           heat_file,
                           updated_heat_params,
-                          True,
                           debug)
 
         if update:
-            stack.update()
+            stack.update(delay=pause)
         elif create:
-            stack.create()
+            stack.create(delay=pause)
         else:
-            stack.delete()
+            stack.delete(delay=pause)
 
-        if pause > 0 and stack_name != stack_names[-1]:
-            msg_format.general_msg(f"Pausing for {pause} seconds...",
+        if stack_delay > 0 and stack_name != stack_names[-1]:
+            msg_format.general_msg(f"Pausing for {stack_delay} seconds...",
                                    endpoint)
-            sleep(pause)
+            sleep(stack_delay)
 
     msg_format.success_msg(f"Provisioning {endpoint} Complete",
                            endpoint)

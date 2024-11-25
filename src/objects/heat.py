@@ -1,6 +1,7 @@
 """
 Heat Classes
 """
+from time import sleep
 from openstack.connection import Connection
 from utils import msg_format
 
@@ -23,14 +24,12 @@ class HeatStack:
                  name: str,
                  template_file: str | None = None,
                  parameters: dict | None = None,
-                 wait: bool = True,
                  debug: bool = False):
 
         self.conn = conn
         self.name = name
         self.template_file = template_file
         self.parameters = parameters
-        self.wait = wait
         self.debug = debug
         self.stack = None
 
@@ -70,7 +69,7 @@ class HeatStack:
         """
         return self.__str__()
 
-    def create(self):
+    def create(self, delay: float = 0):
         """
         Creates the heat stack if it doesn't exist
         """
@@ -79,7 +78,7 @@ class HeatStack:
         name = self.name
         template_file = self.template_file
         parameters = self.parameters
-        wait = self.wait
+        debug = self.debug
         endpoint = 'Heat'
 
         if not template_file:
@@ -98,7 +97,7 @@ class HeatStack:
             response = conn.create_stack(
                 name=name,
                 template_file=template_file,
-                wait=wait,
+                wait=True,
                 rollback=False,
             )
         else:
@@ -109,28 +108,28 @@ class HeatStack:
             response = conn.create_stack(
                 name=name,
                 template_file=template_file,
-                wait=wait,
+                wait=True,
                 rollback=False,
                 **parameters,
             )
+        sleep(delay)
 
         self.stack = response
         msg_format.success_msg(f"Created stack '{name}'",
                                endpoint)
         msg_format.info_msg(response,
                             endpoint,
-                            self.debug)
+                            debug)
 
         return response
 
-    def delete(self):
+    def delete(self, delay: float = 0):
         """
         Deletes the heat stack if it exists
         """
 
         conn = self.conn
         name = self.name
-        wait = self.wait
         endpoint = 'Heat'
 
         if not self.stack:
@@ -142,7 +141,8 @@ class HeatStack:
                                endpoint)
 
         response = conn.delete_stack(name_or_id=name,
-                                     wait=wait)
+                                     wait=True)
+        sleep(delay)
 
         self.stack = None
         msg_format.success_msg(f"Deleted stack '{name}'",
@@ -150,7 +150,7 @@ class HeatStack:
 
         return response
 
-    def update(self):
+    def update(self, delay: float = 0):
         """
         Updates the heat stack if it exists
         """
@@ -159,7 +159,7 @@ class HeatStack:
         name = self.name
         template_file = self.template_file
         parameters = self.parameters
-        wait = self.wait
+        debug = self.debug
         endpoint = 'Heat'
 
         if not template_file:
@@ -178,7 +178,7 @@ class HeatStack:
             response = conn.update_stack(
                 name_or_id=name,
                 template_file=template_file,
-                wait=wait,
+                wait=True,
                 rollback=False,
             )
         else:
@@ -189,26 +189,28 @@ class HeatStack:
             response = conn.update_stack(
                 name_or_id=name,
                 template_file=template_file,
-                wait=wait,
+                wait=True,
                 rollback=False,
                 **parameters,
             )
+        sleep(delay)
 
         self.stack = response
         msg_format.success_msg(f"Updated stack '{name}'",
                                endpoint)
         msg_format.info_msg(response,
                             endpoint,
-                            self.debug)
+                            debug)
 
         return response
 
-    def get_ip_addresses(self):
+    def get_ip_addresses(self, delay: float = 0):
         """
         Returns the IP addresses of the server instances in the stack
         """
 
         name = self.name
+        debug = self.debug
         endpoint = 'Heat'
         ip_addresses = {}
 
@@ -220,28 +222,30 @@ class HeatStack:
         msg_format.general_msg(f"Getting instance IPs from stack '{name}'",
                                endpoint)
 
-        instances = self.get_stack_instances()
+        instances = self.get_stack_instances(delay=delay)
+        sleep(delay)
         for instance in instances:
             server = self.conn.search_servers(
                 name_or_id=instance['physical_resource_id']
             )[0]
+            sleep(delay)
             hostname = server['public_v4'] if server['public_v4'] else server['private_v4']
             ip_addresses[server['name']] = hostname
             msg_format.general_msg(f"Found IP address '{hostname}' for instance '{server['name']}'",
                                    endpoint)
             msg_format.info_msg(server,
                                 endpoint,
-                                self.debug)
+                                debug)
 
         msg_format.success_msg(f"Found all IPs in stack '{name}'",
                                endpoint)
         msg_format.info_msg(ip_addresses,
                             endpoint,
-                            self.debug)
+                            debug)
 
         return ip_addresses
 
-    def get_stack_instances(self):
+    def get_stack_instances(self, delay: float = 0):
         """
         Returns the server instances in the stack
         """
@@ -260,6 +264,7 @@ class HeatStack:
                                endpoint)
 
         resources = conn.orchestration.resources(name)
+        sleep(delay)
         for resource in resources:
             if resource.resource_type == 'OS::Nova::Server':
                 instances.append(resource)
@@ -270,6 +275,7 @@ class HeatStack:
                                     self.debug)
             elif resource.resource_type == 'OS::Heat::ResourceGroup':
                 children = conn.orchestration.resources(resource.physical_resource_id)
+                sleep(delay)
                 for child in children:
                     if child.resource_type == 'OS::Nova::Server':
                         instances.append(child)
@@ -287,7 +293,7 @@ class HeatStack:
 
         return instances
 
-    def _search(self):
+    def _search(self, delay: float = 0):
         """
         Search for the heat stack in OpenStack
         """
@@ -300,6 +306,7 @@ class HeatStack:
         msg_format.general_msg(f"Searching for stack '{name}'...",
                                endpoint)
         result = conn.get_stack(name_or_id=name)
+        sleep(delay)
         if result:
             msg_format.general_msg(f"Found stack '{name}'",
                                    endpoint)

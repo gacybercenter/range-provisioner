@@ -23,13 +23,11 @@ class SwiftContainer:
                  conn: Connection,
                  name: str,
                  assets_dir: str,
-                 delay: float = 0,
                  debug: bool = False):
 
         self.conn = conn
         self.name = name
         self.assets_dir = assets_dir
-        self.delay = delay
         self.debug = debug
         self.container = None
 
@@ -69,7 +67,7 @@ class SwiftContainer:
         """
         return self.__str__()
 
-    def create(self):
+    def create(self, delay: float = 0):
         """
         Creates the swift container and assets if they don't exist
         """
@@ -88,15 +86,15 @@ class SwiftContainer:
                                endpoint)
 
         container = conn.object_store.create_container(name=name)
-        sleep(self.delay)
+        sleep(delay)
 
         if not container:
             msg_format.error_msg(f"Failed to create container '{name}'.",
                                  endpoint)
             return None
 
-        self._set_access()
-        self._upload_objects()
+        self._set_access(delay=delay)
+        self._upload_objects(delay=delay)
 
         self.container = container
         msg_format.success_msg(f"Created container '{name}'",
@@ -107,7 +105,7 @@ class SwiftContainer:
 
         return container
 
-    def delete(self):
+    def delete(self, delay: float = 0):
         """
         Deletes the swift container and assets if they exist
         """
@@ -121,7 +119,7 @@ class SwiftContainer:
                                  endpoint)
             return None
 
-        deleted = self._delete_objects()
+        deleted = self._delete_objects(delay=delay)
 
         if not deleted:
             msg_format.error_msg(f"Could not delete all objects in container '{name}'",
@@ -132,6 +130,7 @@ class SwiftContainer:
                                endpoint)
 
         conn.object_store.delete_container(container=name)
+        sleep(delay)
 
         self.container = None
         msg_format.success_msg(f"Deleted container '{name}'",
@@ -139,7 +138,7 @@ class SwiftContainer:
 
         return None
 
-    def update(self):
+    def update(self, delay: float = 0):
         """
         Updates the swift container and assets if they exist
         """
@@ -153,21 +152,21 @@ class SwiftContainer:
                                  endpoint)
             return None
 
-        deleted = self._delete_objects()
+        deleted = self._delete_objects(delay=delay)
 
         if not deleted:
             msg_format.error_msg(f"Could not delete all objects in container '{name}'",
                                  endpoint)
             return None
 
-        container = self._set_access()
+        container = self._set_access(delay=delay)
 
         if not container:
             msg_format.error_msg(f"Failed to set access for container '{name}'",
                                  endpoint)
             return None
 
-        self._upload_objects()
+        self._upload_objects(delay=delay)
 
         msg_format.success_msg(f"Updated container '{name}'.",
                                endpoint)
@@ -177,7 +176,7 @@ class SwiftContainer:
 
         return container
 
-    def _search(self):
+    def _search(self, delay: float = 0):
         """
         Search for the swift container in OpenStack
         """
@@ -191,7 +190,7 @@ class SwiftContainer:
                                endpoint)
 
         result = conn.search_containers(name=name)
-        sleep(self.delay)
+        sleep(delay)
 
         if result:
             first_container = result[0]
@@ -210,7 +209,8 @@ class SwiftContainer:
         return False
 
     def _set_access(self,
-                    access: str = "public") -> object | None:
+                    access: str = "public",
+                    delay: float = 0) -> object | None:
         """
         Set the swift container access.
         Can be 'public' or 'private'. Default is public.
@@ -225,7 +225,7 @@ class SwiftContainer:
 
         container = conn.set_container_access(name=name,
                                               access=access)
-        sleep(self.delay)
+        sleep(delay)
 
         if not container:
             msg_format.error_msg(f"Failed to set {access} for container '{name}'",
@@ -237,7 +237,7 @@ class SwiftContainer:
 
         return container
 
-    def _upload_objects(self) -> None:
+    def _upload_objects(self, delay: float = 0) -> None:
         """
         Upload assets to the swift container
         """
@@ -261,7 +261,7 @@ class SwiftContainer:
         for directory in directories:
             conn.create_directory_marker_object(container=name,
                                                 name=directory)
-            sleep(self.delay)
+            sleep(delay)
 
             msg_format.general_msg(f"Created directory marker '{directory}' in '{name}'.",
                                    endpoint)
@@ -274,7 +274,7 @@ class SwiftContainer:
             conn.create_object(container=name,
                                name=file,
                                filename=file)
-            sleep(self.delay)
+            sleep(delay)
 
             msg_format.general_msg(f"Uploaded object '{file}' to '{name}'.",
                                    endpoint)
@@ -284,7 +284,7 @@ class SwiftContainer:
 
         return None
 
-    def _delete_objects(self) -> bool:
+    def _delete_objects(self, delay: float = 0) -> bool:
         """
         Delete assets from the swift container
         """
@@ -294,7 +294,7 @@ class SwiftContainer:
         debug = self.debug
         endpoint = 'Swift'
 
-        swift_objects = self._list_objects()
+        swift_objects = self._list_objects(delay=delay)
 
         if not swift_objects:
             msg_format.general_msg(f"No objects found in container '{name}'",
@@ -308,7 +308,7 @@ class SwiftContainer:
             object_name = str(swift_object.name)
             deleted = conn.delete_object(name,
                                          object_name)
-            sleep(self.delay)
+            sleep(delay)
 
             if deleted:
                 msg_format.general_msg(f"Deleted object '{object_name}' from '{name}'.",
@@ -326,7 +326,7 @@ class SwiftContainer:
 
         return True
 
-    def _list_objects(self) -> list | None:
+    def _list_objects(self, delay: float = 0) -> list | None:
         """
         List the objects in the swift container
         """
@@ -345,7 +345,7 @@ class SwiftContainer:
                                endpoint)
 
         swift_objects = conn.list_objects(name)
-        sleep(self.delay)
+        sleep(delay)
 
         if not swift_objects:
             msg_format.general_msg(f"No container objects found in '{name}'",

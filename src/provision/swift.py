@@ -35,25 +35,36 @@ def provision(conn: object,
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
         return
 
-    directory = swift_globals['asset_dir']
-    pause = swift_globals.get('pause', 0)
+    # Backward compatibility
+    if not swift_globals.get('assets_dir'):
+        swift_globals['assets_dir'] = swift_globals.get('asset_dir')
+
+    if not swift_globals.get('assets_dir'):
+        msg_format.error_msg(f"The {endpoint} var 'assets_dir' is unset. Create and Update wont work.",
+                             endpoint)
+    assets_dir = swift_globals.get('assets_dir')
+
+    if not swift_globals.get('pause'):
+        msg_format.general_msg(f"The {endpoint} var 'pause' is unset. Using default pause of 0.5 seconds...",
+                               endpoint)    
+    pause = swift_globals.get('pause', 0.5)
+
     container_name = swift_globals.get(
         'container_name', globals_dict['organization']
     )
 
     container = SwiftContainer(conn,
                                container_name,
-                               directory,
-                               pause,
+                               assets_dir,
                                debug)
 
     # Provision, deprovision, or reprovision
     if update:
-        container.update()
+        container.update(delay=pause)
     elif create:
-        container.create()
+        container.create(delay=pause)
     else:
-        container.delete()
+        container.delete(delay=pause)
 
     msg_format.success_msg(f"Provisioning {endpoint} Complete",
                            endpoint)
