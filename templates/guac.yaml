@@ -25,15 +25,15 @@ connectionTemplates:
       password: gacyberrange
 
 # USERS
-users:
-  {% for system in range(1, systems+1) %}
-  {{ organization }}.user.{{ system }}:
-    username: {{ organization }}.screen.{{ system }}
-    password: P@ssw0rd
-    permissions:
-      connectionPermissions:
-        - {{ organization }}.screen.server.{{ system }}
-  {% endfor %}
+# users:
+#   {% for system in range(1, systems+1) %}
+#   {{ organization }}.user.{{ system }}:
+#     username: {{ organization }}.screen.{{ system }}
+#     password: P@ssw0rd
+#     permissions:
+#       connectionPermissions:
+#         - {{ organization }}.screen.server.{{ system }}
+#   {% endfor %}
 
 
 # Defaults

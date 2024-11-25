@@ -2,7 +2,7 @@
 globals:
   debug: True # debug mode (True) or not (False)
   artifacts: True # artifacts (True) or not (False)
-  organization: comp1313 # top level identifier for guac users
+  organization: automation # top level identifier for guac users
   # template_dir: templates # directory containing templates
   provision: # provision range (True) or not (False)
 
