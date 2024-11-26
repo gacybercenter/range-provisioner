@@ -3,6 +3,7 @@
 **/clouds.yml
 #*templates
 #*assets/
+*archive/
 *__pycache__/
 *.gz
 *.tar
@@ -10,5 +11,5 @@
 .pylintrc
 .pytest_cache
 .coverage
-
+.pylintrc
 junit.xml
