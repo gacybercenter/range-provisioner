@@ -51,7 +51,8 @@ def load_yaml_file(file_name: str,
     endpoint = 'Templates'
 
     if not file_name.split('.')[-1] in ['yaml', 'yml']:
-        msg_format.general_msg(f"'{file_name}' is not a YAML file", endpoint)
+        msg_format.general_msg(f"'{file_name}' is not a YAML file",
+                               endpoint)
         return {}
 
     if template_dir:
@@ -61,20 +62,28 @@ def load_yaml_file(file_name: str,
         yaml_file_path = file_name
 
     if not os.path.exists(yaml_file_path):
-        msg_format.general_msg(f"Cannot find '{yaml_file_path}'", endpoint)
+        msg_format.general_msg(f"Cannot find file '{yaml_file_path}'",
+                               endpoint)
         return {}
 
     if os.path.getsize(yaml_file_path) == 0:
-        msg_format.general_msg(f"The file '{yaml_file_path}' is empty", endpoint)
+        msg_format.general_msg(f"The file '{yaml_file_path}' is empty.",
+                               endpoint)
         return {}
 
-    msg_format.general_msg(f"Loading '{yaml_file_path}'", endpoint)
-    yaml_dict = load_template(file_name, template_dir)
+    msg_format.general_msg(f"Loading file '{yaml_file_path}'...",
+                           endpoint)
+    yaml_dict = load_template(file_name,
+                              template_dir)
 
     if yaml_dict:
-        msg_format.success_msg(f"'{yaml_file_path}' loaded", endpoint)
-        msg_format.info_msg(yaml_dict, endpoint, debug)
+        msg_format.success_msg(f"'{yaml_file_path}' loaded.",
+                               endpoint)
+        msg_format.info_msg(yaml_dict,
+                            endpoint,
+                            debug)
     else:
-        msg_format.error_msg(f"'{yaml_file_path}' not found", endpoint)
+        msg_format.error_msg(f"'{yaml_file_path}' not found.",
+                             endpoint)
 
     return yaml_dict
