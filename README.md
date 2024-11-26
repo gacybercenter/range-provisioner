@@ -241,9 +241,9 @@ users:
   {% endfor %}
 ```
 
-### Usage Examples
+## Usage Examples
 
-#### Running manually
+### Running manually
 
 To run Range Provisioner manually, use the following command.
 
@@ -251,7 +251,7 @@ To run Range Provisioner manually, use the following command.
 python3 ./src/provisioner.py ARGUMENT
 ```
 
-##### Arguments
+#### Arguments
 
 - swift
 - heat
