@@ -284,7 +284,7 @@ object_upload:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
-    - if: ($CI_COMMIT_MESSAGE =~ /\[build]/ || $CI_COMMIT_MESSAGE =~ /\[delete]/)
+    - if: ($CI_COMMIT_MESSAGE =~ /\[build]/ || $CI_COMMIT_MESSAGE =~ /\[delete]/) || ($CI_COMMIT_MESSAGE =~ /\[build-swift]/) || ($CI_COMMIT_MESSAGE =~ /\[delete-swift]/)
       when: always
 
 heat_deploy:
@@ -294,7 +294,7 @@ heat_deploy:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
-    - if: ($CI_COMMIT_MESSAGE =~ /\[build]/ || $CI_COMMIT_MESSAGE =~ /\[delete]/)
+    - if: ($CI_COMMIT_MESSAGE =~ /\[build]/ || $CI_COMMIT_MESSAGE =~ /\[delete]/) || ($CI_COMMIT_MESSAGE =~ /\[build-heat]/) || ($CI_COMMIT_MESSAGE =~ /\[delete-heat]/)
       when: always
 
 guac_provision:
@@ -304,7 +304,7 @@ guac_provision:
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
-    - if: $CI_COMMIT_MESSAGE =~ /\[build]/
+    - if: ($CI_COMMIT_MESSAGE =~ /\[build]/ || $CI_COMMIT_MESSAGE =~ /\[delete]/) || ($CI_COMMIT_MESSAGE =~ /\[build-guacamole]/) || ($CI_COMMIT_MESSAGE =~ /\[delete-guacamole]/)
       when: always
 ```
 
