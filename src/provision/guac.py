@@ -103,11 +103,11 @@ def provision(oconn: object,
         else:
             new_users.create(delay=pause)
 
-        msg_format.general_msg("Displaying User Artifacts",
+        msg_format.general_msg("User artifacts:",
                                endpoint)
         for user in new_users.users:
             msg_format.general_msg(f"Username: {user.username}, Password: {user.password}",
                                    endpoint)
 
-    msg_format.success_msg(f"Provisioning {endpoint} Complete",
+    msg_format.success_msg(f"Provisioning {endpoint} complete.",
                            endpoint)

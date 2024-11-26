@@ -87,5 +87,5 @@ def provision(conn: object,
                                    endpoint)
             sleep(stack_delay)
 
-    msg_format.success_msg(f"Provisioning {endpoint} Complete",
+    msg_format.success_msg(f"Provisioning {endpoint} complete.",
                            endpoint)
