@@ -137,8 +137,6 @@ clouds:
     password: password
 ```
 
-### Heat Orchestration Templates
-
 _Example parameters within the `main.yaml`_  
 
 ```yaml
