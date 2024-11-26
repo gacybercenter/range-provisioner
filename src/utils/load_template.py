@@ -54,7 +54,7 @@ def load_yaml_file(file_name: str,
     endpoint = 'Templates'
 
     if not file_name.split('.')[-1] in ['yaml', 'yml']:
-        msg_format.general_msg(f"'{file_name}' is not a YAML file",
+        msg_format.general_msg(f"'{file_name}' is not a YAML file.",
                                endpoint)
         return {}
 
@@ -65,7 +65,7 @@ def load_yaml_file(file_name: str,
         yaml_file_path = file_name
 
     if not os.path.exists(yaml_file_path):
-        msg_format.general_msg(f"Cannot find file '{yaml_file_path}'",
+        msg_format.general_msg(f"Cannot find file '{yaml_file_path}'.",
                                endpoint)
         return {}
 
