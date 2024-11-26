@@ -40,8 +40,6 @@ directory structure and HOT parameters required for use of Range Provisioner.
 DIR
 |___ assets
 |       |___ config.sh
-|___ example
-|       |___ globals.yaml
 |___ scr
 |       |___ objects
 |       |       |___ __init__.py
@@ -243,10 +241,30 @@ users:
   {% endfor %}
 ```
 
-### Usage Example
+### Usage Examples
+
+#### Running manually
+
+To run Range Provisioner manually, use the following command.
+
+```bash
+python3 ./src/provisioner.py ARGUMENT
+```
+
+##### Arguments
+
+- swift
+- heat
+- guacamole
+- full
+
+#### Using Gitlab CI/CD pipeline
 
 To ensure easy of use the following provides an example CI/CD implementation utilizing Range
-Provisioner to facilitate to creation and deletion of cyber range environments. The main source for the Docker Image is from `registry.gitlab.com/gacybercenter/gacyberrange/cloud-imaging/container-factory/range-provisioner:latest`, where you can also find previous versions.
+Provisioner to facilitate to creation and deletion of cyber range environments.
+The main source for the Docker Image is from
+`registry.gitlab.com/gacybercenter/gacyberrange/cloud-imaging/container-factory/range-provisioner:latest`,
+where you can also find previous versions.
 
 ```yaml
 default:
@@ -311,7 +329,7 @@ commit message:
 
 ## Unit Tests
 
-To run the unit tests, run the following commands:
+To run the unit tests, run the following commands.
 
 ### Activate the Python Virtual Environment
 
