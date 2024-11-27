@@ -13,36 +13,46 @@ class TestMessagingFunctions(unittest.TestCase):
         # Redirect stdout to capture print outputs
         self.held, sys.stdout = sys.stdout, StringIO()
 
-    def test_msg_with_dict(self):
+    def test_msg(self):
         # Test msg with a dictionary
         test_endpoint = "test_endpoint"
-        test_message = {"info": "Info message"}
-        with patch('src.utils.msg_format.pprint') as mock_pprint:
+        test_message = "Message"
+        with patch('src.utils.msg_format.print') as mock_print:
             error_msg(test_message, test_endpoint)
-            mock_pprint.assert_called_once()
-            mock_pprint.assert_called_with(test_message, indent=1, sort_dicts=False)
+            mock_print.assert_called_with(test_message)
 
-        with patch('src.utils.msg_format.pprint') as mock_pprint:
+        with patch('src.utils.msg_format.print') as mock_print:
             info_msg(test_message, test_endpoint, debug=True)
-            mock_pprint.assert_called_once()
-            mock_pprint.assert_called_with(test_message, indent=1, sort_dicts=False)
+            mock_print.assert_called_with(test_message)
 
-        with patch('src.utils.msg_format.pprint') as mock_pprint:
+        with patch('src.utils.msg_format.print') as mock_print:
             general_msg(test_message, test_endpoint)
-            mock_pprint.assert_called_once()
-            mock_pprint.assert_called_with(test_message, indent=1, sort_dicts=False)
+            mock_print.assert_called_with(test_message)
 
-        with patch('src.utils.msg_format.pprint') as mock_pprint:
+        with patch('src.utils.msg_format.print') as mock_print:
             success_msg(test_message, test_endpoint)
-            mock_pprint.assert_called_once()
-            mock_pprint.assert_called_with(test_message, indent=1, sort_dicts=False)
+            mock_print.assert_called_with(test_message)
 
-    def test_error_msg_with_string(self):
+    def test_general_msg(self):
+        # Test general_msg with a string
+        test_endpoint = "test_endpoint"
+        test_message = "General message"
+
+        general_msg(test_message, test_endpoint)
+        output = sys.stdout.getvalue()
+
+        self.assertIn(Fore.YELLOW, output)
+        self.assertIn(test_endpoint, output)
+        self.assertIn("[INFO]", output)
+        self.assertIn(Fore.RESET, output)
+        self.assertIn(test_message, output)
+
+    def test_error_msg(self):
         # Test error_msg with a string
         test_endpoint = "test_endpoint"
         test_message = "An error occurred"
-        error_msg(test_message, test_endpoint)
 
+        error_msg(test_message, test_endpoint)
         output = sys.stdout.getvalue()
 
         self.assertIn(Fore.RED, output)
@@ -51,22 +61,17 @@ class TestMessagingFunctions(unittest.TestCase):
         self.assertIn(Fore.RESET, output)
         self.assertIn(test_message, output)
 
-    def test_info_msg_not_debug(self):
+    def test_info_msg(self):
         # Test info_msg when debug is False, should not print
         test_endpoint = "test_endpoint"
         test_message = "Info message"
-        info_msg(test_message, test_endpoint, debug=False)
 
+        info_msg(test_message, test_endpoint, debug=False)
         output = sys.stdout.getvalue()
 
         self.assertIn("", output)
 
-    def test_info_msg_with_debug(self):
-        # Test info_msg when debug is False, should not print
-        test_endpoint = "test_endpoint"
-        test_message = "Info message"
         info_msg(test_message, test_endpoint, debug=True)
-
         output = sys.stdout.getvalue()
 
         self.assertIn(Fore.BLUE, output)
@@ -75,7 +80,20 @@ class TestMessagingFunctions(unittest.TestCase):
         self.assertIn(Fore.RESET, output)
         self.assertIn(test_message, output)
 
-    # Add more tests for success_msg, general_msg, and remove_none_and_empty
+    def test_success_msg(self):
+        # Test success_msg with a string
+        test_endpoint = "test_endpoint"
+        test_message = "Success message"
+
+        success_msg(test_message, test_endpoint)
+        output = sys.stdout.getvalue()
+
+        self.assertIn(Fore.GREEN, output)
+        self.assertIn(test_endpoint, output)
+        self.assertIn("[SUCCESS]", output)
+        self.assertIn(Fore.RESET, output)
+        self.assertIn(test_message, output)
+
 
     def tearDown(self):
         # Restore stdout

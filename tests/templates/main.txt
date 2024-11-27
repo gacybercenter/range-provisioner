@@ -1,0 +1,58 @@
+parameters:
+  username:
+    type: string
+    label: Default username
+    description: Sets the username for the instances
+    default: user
+  password:
+    type: string
+    label: Default password
+    description: Sets the password for the instances
+    default: password
+  count:
+    type: string
+    label: Default count
+    description: Sets the instance count
+    default: 1
+  kali.image:
+    type: string
+    label: Default Kali image
+    description: Sets the Kali linux image
+    default: kali-24.04
+
+resources:
+  kali.server:
+    type: OS::Heat::ResourceGroup
+    properties:
+      count: { get_param: count }
+      removal_policies: [{'resource_list': ['0']}]
+      resource_def:
+        type: OS::Nova::Server
+        properties:
+          name:
+            list_join: [ '.', [ { get_param: "OS::stack_name"}, 'kali', '%index%']]
+          image: { get_param: kali.image }
+          flavor: m1.medium
+          config_drive: true
+          networks:
+          - network: public
+          security_groups: []
+          user_data_format: RAW
+          user_data: 
+            str_replace:
+              template: |
+                #!/bin/bash
+
+                apt update
+
+                useradd -m -U -s /bin/bash __username__
+                usermod -aG sudo,netdev __username__
+                timedatectl set-timezone America/New_York
+                echo "root:__rootpass__" | chpasswd
+                echo "__username__:__password__" | chpasswd
+
+                reboot
+              params:
+                __rootpass__: "P@ssw0rd123"
+                __username__: { get_param: username }
+                __password__: { get_param: password }

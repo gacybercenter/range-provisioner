@@ -32,7 +32,7 @@ class TestUser(unittest.TestCase):
                                                             self.user.password,
                                                             self.user.attributes)
         mock_sleep.assert_any_call(test_delay)
-        self.assertEqual(mock_sleep.call_count, 2)
+        self.assertEqual(mock_sleep.call_count, 7)
         self.assertEqual(self.mock_gconn.update_connection_permissions.call_count, 3)
         # Check the add permissions calls
         self.mock_gconn.update_connection_permissions.assert_any_call(self.user.username,
@@ -91,7 +91,7 @@ class TestUser(unittest.TestCase):
         self.mock_gconn.update_user.assert_called_with(self.user.username,
                                                        self.user.attributes)
         mock_sleep.assert_any_call(test_delay)
-        self.assertEqual(mock_sleep.call_count, 2)
+        self.assertEqual(mock_sleep.call_count, 12)
         self.assertEqual(self.mock_gconn.update_connection_permissions.call_count, 6)
         self.assertEqual(self.mock_gconn.update_user_group.call_count, 2)
         self.assertEqual(self.mock_gconn.update_user_permissions.call_count, 2)

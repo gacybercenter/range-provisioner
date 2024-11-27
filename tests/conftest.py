@@ -2,78 +2,28 @@
 Test configuration
 """
 
-import tempfile
-import os
+# import tempfile
 from unittest.mock import create_autospec
-import yaml
+# import yaml
 import pytest
 from openstack import connect
 from guacamole import session
 
 
-GLOBALS = """
-#YAML for storing range provisioning parameters
-globals:
-  debug: True
-  cloud: test_cloud
-  num_users: 5
-  num_ranges: 1
-  user_name: Test_Name
-  range_name: Test_Range
-  org_name: Test_Org
-  artifacts: True
-  provision: True
+# with open('globals.yaml', 'r') as f:
+#   GLOBALS = f.read()
 
-guacamole:
-  provision: True
-  update: False
-  mapped_only: True
-  recording: True
-  sharing: False
+# with open('clouds.yaml', 'r') as f:
+#   CLOUDS = f.read()
 
-heat:
-  provision: True
-  update: True
-  template_dir: tests/templates
-  pause: 2
-  parameters:
-  - username: test
-  - count: 2
+# # Create a temporary file
+# with tempfile.NamedTemporaryFile('w', delete=False) as temp_yaml_file:
+#     yaml.dump(GLOBALS, temp_yaml_file, default_flow_style=False)
+#     temp_yaml_file.flush()
 
-swift:
-  provision: True
-  update: True
-  asset_dir: tests/assets
-"""
-
-CLOUDS = """
-clouds:
-  test_openstack_cloud:
-    auth:
-      auth_url:
-      project_id:
-      project_name:
-      username:
-      password:
-      user_domain_name:
-      project_domain_name:
-    region_name
-    identity_api_version:
-  test_guacamole_cloud:
-    host:
-    data_source:
-    username:
-    password:
-"""
-
-# Create a temporary file
-with tempfile.NamedTemporaryFile('w', delete=False) as temp_yaml_file:
-    yaml.dump(GLOBALS, temp_yaml_file, default_flow_style=False)
-    temp_yaml_file.flush()
-
-with tempfile.NamedTemporaryFile('w', delete=False) as temp_yaml_file:
-    yaml.dump(CLOUDS, temp_yaml_file, default_flow_style=False)
-    temp_yaml_file.flush()
+# with tempfile.NamedTemporaryFile('w', delete=False) as temp_yaml_file:
+#     yaml.dump(CLOUDS, temp_yaml_file, default_flow_style=False)
+#     temp_yaml_file.flush()
 
 # Now you can use 'temp_yaml_file.name' as the path to your temporary YAML file
 # For example, in a test:
@@ -100,5 +50,5 @@ def mock_session():
                                                      "username",
                                                      "password",
                                                      "database"), instance=True)
-    mock_guacamole_session.list.return_value = []
+    mock_guacamole_session.list_users.return_value = []
     return mock_guacamole_session
