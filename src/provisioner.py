@@ -24,10 +24,11 @@ def main() -> None:
     Returns:
     None
     """
+
+    start_time = time.time()
     endpoint = 'Pipeline'
 
-    msg_format.general_msg("Begining Range Provisioner", endpoint)
-
+    msg_format.general_msg("Starting Range Provisioner...", endpoint)
     try:
         # Parse and validate command line arguments
         arg = sys.argv[1:]
@@ -45,8 +46,6 @@ def main() -> None:
                                    endpoint)
             return
 
-        start_time = time.time()
-
         globals_vars = load_template.load_template("globals.yaml")
         globals_dict: Dict[str, Any] = globals_vars['globals']
         swift_globals: Dict[str, Any] = globals_vars['swift']
@@ -56,7 +55,7 @@ def main() -> None:
         debug: bool = globals_dict['debug']
         heat_file = heat_globals.get('heat_file')
         guac_file = guacamole_globals.get('guac_file')
-        
+
         # Backwards Compatibility
         if not heat_file:
             heat_file = heat_globals['template_dir'] + '/main.yaml'
@@ -68,16 +67,16 @@ def main() -> None:
         template_dir = globals_dict.get('template_dir')
 
         heat_vars = load_template.load_yaml_file(heat_file,
-                                                   template_dir,
-                                                   debug)
-        heat_params: Dict[str, Any] = heat_vars.get('parameters')
+                                                 template_dir,
+                                                 debug)
+        heat_params = heat_vars.get('parameters')
         conn_params = load_template.load_yaml_file(guac_file,
                                                    template_dir,
                                                    debug)
         clouds = load_template.load_template('clouds.yaml')['clouds']
 
         try:
-            openstack_clouds: Dict[str, Any] = clouds[heat_globals['cloud']]
+            openstack_clouds = clouds[heat_globals['cloud']]
         except KeyError as err:
             raise KeyError(
                 f"Cloud '{heat_globals['cloud']}' not found in clouds.yaml") from err
@@ -85,6 +84,18 @@ def main() -> None:
         openstack_connect = connections.openstack_connection(heat_globals['cloud'],
                                                              openstack_clouds,
                                                              debug)
+
+        if arg[0] in ["full", "guacamole"]:
+            try:
+                guacamole_clouds = clouds[guacamole_globals['cloud']]
+            except KeyError as err:
+                raise KeyError(
+                    f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
+            guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
+                                                                 guacamole_clouds,
+                                                                 debug)
+        else:
+            guacamole_connect = None
 
         if arg[0] == "swift":
             swift.provision(openstack_connect,
@@ -98,15 +109,6 @@ def main() -> None:
                            heat_params,
                            debug)
         elif arg[0] == "guacamole":
-            try:
-                guacamole_clouds: Dict[str, Any] = clouds[guacamole_globals['cloud']]
-            except KeyError as err:
-                raise KeyError(
-                    f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
-
-            guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
-                                                                 guacamole_clouds,
-                                                                 debug)
             guac.provision(openstack_connect,
                            guacamole_connect,
                            globals_dict,
@@ -114,16 +116,6 @@ def main() -> None:
                            conn_params,
                            debug)
         elif arg[0] == "full":
-            try:
-                guacamole_clouds: Dict[str,
-                                       Any] = clouds[guacamole_globals['cloud']]
-            except KeyError as err:
-                raise KeyError(
-                    f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
-
-            guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
-                                                                 guacamole_clouds,
-                                                                 debug)
             swift.provision(openstack_connect,
                             globals_dict,
                             swift_globals,
@@ -140,10 +132,6 @@ def main() -> None:
                            conn_params,
                            debug)
 
-        end_time = time.time()
-        msg_format.general_msg(f"Total time: {end_time - start_time:.2f} seconds",
-                               endpoint)
-
     except Exception as error:
         msg_format.error_msg(f"{error}\n\n {traceback.format_exc()}",
                              endpoint)
@@ -151,6 +139,11 @@ def main() -> None:
 
     msg_format.success_msg("Provisioning complete.",
                            endpoint)
+
+    end_time = time.time()
+    msg_format.general_msg(f"Total time: {end_time - start_time:.2f} seconds",
+                           endpoint)
+
     sys.exit(0)
 
 
