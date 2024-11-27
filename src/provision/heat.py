@@ -28,10 +28,8 @@ def provision(conn: object,
     endpoint = 'Heat'
 
     create, update = generate.set_provisioning_flags(globals_dict.get('provision'),
-                                                     heat_globals.get(
-                                                         'provision'),
-                                                     heat_globals.get(
-                                                         'update'),
+                                                     heat_globals.get('provision'),
+                                                     heat_globals.get('update'),
                                                      endpoint,
                                                      debug)
 

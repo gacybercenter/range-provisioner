@@ -7,8 +7,7 @@ Version: 2.0
 Description:
     Handles the logic for provisioning Guacamole
 """
-from utils import msg_format
-from utils.generate import set_provisioning_flags
+from utils import msg_format, generate
 from objects.users import NewUsers, CurrentUsers
 from objects.connections import NewConnections, CurrentConnections
 
@@ -36,11 +35,11 @@ def provision(oconn: object,
 
     endpoint = 'Guacamole'
 
-    create, update = set_provisioning_flags(globals_dict.get('provision'),
-                                            guacamole_globals.get('provision'),
-                                            guacamole_globals.get('update'),
-                                            endpoint,
-                                            debug)
+    create, update = generate.set_provisioning_flags(globals_dict.get('provision'),
+                                                     guacamole_globals.get('provision'),
+                                                     guacamole_globals.get('update'),
+                                                     endpoint,
+                                                     debug)
 
     if create is None:
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
@@ -66,7 +65,7 @@ def provision(oconn: object,
         ]
 
         if not names:
-            msg_format.error_msg("No connection groups specified.",
+            msg_format.error_msg("No connection groups specified in the config file.",
                                  "Guacamole")
             return
 

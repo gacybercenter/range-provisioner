@@ -2,8 +2,7 @@
 Handles the logic for provisioning Swift
 """
 from objects.swift import SwiftContainer
-from utils.generate import set_provisioning_flags
-from utils import msg_format
+from utils import msg_format, generate
 
 
 def provision(conn: object,
@@ -25,11 +24,11 @@ def provision(conn: object,
 
     endpoint = 'Swift'
 
-    create, update = set_provisioning_flags(globals_dict.get('provision'),
-                                            swift_globals.get('provision'),
-                                            swift_globals.get('update'),
-                                            endpoint,
-                                            debug)
+    create, update = generate.set_provisioning_flags(globals_dict.get('provision'),
+                                                     swift_globals.get('provision'),
+                                                     swift_globals.get('update'),
+                                                     endpoint,
+                                                     debug)
 
     if create is None:
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
