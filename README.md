@@ -333,7 +333,14 @@ To run the unit tests, run the following commands.
 
 ```bash
 python3 -m venv .venv
-. .venv/bin/activate
+```
+
+```bash
+./venv/bin/activate      # Linux/Mac
+```
+
+```powershell
+.venv\Scripts\activate   # Windows
 ```
 
 ### Install required Python Modules
