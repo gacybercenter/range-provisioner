@@ -65,5 +65,5 @@ def provision(conn: object,
     else:
         container.delete(delay=pause)
 
-    msg_format.success_msg(f"Provisioning {endpoint} complete.",
+    msg_format.success_msg(f"{endpoint} provisioning complete.",
                            endpoint)

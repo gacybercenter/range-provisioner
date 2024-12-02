@@ -448,11 +448,11 @@ class NewUsers():
         """
 
         if not self.guac_data.get('users'):
-            msg_format.general_msg("No Users Specified",
+            msg_format.general_msg("No users specified.",
                                    self.endpoint)
             return
 
-        msg_format.general_msg("Generating New Users",
+        msg_format.general_msg("Generating new users.",
                                self.endpoint)
         defaults = self.defaults.get('users') or {}
         for name, data in self.guac_data['users'].items():

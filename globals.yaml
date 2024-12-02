@@ -19,7 +19,7 @@ heat:
   update: False # update heat (True) or not (False)
   cloud: gcr # name of cloud to use
   amount: 2 # number of heat stacks to provision
-  heat_file: templates/main.yaml # name of guacamole config file
+  heat_file: templates/main.yaml # name of heat config file
   stack_name: stack # name of the heat stack. Default is organization's name
   stack_delay: 30 # delay between each heat stack in seconds
   pause: 0.5 # pause between each heat action in seconds

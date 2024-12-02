@@ -108,5 +108,5 @@ def provision(oconn: object,
             msg_format.general_msg(f"Username: {user.username}, Password: {user.password}",
                                    endpoint)
 
-    msg_format.success_msg(f"Provisioning {endpoint} complete.",
+    msg_format.success_msg(f"{endpoint} provisioning complete.",
                            endpoint)
