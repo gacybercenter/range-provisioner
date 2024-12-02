@@ -50,7 +50,7 @@ def provision(oconn: object,
         msg_format.general_msg(f"The {endpoint} var 'org_name' is unset. Using global organization '{organization}'...",
                                endpoint)
         guacamole_globals['org_name'] = organization
-    org_name = guacamole_globals.get('org_name')
+    org_name = guacamole_globals['org_name']
 
     if not guacamole_globals.get('pause'):
         msg_format.general_msg(f"The {endpoint} var 'pause' is unset. Using default pause of 0.5 seconds...",

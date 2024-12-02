@@ -37,6 +37,17 @@ def provision(conn: object,
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
         return
 
+    if not heat_globals.get('stack_name'):
+        organization = globals_dict.get('organization')
+        msg_format.general_msg(f"The {endpoint} var 'stack_name' is unset. Using global organization '{organization}'...",
+                               endpoint)
+        heat_globals['stack_name'] = organization
+    stack_name = heat_globals['stack_name']
+
+    amount = heat_globals['amount'] if 'amount' in heat_globals else globals_dict.get(
+        'amount', 1
+    )
+
     if not heat_globals.get('heat_file'):
         msg_format.error_msg(f"The {endpoint} var 'heat_file' is unset. Create and Update wont work.",
                              endpoint)
@@ -52,13 +63,6 @@ def provision(conn: object,
                                endpoint)    
     stack_delay = heat_globals.get('stack_delay', 30)
 
-    amount = heat_globals['amount'] if 'amount' in heat_globals else globals_dict.get(
-        'amount', 1
-    )
-    stack_name = heat_globals.get(
-        'stack_name', globals_dict['organization']
-    )
-    
     stack_names = generate.generate_names(amount,
                                           stack_name)
     updated_heat_params = generate.update_heat_params(heat_globals,
