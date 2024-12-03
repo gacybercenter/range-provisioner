@@ -3,6 +3,7 @@ Handles the logic for provisioning Heat
 """
 from time import sleep
 from tempfile import NamedTemporaryFile
+from yaml import dump
 from objects.heat import HeatStack
 from utils import msg_format, generate
 
@@ -74,10 +75,10 @@ def provision(conn: object,
 
     heat_file = heat_globals.get('heat_file')
     with NamedTemporaryFile('w', delete=False) as f:
-        f.write(str(heat_data))
+        dump(heat_data, f)
         f.flush()
         heat_file = f.name
-
+    
     for stack_name in stack_names:
         stack = HeatStack(conn,
                           stack_name,
