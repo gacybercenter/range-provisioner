@@ -2,6 +2,7 @@
 Handles the logic for provisioning Heat
 """
 from time import sleep
+from tempfile import NamedTemporaryFile
 from objects.heat import HeatStack
 from utils import msg_format, generate
 
@@ -9,7 +10,7 @@ from utils import msg_format, generate
 def provision(conn: object,
               globals_dict: dict,
               heat_globals: dict,
-              heat_params: dict,
+              heat_data: dict,
               debug=False) -> None:
     """
     Provisions or deprovisions Heat based on the given parameters.
@@ -18,7 +19,7 @@ def provision(conn: object,
         conn (object): The Heat connection object.
         globals (dict): The globals dictionary.
         heat_globals (dict): The Heat globals dictionary.
-        heat_params (dict): The Heat parameters dictionary.
+        heat_data (dict): The Heat data dictionary.
         debug (bool): The debug flag.
 
     Returns:
@@ -63,12 +64,19 @@ def provision(conn: object,
                                endpoint)    
     stack_delay = heat_globals.get('stack_delay', 30)
 
+    heat_params = heat_data.get('parameters', {})
     stack_names = generate.generate_names(amount,
                                           stack_name)
     updated_heat_params = generate.update_heat_params(heat_globals,
                                                       heat_params,
                                                       endpoint,
                                                       debug)
+
+    heat_file = heat_globals.get('heat_file')
+    with NamedTemporaryFile('w', delete=False) as f:
+        f.write(str(heat_data))
+        f.flush()
+        heat_file = f.name
 
     for stack_name in stack_names:
         stack = HeatStack(conn,

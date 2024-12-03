@@ -66,10 +66,10 @@ def main() -> None:
 
         template_dir = globals_dict.get('template_dir')
 
-        heat_vars = load_template.load_yaml_file(heat_file,
+        heat_data = load_template.load_yaml_file(heat_file,
                                                  template_dir,
                                                  debug)
-        heat_params = heat_vars.get('parameters')
+
         conn_params = load_template.load_yaml_file(guac_file,
                                                    template_dir,
                                                    debug)
@@ -106,7 +106,7 @@ def main() -> None:
             heat.provision(openstack_connect,
                            globals_dict,
                            heat_globals,
-                           heat_params,
+                           heat_data,
                            debug)
         elif arg[0] == "guacamole":
             guac.provision(openstack_connect,
