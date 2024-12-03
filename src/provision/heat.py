@@ -85,12 +85,12 @@ def provision(conn: object,
         temp_file.flush()
         temp_file.close()
 
-        new_heat_file = os.path.relpath(temp_file.name)
+        temp_heat_file = os.path.relpath(temp_file.name)
 
         for stack_name in stack_names:
             stack = HeatStack(conn,
                             stack_name,
-                            new_heat_file,
+                            temp_heat_file,
                             updated_heat_params,
                             debug)
 
