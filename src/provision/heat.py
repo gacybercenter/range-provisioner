@@ -1,9 +1,10 @@
 """
 Handles the logic for provisioning Heat
 """
+import os
 from time import sleep
-from tempfile import NamedTemporaryFile
 from yaml import dump
+from tempfile import NamedTemporaryFile
 from objects.heat import HeatStack
 from utils import msg_format, generate
 
@@ -30,8 +31,10 @@ def provision(conn: object,
     endpoint = 'Heat'
 
     create, update = generate.set_provisioning_flags(globals_dict.get('provision'),
-                                                     heat_globals.get('provision'),
-                                                     heat_globals.get('update'),
+                                                     heat_globals.get(
+                                                         'provision'),
+                                                     heat_globals.get(
+                                                         'update'),
                                                      endpoint,
                                                      debug)
 
@@ -50,19 +53,18 @@ def provision(conn: object,
         'amount', 1
     )
 
-    if not heat_globals.get('heat_file'):
-        msg_format.error_msg(f"The {endpoint} var 'heat_file' is unset. Create and Update wont work.",
+    if not heat_globals.get('heat_data'):
+        msg_format.error_msg(f"{endpoint} data is unset. Create and Update wont work.",
                              endpoint)
-    heat_file = heat_globals.get('heat_file')
 
     if not heat_globals.get('pause'):
         msg_format.general_msg(f"The {endpoint} var 'pause' is unset. Using default pause of 0.5 seconds...",
-                               endpoint)    
+                               endpoint)
     pause = heat_globals.get('pause', 0.5)
 
     if not heat_globals.get('stack_delay'):
         msg_format.general_msg(f"The {endpoint} var 'stack_delay' is unset. Using default stack delay of 30 seconds...",
-                               endpoint)    
+                               endpoint)
     stack_delay = heat_globals.get('stack_delay', 30)
 
     heat_params = heat_data.get('parameters', {})
@@ -73,16 +75,15 @@ def provision(conn: object,
                                                       endpoint,
                                                       debug)
 
-    heat_file = heat_globals.get('heat_file')
-    with NamedTemporaryFile('w', delete=False) as f:
+    with NamedTemporaryFile('w', delete=False, suffix='.yaml') as f:
         dump(heat_data, f)
+        new_heat_file = os.path.relpath(f.name)
         f.flush()
-        heat_file = f.name
-    
+
     for stack_name in stack_names:
         stack = HeatStack(conn,
                           stack_name,
-                          heat_file,
+                          new_heat_file,
                           updated_heat_params,
                           debug)
 
