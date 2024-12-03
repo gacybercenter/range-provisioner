@@ -7,7 +7,7 @@ Version: 2.0
 Description:
     Handles the logic for provisioning Guacamole
 """
-from utils import msg_format, generate
+from utils import msg_format, generate, load_template
 from objects.users import NewUsers, CurrentUsers
 from objects.connections import NewConnections, CurrentConnections
 
@@ -16,7 +16,6 @@ def provision(oconn: object,
               gconn: object,
               globals_dict: dict,
               guacamole_globals: dict,
-              conn_params: dict,
               debug: bool):
     """
     Provisions or deprovisions Guacamole based on the given parameters.
@@ -26,7 +25,6 @@ def provision(oconn: object,
         gconn (object): The Guacamole connection object.
         globals_dict (dict): The globals dictionary.
         guacamole_globals (dict): The Guacamole globals dictionary.
-        conn_params (dict): The User parameters.
         debug (bool): The debug flag.
 
     Returns:
@@ -56,6 +54,16 @@ def provision(oconn: object,
         msg_format.general_msg(f"The {endpoint} var 'pause' is unset. Using default pause of 0.5 seconds...",
                                endpoint)    
     pause = guacamole_globals.get('pause', 0.5)
+
+    if not guacamole_globals.get('guac_file'):
+        msg_format.error_msg(f"The {endpoint} var 'guac_file' is unset. Create and Update wont work.",
+                             endpoint)
+    guac_file = guacamole_globals.get('guac_file')
+    template_dir = globals_dict.get('template_dir')
+
+    conn_params = load_template.load_yaml_file(guac_file,
+                                                template_dir,
+                                                debug)
 
     if not create:
         names = [

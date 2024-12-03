@@ -64,15 +64,6 @@ def main() -> None:
             guac_file = guacamole_globals['user_dir'] + '/guac.yaml'
             guacamole_globals['guac_file'] = guac_file
 
-        template_dir = globals_dict.get('template_dir')
-
-        heat_data = load_template.load_yaml_file(heat_file,
-                                                 template_dir,
-                                                 debug)
-
-        conn_params = load_template.load_yaml_file(guac_file,
-                                                   template_dir,
-                                                   debug)
         clouds = load_template.load_template('clouds.yaml')['clouds']
 
         try:
@@ -106,14 +97,12 @@ def main() -> None:
             heat.provision(openstack_connect,
                            globals_dict,
                            heat_globals,
-                           heat_data,
                            debug)
         elif arg[0] == "guacamole":
             guac.provision(openstack_connect,
                            guacamole_connect,
                            globals_dict,
                            guacamole_globals,
-                           conn_params,
                            debug)
         elif arg[0] == "full":
             swift.provision(openstack_connect,
@@ -123,13 +112,11 @@ def main() -> None:
             heat.provision(openstack_connect,
                            globals_dict,
                            heat_globals,
-                           heat_params,
                            debug)
             guac.provision(openstack_connect,
                            guacamole_connect,
                            globals_dict,
                            guacamole_globals,
-                           conn_params,
                            debug)
 
     except Exception as error:
