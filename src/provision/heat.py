@@ -2,6 +2,7 @@
 Handles the logic for provisioning Heat
 """
 import os
+import re
 from time import sleep
 from yaml import dump
 from tempfile import NamedTemporaryFile
@@ -79,21 +80,50 @@ def provision(conn: object,
                                                       endpoint,
                                                       debug)
 
-    temp_file = NamedTemporaryFile('w', delete=False, suffix='.yaml')
-    try:
-        dump(heat_data, temp_file)
-        temp_file.flush()
-        temp_file.close()
+    if not heat_globals.get('jinja'):
+        msg_format.general_msg(f"The {endpoint} var 'jinja' is unset. Using default False...",
+                               endpoint)
+    jinja = heat_globals.get('jinja', False)
 
-        temp_heat_file = os.path.relpath(temp_file.name)
+    if jinja:
+        msg_format.general_msg(f"Using Jinja for {endpoint} template.",
+                               endpoint)
+        with NamedTemporaryFile('w', delete=False, suffix='.yaml') as temp_file:
+            dump(heat_data, temp_file)
+            temp_file.flush()
+            temp_heat_file = os.path.relpath(temp_file.name)
+            msg_format.info_msg(f"Created temporary Jinja file '{temp_file.name}'.",
+                                endpoint,
+                                debug)
+            for stack_name in stack_names:
+                stack = HeatStack(conn,
+                                  stack_name,
+                                  temp_heat_file,
+                                  updated_heat_params,
+                                  debug)
+                if update:
+                    stack.update(delay=pause)
+                elif create:
+                    stack.create(delay=pause)
+                else:
+                    stack.delete(delay=pause)
 
+                if stack_delay > 0 and stack_name != stack_names[-1]:
+                    msg_format.general_msg(f"Pausing for {stack_delay} seconds...",
+                                           endpoint)
+                    sleep(stack_delay)
+    
+        os.remove(temp_file.name)
+        msg_format.info_msg(f"Deleted temporary Jinja file '{temp_file.name}'.",
+                            endpoint,
+                            debug)
+    else:
         for stack_name in stack_names:
             stack = HeatStack(conn,
-                            stack_name,
-                            temp_heat_file,
-                            updated_heat_params,
-                            debug)
-
+                              stack_name,
+                              heat_file,
+                              updated_heat_params,
+                              debug)
             if update:
                 stack.update(delay=pause)
             elif create:
@@ -103,10 +133,8 @@ def provision(conn: object,
 
             if stack_delay > 0 and stack_name != stack_names[-1]:
                 msg_format.general_msg(f"Pausing for {stack_delay} seconds...",
-                                    endpoint)
+                                       endpoint)
                 sleep(stack_delay)
-    finally:
-        os.remove(temp_file.name)
 
     msg_format.success_msg(f"{endpoint} provisioning complete.",
                            endpoint)
