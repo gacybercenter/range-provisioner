@@ -2,7 +2,16 @@
 Handles the logic for generating Heat and Guacamole data
 """
 from utils import msg_format
+import os
 
+# Access environment variables
+num_ranges = int(os.getenv("num_ranges", 1))
+org_name = os.getenv("org_name")
+range_number = os.getenv("range_number")
+domain_name = os.getenv("domain_name")
+domain_netbios_name = os.getenv("domain_netbios_name")
+cs_number = os.getenv("cs_number")
+csToken = os.getenv("csToken")
 
 def generate_names(ranges: int,
                    prefix: str) -> list:
@@ -95,7 +104,22 @@ def update_heat_params(heat_globals: dict,
                         endpoint
                     )
                     continue
-                heat_params[key] = value
+                if int(num_ranges) > 1:
+                    if key == 'domain_name':
+                        value = domain_name
+                    elif key == 'domain_netbios_name':
+                        value = domain_netbios_name
+                    elif key == 'cs_number':
+                        value = cs_number
+                    elif key == 'org_name':
+                        value = org_name
+                    elif key == 'range_number':
+                        value = range_number
+                    elif key == 'csToken':
+                        value = csToken
+                    heat_params[key] = value
+                else:
+                    heat_params[key] = value
                 msg_format.info_msg(
                     f"Updated parameter '{key}' with value '{value}'.",
                     endpoint,

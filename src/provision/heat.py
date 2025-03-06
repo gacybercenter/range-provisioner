@@ -9,6 +9,8 @@ from tempfile import NamedTemporaryFile
 from objects.heat import HeatStack
 from utils import msg_format, generate, load_template
 
+num_ranges = os.getenv("num_ranges")
+org_name = os.getenv("org_name")
 
 def provision(conn: object,
               globals_dict: dict,
@@ -41,14 +43,15 @@ def provision(conn: object,
     if create is None:
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
         return
+    if int(num_ranges) == 1 or num_ranges is None:
+        stack_name = heat_globals.get('stack_name', org_name)
+    if int(num_ranges) > 1:
+        stack_name = org_name
+    if not stack_name:
+        msg_format.error_msg(f"The {endpoint} var 'stack_name' is unset and no organization name found in environment variables.",
+                            endpoint)
+        return
 
-    if not heat_globals.get('stack_name'):
-        organization = globals_dict.get('organization')
-        msg_format.general_msg(f"The {endpoint} var 'stack_name' is unset. Using global organization '{organization}'...",
-                               endpoint)
-        heat_globals['stack_name'] = organization
-
-    stack_name = heat_globals['stack_name']
     amount = heat_globals['amount'] if 'amount' in heat_globals else globals_dict.get(
         'amount', 1
     )
