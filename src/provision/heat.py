@@ -43,12 +43,23 @@ def provision(conn: object,
     if create is None:
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
         return
+
     if num_ranges is None:
         stack_name = heat_globals.get('stack_name', org_name)
     elif int(num_ranges) == 1:
         stack_name = heat_globals.get('stack_name', org_name)
     elif int(num_ranges) > 1:
         stack_name = org_name
+
+    if stack_name is None:
+        if not heat_globals.get('stack_name'):
+            organization = globals_dict.get('organization')
+            msg_format.general_msg(f"The {endpoint} var 'stack_name' is unset. Using global organization '{organization}'...",
+                                endpoint)
+            heat_globals['stack_name'] = organization
+        else:
+            stack_name = heat_globals['stack_name']
+
     if not stack_name:
         msg_format.error_msg(f"The {endpoint} var 'stack_name' is unset and no organization name found in environment variables.",
                             endpoint)
