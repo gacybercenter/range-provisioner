@@ -45,9 +45,9 @@ def provision(conn: object,
         return
     if num_ranges is None:
         stack_name = heat_globals.get('stack_name', org_name)
-    if int(num_ranges) == 1:
+    elif int(num_ranges) == 1:
         stack_name = heat_globals.get('stack_name', org_name)
-    if int(num_ranges) > 1:
+    elif int(num_ranges) > 1:
         stack_name = org_name
     if not stack_name:
         msg_format.error_msg(f"The {endpoint} var 'stack_name' is unset and no organization name found in environment variables.",
