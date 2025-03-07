@@ -43,7 +43,9 @@ def provision(conn: object,
     if create is None:
         msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
         return
-    if int(num_ranges) == 1 or num_ranges is None:
+    if num_ranges is None:
+        stack_name = heat_globals.get('stack_name', org_name)
+    if int(num_ranges) == 1:
         stack_name = heat_globals.get('stack_name', org_name)
     if int(num_ranges) > 1:
         stack_name = org_name
