@@ -58,6 +58,7 @@ def provision(conn: object,
             msg_format.general_msg(f"The {endpoint} var 'stack_name' is unset. Using global organization '{organization}'...",
                                 endpoint)
             heat_globals['stack_name'] = organization
+            stack_name = organization
         else:
             stack_name = heat_globals['stack_name']
 
