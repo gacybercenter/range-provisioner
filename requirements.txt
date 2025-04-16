@@ -4,3 +4,5 @@ requests
 pyyaml
 jinja2
 colorama
+setuptools
+argparse
