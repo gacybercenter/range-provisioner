@@ -3,6 +3,8 @@ heat_template_version: 2018-03-02
 description: >
   alphanox
 
+{% set test = 'test'%}
+
 parameters:
 
   instance_id:

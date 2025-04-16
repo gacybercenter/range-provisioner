@@ -1,4 +1,11 @@
 # JINJA Variables
+
+# {% macro indent_include(file, indent_level) %}
+# {% filter indent(indent_level) %}
+{% include file %}
+# {% endfilter %}
+# {% endmacro %}
+
 # AMOUNT is replaced via ci.yaml with amount from globals
 {% set systems = 4 %}
 {% set organization = "automation" %}
@@ -37,4 +44,9 @@ connectionTemplates:
 
 
 # Defaults
-{% include 'templates/def.yaml' %}
+Test1:
+  Test2:
+    Test3:
+      Test4:
+        Test5:
+          {{ indent_include("templates/def.yaml", 10) }}

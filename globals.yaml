@@ -1,6 +1,6 @@
 #YAML for storing range provisioning parameters
 globals:
-  debug: False # debug mode (True) or not (False)
+  debug: True # debug mode (True) or not (False)
   artifacts: True # artifacts (True) or not (False)
   organization: automation # top level identifier for guac users
   # template_dir: templates # directory containing templates
@@ -15,14 +15,15 @@ guacamole:
   pause: 0.5 # pause between each guacamole action in seconds
 
 heat:
-  provision: False # provision heat (True) or not (False)
-  update: False # update heat (True) or not (False)
+  provision: True # provision heat (True) or not (False)
+  update: True # update heat (True) or not (False)
   cloud: gcr # name of cloud to use
   amount: 2 # number of heat stacks to provision
   heat_file: templates/main.yaml # name of heat config file
   stack_name: stack # name of the heat stack. Default is organization's name
   stack_delay: 30 # delay between each heat stack in seconds
   pause: 0.5 # pause between each heat action in seconds
+  jinja: True # use jinja (True) or not (False)
   parameters: # Update existing heat parameters
   - username: test
   - count: 2

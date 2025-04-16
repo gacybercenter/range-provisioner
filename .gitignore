@@ -13,3 +13,5 @@
 .coverage
 .pylintrc
 junit.xml
+*.egg-info
+build/

@@ -1,4 +1,5 @@
 # JINJA Variables
+
 {% set systems = 2 %}
 {% set organization = "organization" %}
 
@@ -32,3 +33,5 @@ users:
       connectionPermissions:
         - {{ organization }}.kali.{{ system }}
   {% endfor %}
+
+
