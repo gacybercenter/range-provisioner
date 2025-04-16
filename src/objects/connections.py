@@ -7,7 +7,6 @@ import re
 import openstack.connection
 import guacamole
 from utils import msg_format, parse
-from objects.heat import HeatStack
 
 
 class Connection:
@@ -557,22 +556,12 @@ class NewConnections():
         self._find_current_conns()
         self._create_connection_groups()
 
-        stack_names = conn_data.get('stacks')
-        if not stack_names:
-            stack_names = conn_data['groups'].keys()
-
-        for stack_name in stack_names:
-            stack = HeatStack(oconn,
-                              stack_name,
-                              debug=debug)
-            if not stack.stack:
-                msg_format.error_msg(f"Stack '{stack_name}' doesn't exist.",
-                                     self.endpoint)
-                continue
-
-            addresses = stack.get_ip_addresses()
-            self._create_connections(addresses,
-                                     stack_name)
+        servers = oconn.list_servers(filters={"status": "ACTIVE"})
+        addresses = {}
+        for server in servers:
+            ip_addr = server['public_v4'] if server['public_v4'] else server['private_v4']
+            addresses[server['name']] = ip_addr
+        self._create_connections(addresses)
 
     def create(self,
                delay: float = 0):
@@ -687,8 +676,7 @@ class NewConnections():
             self.connections.append(conn_group)
 
     def _create_connections(self,
-                            addresses: dict,
-                            stack: str) -> None:
+                            addresses: dict) -> None:
         if not self.conn_data.get('connectionTemplates'):
             msg_format.general_msg("No connection instances specified.",
                                    self.endpoint)
@@ -714,7 +702,7 @@ class NewConnections():
                     self.connections.extend(conn_instances)
                     found = True
             if not found:
-                msg_format.info_msg(f"Pattern '{pattern}' was not found in stack '{stack}'",
+                msg_format.info_msg(f"No device with pattern '{pattern}' was found.",
                                     self.endpoint,
                                     self.debug)
 
