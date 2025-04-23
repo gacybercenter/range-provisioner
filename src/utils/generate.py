@@ -62,8 +62,7 @@ def set_provisioning_flags(global_create: bool | None,
 
     if create is None and update:
         raise Exception(
-            f"Invalid provisioning and update flags: create={
-                create}, update={update}"
+            f"Invalid provisioning and update flags: create={create}, update={update}"
         )
 
     # Log the provisioning and update status if debug is enabled
