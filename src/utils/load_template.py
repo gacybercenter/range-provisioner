@@ -4,7 +4,10 @@ Loads a template file and returns a dictionary
 import os
 from jinja2 import Environment, FileSystemLoader, TemplateSyntaxError
 from yaml import safe_load
-from utils import msg_format
+try:
+    from src.utils import msg_format
+except ImportError:
+    from utils import msg_format
 
 
 def load_template(template_name: str,
@@ -90,3 +93,16 @@ def load_yaml_file(file_name: str,
                              endpoint)
 
     return yaml_dict
+
+
+def parse_yaml_string(yaml_string: str, context: dict | None = None) -> dict:
+    """
+    Parse a YAML/Jinja string directly without touching disk.
+    """
+    try:
+        env = Environment()
+        template = env.from_string(yaml_string)
+        rendered = template.render(context or {})
+        return safe_load(rendered) or {}
+    except Exception as error:
+        raise ValueError(f"Error parsing YAML string: {error}")

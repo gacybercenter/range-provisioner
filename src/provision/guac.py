@@ -55,15 +55,20 @@ def provision(oconn: object,
                                endpoint)    
     pause = guacamole_globals.get('pause', 0.5)
 
-    if not guacamole_globals.get('guac_file'):
-        msg_format.error_msg(f"The {endpoint} var 'guac_file' is unset. Create and Update wont work.",
-                             endpoint)
-    guac_file = guacamole_globals.get('guac_file')
-    template_dir = globals_dict.get('template_dir')
+    conn_params = guacamole_globals.get('conn_params')
+    if not conn_params:
+        if not guacamole_globals.get('guac_file'):
+            msg_format.error_msg(f"The {endpoint} var 'guac_file' is unset. Create and Update wont work.",
+                                 endpoint)
+            return
+        guac_file = guacamole_globals.get('guac_file')
+        template_dir = globals_dict.get('template_dir')
+        conn_params = load_template.load_yaml_file(guac_file, template_dir, debug)
 
-    conn_params = load_template.load_yaml_file(guac_file,
-                                                template_dir,
-                                                debug)
+    if not conn_params or 'groups' not in conn_params:
+        msg_format.error_msg(f"Failed to load or generate Guacamole configuration parameters.", endpoint)
+        return
+
 
     if not create:
         names = [

@@ -556,11 +556,15 @@ class NewConnections():
         self._find_current_conns()
         self._create_connection_groups()
 
-        servers = oconn.list_servers(filters={"status": "ACTIVE"})
         addresses = {}
-        for server in servers:
-            ip_addr = server['public_v4'] if server['public_v4'] else server['private_v4']
-            addresses[server['name']] = ip_addr
+        if oconn:
+            try:
+                servers = oconn.list_servers(filters={"status": "ACTIVE"})
+                for server in servers:
+                    ip_addr = server.get('public_v4') or server.get('private_v4') or ''
+                    addresses[server['name']] = ip_addr
+            except Exception as e:
+                msg_format.info_msg(f"Could not query OpenStack server list: {e}", self.endpoint, self.debug)
         self._create_connections(addresses)
 
     def create(self,

@@ -55,25 +55,29 @@ def provision(conn: object,
     stack_names = generate.generate_names(amount,
                                           stack_name)
 
-    if not heat_globals.get('heat_file'):
-        msg_format.error_msg(f"The {endpoint} var 'heat_file' is unset. Create and Update wont work.",
-                             endpoint)
-    heat_file = heat_globals.get('heat_file')
-    template_dir = globals_dict.get('template_dir')
+    heat_data = heat_globals.get('heat_template_dict')
+    if not heat_data and heat_globals.get('heat_template_yaml'):
+        try:
+            heat_data = load_template.parse_yaml_string(heat_globals['heat_template_yaml'])
+        except Exception as e:
+            msg_format.error_msg(f"Failed parsing heat_template_yaml: {e}", endpoint)
+            return
 
-    if not heat_globals.get('pause'):
-        msg_format.general_msg(f"The {endpoint} var 'pause' is unset. Using default pause of 0.5 seconds...",
-                               endpoint)
-    pause = heat_globals.get('pause', 0.5)
+    if not heat_data:
+        if not heat_globals.get('heat_file'):
+            msg_format.error_msg(f"The {endpoint} var 'heat_file' is unset. Create and Update wont work.",
+                                 endpoint)
+            return
+        heat_file = heat_globals.get('heat_file')
+        template_dir = globals_dict.get('template_dir')
+        heat_data = load_template.load_yaml_file(heat_file,
+                                                 template_dir,
+                                                 debug)
 
-    if not heat_globals.get('stack_delay'):
-        msg_format.general_msg(f"The {endpoint} var 'stack_delay' is unset. Using default stack delay of 30 seconds...",
-                               endpoint)
-    stack_delay = heat_globals.get('stack_delay', 30)
+    if not heat_data:
+        msg_format.error_msg("Failed to load Heat orchestration template.", endpoint)
+        return
 
-    heat_data = load_template.load_yaml_file(heat_file,
-                                                template_dir,
-                                                debug)
     heat_params = heat_data.get('parameters', {})
     updated_heat_params = generate.update_heat_params(heat_globals,
                                                       heat_params,
@@ -84,6 +88,8 @@ def provision(conn: object,
         msg_format.general_msg(f"The {endpoint} var 'jinja' is unset. Using default False...",
                                endpoint)
     jinja = heat_globals.get('jinja', False)
+    pause = heat_globals.get('pause', 0.1)
+    stack_delay = heat_globals.get('stack_delay', 0.1)
 
     if jinja:
         msg_format.general_msg(f"Using Jinja for {endpoint} template.",

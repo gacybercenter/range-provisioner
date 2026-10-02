@@ -38,10 +38,11 @@ def provision(conn: object,
     if not swift_globals.get('assets_dir'):
         swift_globals['assets_dir'] = swift_globals.get('asset_dir')
 
-    if not swift_globals.get('assets_dir'):
-        msg_format.error_msg(f"The {endpoint} var 'assets_dir' is unset. Create and Update wont work.",
-                             endpoint)
     assets_dir = swift_globals.get('assets_dir')
+    if not assets_dir:
+        msg_format.info_msg(f"The {endpoint} var 'assets_dir' is unset. Object uploading will be skipped.",
+                            endpoint,
+                            debug)
 
     if not swift_globals.get('pause'):
         msg_format.general_msg(f"The {endpoint} var 'pause' is unset. Using default pause of 0.5 seconds...",
@@ -51,11 +52,13 @@ def provision(conn: object,
     container_name = swift_globals.get(
         'container_name', globals_dict['organization']
     )
+    access = swift_globals.get('access', 'private')
 
     container = SwiftContainer(conn,
                                container_name,
                                assets_dir,
-                               debug)
+                               debug,
+                               access=access)
 
     # Provision, deprovision, or reprovision
     if update:

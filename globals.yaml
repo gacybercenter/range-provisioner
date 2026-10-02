@@ -34,4 +34,5 @@ swift:
   cloud: gcr # name of cloud to use
   assets_dir: assets # directory containing swift assets
   container_name: container # name of the swift container. Default is organization's name
+  access: private # access policy for container ('private' or 'public', default is private)
   pause: 0.5 # pause between each swift action in seconds

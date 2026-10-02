@@ -1,15 +1,6 @@
 # JINJA Variables
-
-# {% macro indent_include(file, indent_level) %}
-# {% filter indent(indent_level) %}
-{% include file %}
-# {% endfilter %}
-# {% endmacro %}
-
-# AMOUNT is replaced via ci.yaml with amount from globals
 {% set systems = 4 %}
 {% set organization = "automation" %}
-
 
 # Stacks
 stacks:
@@ -27,26 +18,21 @@ connectionTemplates:
   {{ organization }}.screen.server:
     parent: {{ organization }}
     pattern: {{ organization }}.screen.server.(\d+)
+    protocol: rdp
     parameters:
+      port: 3389
+      security: any
+      ignore-cert: 'true'
       username: gacyberrange
       password: gacyberrange
 
 # USERS
-# users:
-#   {% for system in range(1, systems+1) %}
-#   {{ organization }}.user.{{ system }}:
-#     username: {{ organization }}.screen.{{ system }}
-#     password: P@ssw0rd
-#     permissions:
-#       connectionPermissions:
-#         - {{ organization }}.screen.server.{{ system }}
-#   {% endfor %}
-
-
-# Defaults
-Test1:
-  Test2:
-    Test3:
-      Test4:
-        Test5:
-          {{ indent_include("templates/def.yaml", 10) }}
+users:
+  {% for system in range(1, systems+1) %}
+  {{ organization }}.user.{{ system }}:
+    username: {{ organization }}.screen.{{ system }}
+    password: P@ssw0rd{{ system }}!
+    permissions:
+      connectionPermissions:
+        - {{ organization }}.screen.server.{{ system }}
+  {% endfor %}

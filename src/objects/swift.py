@@ -21,13 +21,15 @@ class SwiftContainer:
     def __init__(self,
                  conn: Connection,
                  name: str,
-                 assets_dir: str,
-                 debug: bool = False):
+                 assets_dir: str = None,
+                 debug: bool = False,
+                 access: str = "private"):
 
         self.conn = conn
         self.name = name
         self.assets_dir = assets_dir
         self.debug = debug
+        self.access = access or "private"
         self.endpoint = 'Swift'
         self.container = None
 
@@ -89,7 +91,7 @@ class SwiftContainer:
                                  self.endpoint)
             return None
 
-        self._set_access(delay=delay)
+        self._set_access(access=self.access, delay=delay)
         self._upload_objects(delay=delay)
 
         self.container = container
@@ -150,7 +152,7 @@ class SwiftContainer:
                                  self.endpoint)
             return None
 
-        container = self._set_access(delay=delay)
+        container = self._set_access(access=self.access, delay=delay)
 
         if not container:
             msg_format.error_msg(f"Failed to set access for container '{self.name}'",
@@ -195,18 +197,18 @@ class SwiftContainer:
         return False
 
     def _set_access(self,
-                    access: str = "public",
+                    access: str = "private",
                     delay: float = 0) -> object | None:
         """
         Set the swift container access.
-        Can be 'public' or 'private'. Default is public.
+        Can be 'public' or 'private'. Default is private.
         """
 
         msg_format.general_msg(f"Setting container '{self.name}' to {access}...",
                                self.endpoint)
 
         container = self.conn.set_container_access(name=self.name,
-                                              access=access)
+                                                   access=access)
         sleep(delay)
 
         if not container:
@@ -223,6 +225,16 @@ class SwiftContainer:
         """
         Upload assets to the swift container
         """
+        if not self.assets_dir:
+            msg_format.general_msg(f"No assets directory configured for container '{self.name}'. Skipping object upload.",
+                                   self.endpoint)
+            return
+
+        if not path.exists(self.assets_dir):
+            msg_format.info_msg(f"Assets directory '{self.assets_dir}' not found on filesystem. Skipping object upload.",
+                                self.endpoint,
+                                self.debug)
+            return
 
         msg_format.general_msg(f"Uploading objects from '{self.assets_dir}' to container '{self.name}'...",
                                self.endpoint)
