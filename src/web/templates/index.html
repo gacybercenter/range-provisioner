@@ -3003,9 +3003,11 @@ outputs:
             }
           }
           this.$watch('activeTab', (tab) => {
+            if (tab === 'schedules') {
             if (tab === 'schedules' || (tab === 'runner' && this.operationsSubTab === 'schedules')) {
               this.loadSchedules();
             }
+            if (tab === 'topology') {
             if (tab === 'topology' || (tab === 'studio' && this.studioSubTab === 'topology')) {
               this.$nextTick(() => {
                 setTimeout(() => {
@@ -3029,6 +3031,7 @@ outputs:
             }
           });
           window.addEventListener('resize', () => {
+            if (this.activeTab === 'topology') {
             if (this.activeTab === 'topology' || (this.activeTab === 'studio' && this.studioSubTab === 'topology')) {
               this.renderTopology();
             }
@@ -3795,6 +3798,7 @@ outputs:
 
         // Cyber Range Topology & D3 Integration
         async openTopologyView() {
+          this.activeTab = 'topology';
           this.activeTab = 'studio';
           this.studioSubTab = 'topology';
           if (!this.topologyData || !this.topologyData.nodes || this.topologyData.nodes.length === 0) {
@@ -3829,6 +3833,7 @@ outputs:
             });
             if (res.ok) {
               this.topologyData = await res.json();
+              if (this.activeTab === 'topology') {
               if (this.activeTab === 'topology' || (this.activeTab === 'studio' && this.studioSubTab === 'topology')) {
                 this.$nextTick(() => {
                   setTimeout(() => this.renderTopology(), 40);
