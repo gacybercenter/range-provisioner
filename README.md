@@ -317,6 +317,32 @@ users:
 
 ## Usage Examples
 
+### Install the command-line tool
+
+From the Range Provisioner repository, install it into a virtual environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install .
+```
+
+Python 3.10 or later is required. Then run:
+
+```bash
+range-provisioner --help
+range-provisioner heat --range training --dry-run
+range-provisioner full
+```
+
+`provisioner` is also available as an alias. Run the command from the directory
+containing your `globals.yaml` and `clouds.yaml`; configuration and template
+paths are resolved relative to the working directory. Copy and customize the
+example configuration and templates as needed. The installed command supports
+the same actions and options as the script, including the optional `env.yaml`
+configured through `heat.env_file`. A dry run still connects to services for
+read-only discovery.
+
 ### Running manually
 
 To run Range Provisioner manually, use the following command.
