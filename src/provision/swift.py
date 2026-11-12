@@ -1,12 +1,12 @@
 """
 Handles the logic for provisioning Swift
 """
-import orchestration.swift as swift
-from utils.msg_format import error_msg, info_msg
+from objects.swift import SwiftContainer
+from utils import msg_format, generate
 
 
 def provision(conn: object,
-              globals: dict,
+              globals_dict: dict,
               swift_globals: dict,
               debug=False) -> None:
     """
@@ -24,59 +24,46 @@ def provision(conn: object,
 
     endpoint = 'Swift'
 
-    # Set the create and update flags from the globals vars
-    if isinstance(globals['provision'], bool):
-        create = globals['provision']
-        update = swift_globals.get('update', False)
-        info_msg(f"Global provisioning is set to '{create}'",
-                 endpoint,
-                 debug)
+    create, update = generate.set_provisioning_flags(globals_dict.get('provision'),
+                                                     swift_globals.get('provision'),
+                                                     swift_globals.get('update'),
+                                                     endpoint,
+                                                     debug)
 
-    # Set the create and update flags from the swift globals vars
-    elif (isinstance(swift_globals['provision'], bool) and
-          isinstance(swift_globals['update'], bool)):
-        create = swift_globals['provision']
-        update = swift_globals['update']
-
-        if not create and update:
-            error_msg(
-                f"Can't have provision: False, update: True in {endpoint} globals.yaml",
-                endpoint
-            )
-            return
-
-        info_msg(f"{endpoint} provisioning is set to '{create}'",
-                 endpoint,
-                 debug)
-        info_msg(f"{endpoint} update is set to '{update}'",
-                 endpoint,
-                 debug)
-
-    else:
-        error_msg(
-            f"Please check the {endpoint} provison and update parameters in globals.yaml",
-            endpoint
-        )
+    if create is None:
+        msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
         return
 
-    range_name = globals['range_name']
-    directory = swift_globals['asset_dir']
+    # Backward compatibility
+    if not swift_globals.get('assets_dir'):
+        swift_globals['assets_dir'] = swift_globals.get('asset_dir')
+
+    if not swift_globals.get('assets_dir'):
+        msg_format.error_msg(f"The {endpoint} var 'assets_dir' is unset. Create and Update wont work.",
+                             endpoint)
+    assets_dir = swift_globals.get('assets_dir')
+
+    if not swift_globals.get('pause'):
+        msg_format.general_msg(f"The {endpoint} var 'pause' is unset. Using default pause of 0.5 seconds...",
+                               endpoint)    
+    pause = swift_globals.get('pause', 0.5)
+
+    container_name = swift_globals.get(
+        'container_name', globals_dict['organization']
+    )
+
+    container = SwiftContainer(conn,
+                               container_name,
+                               assets_dir,
+                               debug)
 
     # Provision, deprovision, or reprovision
     if update:
-        swift.deprovision(conn,
-                          range_name,
-                          debug)
-        swift.provision(conn,
-                        range_name,
-                        directory,
-                        debug)
+        container.update(delay=pause)
     elif create:
-        swift.provision(conn,
-                        range_name,
-                        directory,
-                        debug)
+        container.create(delay=pause)
     else:
-        swift.deprovision(conn,
-                          range_name,
-                          debug)
+        container.delete(delay=pause)
+
+    msg_format.success_msg(f"{endpoint} provisioning complete.",
+                           endpoint)

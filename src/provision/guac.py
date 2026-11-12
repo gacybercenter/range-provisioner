@@ -1,34 +1,30 @@
 """
-Guacamole provisioning script.
+Guacamole provisioning script
 Author: Marcus Corulli
-Date: 09/28/2023
-Version: 1.0
+Date: 5/1/2024
+Version: 2.0
 
 Description:
     Handles the logic for provisioning Guacamole
 """
-from orchestration import guac
-from utils.generate import generate_groups, generate_users, format_users, format_groups, generate_conns
-from utils.msg_format import error_msg, info_msg
+from utils import msg_format, generate, load_template
+from objects.users import NewUsers, CurrentUsers
+from objects.connections import NewConnections, CurrentConnections
 
 
-def provision(conn: object,
+def provision(oconn: object,
               gconn: object,
-              globals: dict,
+              globals_dict: dict,
               guacamole_globals: dict,
-              heat_params: dict,
-              user_params: dict,
               debug: bool):
     """
     Provisions or deprovisions Guacamole based on the given parameters.
 
     Args:
-        conn (object): The Heat connection object.
+        oconn (object): The Heat connection object.
         gconn (object): The Guacamole connection object.
-        globals (dict): The globals dictionary.
+        globals_dict (dict): The globals dictionary.
         guacamole_globals (dict): The Guacamole globals dictionary.
-        heat_params (dict): The Heat parameters.
-        user_params (dict): The User parameters.
         debug (bool): The debug flag.
 
     Returns:
@@ -37,115 +33,88 @@ def provision(conn: object,
 
     endpoint = 'Guacamole'
 
-    # Set the create and update flags from the globals vars
-    if isinstance(globals['provision'], bool):
-        create = globals['provision']
-        update = guacamole_globals.get('update', False)
-        info_msg(f"Global provisioning is set to {create}",
-                 endpoint,
-                 debug)
+    create, update = generate.set_provisioning_flags(globals_dict.get('provision'),
+                                                     guacamole_globals.get('provision'),
+                                                     guacamole_globals.get('update'),
+                                                     endpoint,
+                                                     debug)
 
-    # Set the create and update flags from the guacamole globals vars
-    elif (isinstance(guacamole_globals['provision'], bool) and
-          isinstance(guacamole_globals['update'], bool)):
-        create = guacamole_globals['provision']
-        update = guacamole_globals['update']
+    if create is None:
+        msg_format.general_msg(f"Skipping {endpoint} provisioning.", endpoint)
+        return
 
-        if not create and update:
-            error_msg(
-                f"Can't have provision: False, update: True in {endpoint} globals.yaml",
-                endpoint
-            )
+    if not guacamole_globals.get('org_name'):
+        organization = globals_dict.get('organization')
+        msg_format.general_msg(f"The {endpoint} var 'org_name' is unset. Using global organization '{organization}'...",
+                               endpoint)
+        guacamole_globals['org_name'] = organization
+    org_name = guacamole_globals['org_name']
+
+    if not guacamole_globals.get('pause'):
+        msg_format.general_msg(f"The {endpoint} var 'pause' is unset. Using default pause of 0.5 seconds...",
+                               endpoint)    
+    pause = guacamole_globals.get('pause', 0.5)
+
+    if not guacamole_globals.get('guac_file'):
+        msg_format.error_msg(f"The {endpoint} var 'guac_file' is unset. Create and Update wont work.",
+                             endpoint)
+    guac_file = guacamole_globals.get('guac_file')
+    template_dir = globals_dict.get('template_dir')
+
+    conn_params = load_template.load_yaml_file(guac_file,
+                                                template_dir,
+                                                debug)
+
+    if not create:
+        names = [
+            group
+            for group, data in conn_params['groups'].items()
+            if data.get('parent') == 'ROOT'
+        ]
+
+        if not names:
+            msg_format.error_msg("No connection groups specified in the config file.",
+                                 "Guacamole")
             return
 
-        info_msg(f"{endpoint} provisioning is set to '{create}'",
-                 endpoint,
-                 debug)
-        info_msg(f"{endpoint} update is set to '{update}'",
-                 endpoint,
-                 debug)
+        current_connections = CurrentConnections(gconn,
+                                                 'ROOT',
+                                                 names,
+                                                 debug)
+        current_connections.delete(delay=pause)
+
+        current_users = CurrentUsers(gconn,
+                                     org_name,
+                                     debug)
+        current_users.delete(delay=pause)
 
     else:
-        error_msg(
-            f"Please check the {endpoint} provison and update parameters in globals.yaml",
-            endpoint
-        )
-        return
+        new_connections = NewConnections(gconn,
+                                         oconn,
+                                         conn_params,
+                                         debug)
 
-    guac_params = {}
+        if update:
+            new_connections.update(delay=pause)
+        else:
+            new_connections.create(delay=pause)
 
-    # Populate the guac_params
-    guac_params['org_name'] = globals['org_name']
-    guac_params['parent_group_id'] = guac.get_conn_id(gconn,
-                                                      guac_params['org_name'],
-                                                      'ROOT',
-                                                      'group',
-                                                      debug)
-    # Check if the group exists
-    if update and not guac_params['parent_group_id']:
-        error_msg(
-            f"Guacamole group '{guac_params['org_name']}' cannot be updated, it doesn't exist",
-            endpoint
-        )
-        return
-    # Populate the guac_params for provision or reprovision
-    if create or update:
-        guac_params['protocol'] = heat_params['conn_proto']['default']
-        guac_params['username'] = heat_params['username']['default']
-        guac_params['password'] = heat_params['password']['default']
-        guac_params['domain_name'] = guac.find_domain_name(heat_params,
-                                                           debug)
-    guac_params['mapped_only'] = guacamole_globals['mapped_only']
-    guac_params['recording'] = guacamole_globals['recording']
-    guac_params['sharing'] = guacamole_globals['sharing']
-    guac_params['users'] = guacamole_globals.get(
-        'users', globals['user_name'] # For backward compatibility
-    )
-    guac_params['delay'] = guacamole_globals.get(
-        'delay', 0.5 # For backward compatibility
-    )
+        new_users = NewUsers(gconn,
+                             conn_params,
+                             org_name,
+                             new_connections.connections,
+                             debug)
 
-    # Format the users.yaml data into groups and users data
-    if user_params:
-        guac_params['new_groups'] = format_groups(user_params,
-                                                    debug)
-        guac_params['instances'] = guac.get_heat_instances(conn,
-                                                            guac_params,
-                                                            debug) if create else []
-        guac_params['new_users'] = format_users(user_params,
-                                                guac_params,
-                                                debug)
-    # If no users are specified, generate the groups and users data
-    else:
-        guac_params['new_groups'] = generate_groups(globals,
-                                                    debug)
-        guac_params['instances'] = guac.get_heat_instances(conn,
-                                                            guac_params,
-                                                            debug) if create else []
-        guac_params['new_users'] = generate_users(globals,
-                                                    guac_params,
-                                                    debug)
-    if create and guac_params['mapped_only']:
-        guac_params['instances'] = guac.reduce_heat_instances(guac_params,
-                                                                debug)
-    # Populate the guac_params with current connection and user data
-    guac_params['new_conns'] = generate_conns(globals,
-                                               guac_params,
-                                               debug)
-    guac_params['conns'] = guac.get_conns(gconn,
-                                          guac_params['parent_group_id'],
-                                          debug)
+        if update:
+            new_users.update(delay=pause)
+        else:
+            new_users.create(delay=pause)
 
-    guac_params['users'] = guac.get_users(gconn,
-                                          guac_params['org_name'],
-                                          debug)
+        msg_format.general_msg("User artifacts:",
+                               endpoint)
+        for user in new_users.users:
+            msg_format.general_msg(f"Username: {user.username}, Password: {user.password}",
+                                   endpoint)
 
-    # Provision, deprovision, or reprovision
-    if create:
-        guac.provision(gconn,
-                       guac_params,
-                       update,
-                       debug)
-    else:
-        guac.deprovision(gconn,
-                         guac_params)
+    msg_format.success_msg(f"{endpoint} provisioning complete.",
+                           endpoint)

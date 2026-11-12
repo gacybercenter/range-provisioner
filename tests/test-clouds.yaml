@@ -1,0 +1,17 @@
+clouds:
+  openstack:
+    auth:
+      auth_url: https://openstack.domain.net:5000/v3
+      project_id: 0123456789abcdef0123456789abcdef
+      project_name: project
+      username: username
+      password: password
+      user_domain_name: Default
+      project_domain_name: Default
+    region_name: RegionOne
+    identity_api_version: 3
+  guacamole:
+    host: https://guacamole.domain.net
+    data_source: mysql
+    username: username
+    password: password

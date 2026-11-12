@@ -1,177 +1,92 @@
-from munch import Munch
+"""
+Loads a template file and returns a dictionary
+"""
+import os
+from jinja2 import Environment, FileSystemLoader, TemplateSyntaxError
 from yaml import safe_load
-from utils.msg_format import error_msg, info_msg, general_msg, success_msg
+from utils import msg_format
 
 
-def load_template(template,
-                  debug=False):
-    """ 
+def load_template(template_name: str,
+                  template_dir: str = '.') -> dict | None:
+    """
     Load a template file and return a dictionary
 
     Args:
         template (str): The path to the template file.
+        template_dir (str, optional): The directory containing the template files. Defaults to '.'.
+        debug (bool, optional): Whether to enable debug mode. Defaults to False.
+
     Returns:
         dict: A dictionary containing the template parameters.
     """
 
-    endpoint = 'Templates'
-
-    info_msg(f"Loading {template}",
-                endpoint,
-                debug)
-
     try:
-        with open(template, 'r', encoding='utf-8') as file:
-            parameters = Munch(safe_load(file))
+        env = Environment(loader=FileSystemLoader(template_dir))
+        template = env.get_template(template_name)
+        parameters = safe_load(template.render())
 
-    except FileNotFoundError:
-        info_msg(f"Cannot find {template}",
-                 endpoint,
-                 debug)
-        return {}
+    except TemplateSyntaxError as error:
+        error_message = error.message
+        raise ValueError(
+            f"Template {template} has a syntax error: {error_message}")
 
     except Exception as error:
-        error_msg(f"Cannot load template. {error}",
-                  endpoint)
-        return {}
+        raise error
 
     return parameters
 
 
-def load_global(debug=False):
+def load_yaml_file(file_name: str,
+                   template_dir: str | None = None,
+                   debug: bool = False) -> dict | None:
     """
-    Load the global variables from the "globals.yaml" template file.
-
-    Returns:
-        dict: A dictionary containing the global variables loaded from the template file.
-
-    Raises:
-        Exception: If there is an error while loading the template file.
-    """
-
-    endpoint = 'Templates'
-
-    globals_dict = load_template("globals.yaml",
-                                 debug)
-    if globals_dict:
-        success_msg("Globals loaded",
-                    endpoint)
-    else:
-        general_msg("No globals found",
-                    endpoint)
-
-    return globals_dict
-
-
-def load_heat(heat_template_dir,
-              debug=False):
-    """
-    Load heat template from the specified directory.
+    Load a YAML file from the specified directory.
 
     Parameters:
-    - heat_template_dir (str): The directory path where the heat template is located.
+        file_name (str): The name of the YAML file to load.
+        debug (bool): Flag to indicate whether debug messages should be displayed.
 
     Returns:
-    - heat_dict (dict): The loaded heat template as a dictionary.
-
-    This function loads the heat template from the specified directory by calling the
-    `load_template`function with the path to the `main.yaml` file. If the loading is
-    successful, a success message is printed. If an exception occurs during the loading
-    process, an error message is printed and {} is returned. The loaded heat template
-    is returned as a dictionary.
-
-    Note: The `load_template` and `general_msg` functions are assumed to be defined elsewhere.
+        dict: A dictionary containing the loaded YAML file, or {} if an error occurred.
     """
 
     endpoint = 'Templates'
 
-    heat_dict = load_template(f"{heat_template_dir}/main.yaml",
-                              debug)
-    if heat_dict:
-        success_msg(f"'{heat_template_dir}/main.yaml' loaded",
-                    endpoint)
+    if not file_name.split('.')[-1] in ['yaml', 'yml']:
+        msg_format.general_msg(f"'{file_name}' is not a YAML file.",
+                               endpoint)
+        return {}
+
+    if template_dir:
+        yaml_file_path = f"{template_dir}/{file_name}"
     else:
-        general_msg(f"'{heat_template_dir}/main.yaml' not found",
-                    endpoint)
+        template_dir = '.'
+        yaml_file_path = file_name
 
-    return heat_dict
+    if not os.path.exists(yaml_file_path):
+        msg_format.general_msg(f"Cannot find file '{yaml_file_path}'.",
+                               endpoint)
+        return {}
 
+    if os.path.getsize(yaml_file_path) == 0:
+        msg_format.general_msg(f"The file '{yaml_file_path}' is empty.",
+                               endpoint)
+        return {}
 
-def load_sec(heat_template_dir,
-             debug=False):
-    """
-    Load the security template file from the specified heat template directory.
+    msg_format.general_msg(f"Loading file '{yaml_file_path}'...",
+                           endpoint)
+    yaml_dict = load_template(file_name,
+                              template_dir)
 
-    Parameters:
-        heat_template_dir (str): The directory path where the heat template files are located.
-
-    Returns:
-        dict: A dictionary containing the loaded security template, or {} if an error occurred.
-    """
-
-    endpoint = 'Templates'
-
-    security_dict = load_template(f"{heat_template_dir}/sec.yaml",
-                                  debug)
-    if security_dict:
-        success_msg(f"'{heat_template_dir}/sec.yaml' loaded",
-                    endpoint)
+    if yaml_dict:
+        msg_format.success_msg(f"'{yaml_file_path}' loaded.",
+                               endpoint)
+        msg_format.info_msg(yaml_dict,
+                            endpoint,
+                            debug)
     else:
-        general_msg(f"'{heat_template_dir}/sec.yaml' not found",
-                    endpoint)
+        msg_format.error_msg(f"'{yaml_file_path}' not found.",
+                             endpoint)
 
-    return security_dict
-
-
-def load_env(heat_template_dir,
-             debug=False):
-    """
-    Load the environment dictionary from the specified heat template directory.
-
-    Parameters:
-        heat_template_dir (str): The directory containing the heat template.
-
-    Returns:
-        environment_dict (dict): The environment dictionary loaded from the heat template.
-        {}: If there was an error loading the template or any exception occurred.
-    """
-
-    endpoint = 'Templates'
-
-    environment_dict = load_template(f"{heat_template_dir}/env.yaml",
-                                     debug)
-    if environment_dict:
-        success_msg(f"'{heat_template_dir}/env.yaml' loaded",
-                    endpoint)
-    else:
-        general_msg(f"'{heat_template_dir}/env.yaml' not found",
-                    endpoint)
-
-    return environment_dict
-
-
-def load_users(heat_template_dir,
-               debug=False):
-    """
-    Load users from a Heat template directory.
-
-    Args:
-        heat_template_dir (str): The directory path where the Heat template is located.
-
-    Returns:
-        dict: A dictionary containing the loaded environment configuration from the Heat template.
-            If an error occurs during the loading process, {} is returned.
-    """
-
-    endpoint = 'Templates'
-
-    environment_dict = load_template(f"{heat_template_dir}/users.yaml",
-                                     debug)
-    if environment_dict:
-        success_msg(f"'{heat_template_dir}/users.yaml' loaded",
-                    endpoint)
-    else:
-        general_msg(f"'{heat_template_dir}/users.yaml' not found",
-                    endpoint)
-
-    return environment_dict
+    return yaml_dict

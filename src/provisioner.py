@@ -6,14 +6,14 @@ Provisioning and deprovisioning for swift, heat, and guacamole
 """
 
 
-
 import sys
 import time
-import json
 import traceback
+import argparse
 from typing import Dict, Any
-from provision import swift, heat, guac
-from utils import connections, load_template, manage_ids, msg_format
+from provision import heat, swift, guac
+from utils import connections, load_template, msg_format
+
 
 def main() -> None:
     """
@@ -25,162 +25,108 @@ def main() -> None:
     Returns:
     None
     """
+
+    start_time = time.time()
     endpoint = 'Pipeline'
 
     try:
-        # Parse and validate command line arguments
-        arg = sys.argv[1:]
-        if len(arg) == 0:
-            msg_format.error_msg("No arguments provided.",
-                                 endpoint)
-            msg_format.general_msg("Valid arguments: 'swift', 'heat', 'guacamole', or 'full'",
-                                   endpoint)
-            return
+        msg_format.general_msg("Starting Range Provisioner...", endpoint)    
+        parser = argparse.ArgumentParser(description='Range Provisioner CLI')
+        parser.add_argument('--action', help="Provision argument: swift, heat, guacamole, or full", action='store_true')
+        parser.add_argument('--debug', help="Enable debug mode", action='store_true')
+        args = parser.parse_args()
+        arg = args.action
+        
+        if not arg:
+            raise ValueError("No --action provided. Valid arguments: 'swift', 'heat', 'guacamole', or 'full'")
+        if arg not in ['swift', 'heat', 'guacamole', 'full']:
+            raise ValueError("Invalid argument. Valid arguments: 'swift', 'heat', 'guacamole', or 'full'")
 
-        if arg[0] not in ["swift", "heat", "guacamole", "full"]:
-            msg_format.error_msg(f"'{arg[0]}' is an invalid arguement.",
-                                 endpoint)
-            msg_format.general_msg("Valid arguments: 'swift', 'heat', 'guacamole', or 'full'",
-                                   endpoint)
-            return
+        globals_vars = load_template.load_template("globals.yaml")
+        globals_dict: Dict[str, Any] = globals_vars['globals']
+        swift_globals: Dict[str, Any] = globals_vars['swift']
+        heat_globals: Dict[str, Any] = globals_vars['heat']
+        guacamole_globals: Dict[str, Any] = globals_vars['guacamole']
 
-        start_time = time.time()
+        debug: bool = args.debug or globals_dict['debug']
+        heat_file = heat_globals.get('heat_file')
+        guac_file = guacamole_globals.get('guac_file')
 
-        global_dict = load_template.load_global()
-        globals: Dict[str, Any] = global_dict['globals']
-        debug: bool = globals['debug']
-        swift_globals: Dict[str, Any] = global_dict['swift']
-        heat_globals: Dict[str, Any] = global_dict['heat']
-        guacamole_globals: Dict[str, Any] = global_dict['guacamole']
-        heat_params: Dict[str, Any] = load_template.load_heat(
-            heat_globals['template_dir'], debug
-        ).get('parameters')
-        sec_params: Dict[str, Any] = load_template.load_sec(
-            heat_globals['template_dir'], debug
-        ).get('parameters')
-        env_params: Dict[str, Any] = load_template.load_env(
-            heat_globals['template_dir'], debug
-        ).get('parameters')
-        user_params: Dict[str, Any] = load_template.load_users(
-            heat_globals['template_dir'], debug
-        ).get('parameters')
+        # Backwards Compatibility
+        if not heat_file:
+            heat_file = heat_globals['template_dir'] + '/main.yaml'
+            heat_globals['heat_file'] = heat_file
+        if not guac_file:
+            guac_file = guacamole_globals['user_dir'] + '/guac.yaml'
+            guacamole_globals['guac_file'] = guac_file
 
-        msg_format.info_msg(json.dumps(global_dict, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(heat_params, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(sec_params, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(env_params, indent=4), endpoint, debug)
-        msg_format.info_msg(json.dumps(user_params, indent=4), endpoint, debug)
-
-        clouds = load_template.load_template(
-            'clouds.yaml', debug
-        )['clouds']
-
-        # Backwards compatibility
-        if not heat_globals.get('cloud'):
-            heat_globals['cloud'] = globals['cloud']
-        if not guacamole_globals.get('cloud'):
-            guacamole_globals['cloud'] = 'guac'
+        clouds = load_template.load_template('clouds.yaml')['clouds']
 
         try:
-            openstack_clouds: Dict[str, Any] = clouds[f"{heat_globals['cloud']}"]
-        except KeyError:
-            msg_format.error_msg(f"Cloud '{heat_globals['cloud']}' not found in clouds.yaml",
-                                 endpoint)
-            sys.exit(1)
+            openstack_clouds = clouds[heat_globals['cloud']]
+        except KeyError as err:
+            raise KeyError(
+                f"Cloud '{heat_globals['cloud']}' not found in clouds.yaml") from err
 
         openstack_connect = connections.openstack_connection(heat_globals['cloud'],
                                                              openstack_clouds,
                                                              debug)
 
-        if arg[0] == "swift":
-            swift.provision(openstack_connect,
-                            globals,
-                            swift_globals,
-                            debug)
-        elif arg[0] == "heat":
-            if env_params:
-                manage_ids.update_env(openstack_connect,
-                                      global_dict,
-                                      True,
-                                      debug)
-                heat_params, sec_params, env_params = manage_ids.update_ids(openstack_connect,
-                                                                            [heat_params, sec_params, env_params],
-                                                                            [],
-                                                                            False,
-                                                                            debug)
-            heat.provision(openstack_connect,
-                           globals, heat_globals,
-                           heat_params,
-                           sec_params,
-                           debug)
-        elif arg[0] == "guacamole":
+        if arg in ["full", "guacamole"]:
             try:
-                guacamole_clouds: Dict[str, Any] = clouds[f"{guacamole_globals['cloud']}"]
-            except KeyError:
-                msg_format.error_msg(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml",
-                                    endpoint)
-                sys.exit(1)
-
+                guacamole_clouds = clouds[guacamole_globals['cloud']]
+            except KeyError as err:
+                raise KeyError(
+                    f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml") from err
             guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
                                                                  guacamole_clouds,
                                                                  debug)
-            guac.provision(openstack_connect,
-                           guacamole_connect,
-                           globals,
-                           guacamole_globals,
-                           heat_params,
-                           user_params,
-                           debug)
-        elif arg[0] == "full":
-            try:
-                guacamole_clouds: Dict[str, Any] = clouds[f"{guacamole_globals['cloud']}"]
-            except KeyError:
-                msg_format.error_msg(f"Cloud '{guacamole_globals['cloud']}' not found in clouds.yaml",
-                                    endpoint)
-                sys.exit(1)
+        else:
+            guacamole_connect = None
 
-            guacamole_connect = connections.guacamole_connection(guacamole_globals['cloud'],
-                                                                 guacamole_clouds,
-                                                                 debug)
+        if arg == "swift":
             swift.provision(openstack_connect,
-                            globals,
+                            globals_dict,
                             swift_globals,
                             debug)
-            if env_params:
-                manage_ids.update_env(openstack_connect,
-                                      global_dict,
-                                      True,
-                                      debug)
-                heat_params, sec_params, env_params = manage_ids.update_ids(openstack_connect,
-                                                                            [heat_params, sec_params, env_params],
-                                                                            [],
-                                                                            False,
-                                                                            debug)
+        elif arg == "heat":
             heat.provision(openstack_connect,
-                           globals,
+                           globals_dict,
                            heat_globals,
-                           heat_params,
-                           sec_params,
+                           debug)
+        elif arg == "guacamole":
+            guac.provision(openstack_connect,
+                           guacamole_connect,
+                           globals_dict,
+                           guacamole_globals,
+                           debug)
+        elif arg == "full":
+            swift.provision(openstack_connect,
+                            globals_dict,
+                            swift_globals,
+                            debug)
+            heat.provision(openstack_connect,
+                           globals_dict,
+                           heat_globals,
                            debug)
             guac.provision(openstack_connect,
                            guacamole_connect,
-                           globals,
+                           globals_dict,
                            guacamole_globals,
-                           heat_params,
-                           user_params,
                            debug)
-
-        end_time = time.time()
-        msg_format.general_msg(f"Total time: {end_time - start_time:.2f} seconds",
-                               endpoint)
 
     except Exception as error:
-        msg_format.error_msg(f"Error: {error}.\n\n {traceback.format_exc()}",
+        msg_format.error_msg(f"{error}\n\n {traceback.format_exc()}",
                              endpoint)
         sys.exit(1)
 
     msg_format.success_msg("Provisioning complete.",
                            endpoint)
+
+    end_time = time.time()
+    msg_format.general_msg(f"Total time: {end_time - start_time:.2f} seconds",
+                           endpoint)
+
     sys.exit(0)
 
 
