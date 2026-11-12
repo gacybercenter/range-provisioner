@@ -1,8 +1,9 @@
 """
 Swift Classes
 """
-from time import sleep
+from glob import has_magic
 from os import path, walk
+from time import sleep
 from openstack.connection import Connection
 from utils import msg_format
 
@@ -175,16 +176,23 @@ class SwiftContainer:
         msg_format.general_msg(f"Searching for container '{self.name}'...",
                                self.endpoint)
 
-        result = self.conn.search_containers(name=self.name)
+        if not self.name or has_magic(self.name):
+            matches = self.conn.search_containers(name=self.name)
+        else:
+            matches = [
+                container
+                for container in self.conn.list_containers(prefix=self.name)
+                if container.get('name') == self.name
+            ]
+        result = matches[0] if matches else None
         sleep(delay)
 
         if result:
-            first_container = result[0]
-            self.container = first_container
+            self.container = result
 
             msg_format.general_msg(f"Found container '{self.name}'",
                                    self.endpoint)
-            msg_format.info_msg(first_container,
+            msg_format.info_msg(result,
                                 self.endpoint,
                                 self.debug)
             return True

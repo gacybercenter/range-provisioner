@@ -1,17 +1,45 @@
 """
 Handles the logic for generating Heat and Guacamole data
 """
-from utils import msg_format
 import os
+from typing import TypedDict
+from utils import msg_format
 
-# Access environment variables specific to multi-stack enterprise deployments
-num_ranges = int(os.getenv("num_ranges", 1))
-org_name = os.getenv("org_name")
-range_number = os.getenv("range_number")
-domain_name = os.getenv("domain_name")
-domain_netbios_name = os.getenv("domain_netbios_name")
-cs_number = os.getenv("cs_number")
-csToken = os.getenv("csToken")
+
+class MultiStackEnvironment(TypedDict):
+    num_ranges: int
+    org_name: str | None
+    range_number: str | None
+    domain_name: str | None
+    domain_netbios_name: str | None
+    cs_number: str | None
+    csToken: str | None
+
+
+def read_multi_stack_environment() -> MultiStackEnvironment:
+    """Read and validate multi-stack values when provisioning starts."""
+    try:
+        num_ranges = int(os.getenv("num_ranges", "1"))
+    except ValueError as error:
+        raise ValueError(
+            "Environment variable 'num_ranges' must be a positive integer."
+        ) from error
+
+    if num_ranges < 1:
+        raise ValueError(
+            "Environment variable 'num_ranges' must be a positive integer."
+        )
+
+    return {
+        'num_ranges': num_ranges,
+        'org_name': os.getenv('org_name'),
+        'range_number': os.getenv('range_number'),
+        'domain_name': os.getenv('domain_name'),
+        'domain_netbios_name': os.getenv('domain_netbios_name'),
+        'cs_number': os.getenv('cs_number'),
+        'csToken': os.getenv('csToken'),
+    }
+
 
 def generate_names(ranges: int,
                    prefix: str) -> list:
@@ -25,6 +53,11 @@ def generate_names(ranges: int,
     Returns:
         list: The generated names
     """
+
+    if not isinstance(ranges, int) or isinstance(ranges, bool) or ranges < 1:
+        raise ValueError("'ranges' must be a positive integer.")
+    if not prefix:
+        raise ValueError("'prefix' must not be empty.")
 
     if ranges == 1:
         return [prefix]
@@ -79,53 +112,74 @@ def set_provisioning_flags(global_create: bool | None,
 def update_heat_params(heat_globals: dict,
                        heat_params: dict,
                        endpoint: str = '',
-                       debug: bool = False) -> dict:
+                       debug: bool = False,
+                       multi_stack_environment: MultiStackEnvironment | None = None,
+                       env_parameters: dict | None = None) -> dict:
     """
     Updates the heat parameters based on the heat globals.
     """
-    
+    if multi_stack_environment is None:
+        multi_stack_environment = read_multi_stack_environment()
+
     msg_format.general_msg(f"Updating heat parameters with global values.",
                            endpoint)
     
-    if heat_params:
-        heat_params = {
-            key: value['default']
-            for key, value in heat_params.items()
-            if 'default' in value
+    if not isinstance(heat_params, dict):
+        raise ValueError("Heat template 'parameters' must be a mapping.")
+
+    values = {}
+    for key, definition in heat_params.items():
+        if not isinstance(definition, dict):
+            raise ValueError(
+                f"Heat template parameter '{key}' must be a mapping."
+            )
+        if 'default' in definition:
+            values[key] = definition['default']
+
+    if env_parameters is not None:
+        for key, value in env_parameters.items():
+            if key not in heat_params:
+                raise ValueError(f"Heat env parameter '{key}' was not found.")
+            values[key] = value
+
+    parameters = heat_globals.get('parameters', [])
+    if not isinstance(parameters, list):
+        raise ValueError("Heat configuration 'parameters' must be a list.")
+
+    environment_overrides = {}
+    if multi_stack_environment['num_ranges'] > 1:
+        environment_overrides = {
+            'domain_name': multi_stack_environment['domain_name'],
+            'domain_netbios_name': multi_stack_environment['domain_netbios_name'],
+            'cs_number': multi_stack_environment['cs_number'],
+            'org_name': multi_stack_environment['org_name'],
+            'range_number': multi_stack_environment['range_number'],
+            'csToken': multi_stack_environment['csToken'],
         }
 
-    if 'parameters' in heat_globals and isinstance(heat_globals['parameters'], list):
-        for parameter in heat_globals['parameters']:
-            for key, value in parameter.items():
-                if key not in heat_params:
-                    msg_format.error_msg(
-                        f"Parameter '{key}' was not found.",
-                        endpoint
+    for parameter in parameters:
+        if not isinstance(parameter, dict):
+            raise ValueError(
+                "Each Heat configuration parameter must be a mapping."
+            )
+        for key, value in parameter.items():
+            if key not in heat_params:
+                raise ValueError(f"Heat parameter '{key}' was not found.")
+            if key in environment_overrides:
+                value = environment_overrides[key]
+                if value is None:
+                    raise ValueError(
+                        f"Environment variable '{key}' is required when "
+                        "'num_ranges' is greater than 1."
                     )
-                    continue
-                if int(num_ranges) > 1:
-                    if key == 'domain_name':
-                        value = domain_name
-                    elif key == 'domain_netbios_name':
-                        value = domain_netbios_name
-                    elif key == 'cs_number':
-                        value = cs_number
-                    elif key == 'org_name':
-                        value = org_name
-                    elif key == 'range_number':
-                        value = range_number
-                    elif key == 'csToken':
-                        value = csToken
-                    heat_params[key] = value
-                else:
-                    heat_params[key] = value
-                msg_format.info_msg(
-                    f"Updated parameter '{key}' with value '{value}'.",
-                    endpoint,
-                    debug
-                )
+            values[key] = value
+            msg_format.info_msg(
+                f"Updated parameter '{key}' with value '{value}'.",
+                endpoint,
+                debug
+            )
 
     msg_format.success_msg(f"Updated heat parameters.",
                            endpoint)
 
-    return heat_params
+    return values

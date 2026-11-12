@@ -23,6 +23,12 @@ class TestUser(unittest.TestCase):
             debug=False
         )
 
+    def test_str_redacts_password(self):
+        rendered = str(self.user)
+
+        self.assertNotIn(self.user.password, rendered)
+        self.assertIn('[REDACTED]', rendered)
+
     @patch('src.objects.users.sleep')
     def test_create(self, mock_sleep: Mock):
         test_delay = 0.1

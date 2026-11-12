@@ -1,103 +1,81 @@
+import logging
 import unittest
-from unittest.mock import patch
+from contextlib import redirect_stdout
 from io import StringIO
-import sys
-from src.utils.msg_format import error_msg, info_msg, success_msg, general_msg
-from colorama import Fore
+from unittest.mock import patch
 
-# Your messaging module code would go here
+from colorama import Fore
+from src.utils import msg_format
+
 
 class TestMessagingFunctions(unittest.TestCase):
-
     def setUp(self):
-        # Redirect stdout to capture print outputs
-        self.held, sys.stdout = sys.stdout, StringIO()
+        self.logger = logging.Logger('test-range-provisioner', logging.DEBUG)
+        self.logger.propagate = False
+        self.patch_logger = patch.object(msg_format, '_logger', self.logger)
+        self.patch_logger.start()
+        self.addCleanup(self.patch_logger.stop)
 
-    def test_msg(self):
-        # Test msg with a dictionary
-        test_endpoint = "test_endpoint"
-        test_message = "Message"
-        with patch('src.utils.msg_format.print') as mock_print:
-            error_msg(test_message, test_endpoint)
-            mock_print.assert_called_with(test_message)
+    def test_legacy_console_format_and_debug_flag(self):
+        output = StringIO()
+        with redirect_stdout(output):
+            msg_format.error_msg('failure', 'Heat')
+            msg_format.general_msg('working', 'Heat')
+            msg_format.success_msg('done', 'Heat')
+            msg_format.info_msg('hidden', 'Heat')
+            msg_format.info_msg({'detail': 1}, 'Heat', True)
 
-        with patch('src.utils.msg_format.print') as mock_print:
-            info_msg(test_message, test_endpoint, debug=True)
-            mock_print.assert_called_with(test_message)
+        self.assertEqual(
+            output.getvalue(),
+            f"{Fore.RED}{'Heat'.ljust(12)}{'[ERROR]'.ljust(12)}{Fore.RESET}failure\n"
+            f"{Fore.YELLOW}{'Heat'.ljust(12)}{'[INFO]'.ljust(12)}{Fore.RESET}working\n"
+            f"{Fore.GREEN}{'Heat'.ljust(12)}{'[SUCCESS]'.ljust(12)}{Fore.RESET}done\n"
+            f"{Fore.BLUE}{'Heat'.ljust(12)}{'[INFO]'.ljust(12)}{Fore.RESET}"
+            "{'detail': 1}\n",
+        )
 
-        with patch('src.utils.msg_format.print') as mock_print:
-            general_msg(test_message, test_endpoint)
-            mock_print.assert_called_with(test_message)
+    def test_existing_logging_handler_receives_records_without_console_duplicate(self):
+        output = StringIO()
+        with redirect_stdout(output):
+            msg_format.general_msg('first', 'Heat')
+            captured = StringIO()
+            handler = logging.StreamHandler(captured)
+            self.logger.addHandler(handler)
+            msg_format.error_msg('second', 'Heat')
 
-        with patch('src.utils.msg_format.print') as mock_print:
-            success_msg(test_message, test_endpoint)
-            mock_print.assert_called_with(test_message)
+        self.assertIn('first', output.getvalue())
+        self.assertNotIn('second', output.getvalue())
+        self.assertEqual(captured.getvalue(), 'second\n')
+        self.assertEqual(self.logger.handlers, [handler])
 
-    def test_general_msg(self):
-        # Test general_msg with a string
-        test_endpoint = "test_endpoint"
-        test_message = "General message"
+    def test_log_records_expose_levels_endpoint_and_kind(self):
+        with self.assertLogs(self.logger, level='DEBUG') as records:
+            msg_format.general_msg('normal', 'Heat')
+            msg_format.success_msg('complete', 'Swift')
+            msg_format.error_msg('failure', 'Guacamole')
+            msg_format.info_msg('details', 'Heat', True)
+            msg_format.info_msg('suppressed', 'Heat', False)
 
-        general_msg(test_message, test_endpoint)
-        output = sys.stdout.getvalue()
+        self.assertEqual(
+            [(record.levelno, record.endpoint, record.message_kind, record.getMessage())
+             for record in records.records],
+            [
+                (logging.INFO, 'Heat', 'general', 'normal'),
+                (logging.INFO, 'Swift', 'success', 'complete'),
+                (logging.ERROR, 'Guacamole', 'error', 'failure'),
+                (logging.DEBUG, 'Heat', 'debug', 'details'),
+            ],
+        )
 
-        self.assertIn(Fore.YELLOW, output)
-        self.assertIn(test_endpoint, output)
-        self.assertIn("[INFO]", output)
-        self.assertIn(Fore.RESET, output)
-        self.assertIn(test_message, output)
+    def test_native_logging_records_use_console_handler(self):
+        output = StringIO()
+        with redirect_stdout(output):
+            msg_format.general_msg('start')
+            self.logger.warning('native warning')
 
-    def test_error_msg(self):
-        # Test error_msg with a string
-        test_endpoint = "test_endpoint"
-        test_message = "An error occurred"
+        self.assertIn('[WARNING]', output.getvalue())
+        self.assertIn('native warning', output.getvalue())
 
-        error_msg(test_message, test_endpoint)
-        output = sys.stdout.getvalue()
-
-        self.assertIn(Fore.RED, output)
-        self.assertIn(test_endpoint, output)
-        self.assertIn("[ERROR]", output)
-        self.assertIn(Fore.RESET, output)
-        self.assertIn(test_message, output)
-
-    def test_info_msg(self):
-        # Test info_msg when debug is False, should not print
-        test_endpoint = "test_endpoint"
-        test_message = "Info message"
-
-        info_msg(test_message, test_endpoint, debug=False)
-        output = sys.stdout.getvalue()
-
-        self.assertIn("", output)
-
-        info_msg(test_message, test_endpoint, debug=True)
-        output = sys.stdout.getvalue()
-
-        self.assertIn(Fore.BLUE, output)
-        self.assertIn(test_endpoint, output)
-        self.assertIn("[INFO]", output)
-        self.assertIn(Fore.RESET, output)
-        self.assertIn(test_message, output)
-
-    def test_success_msg(self):
-        # Test success_msg with a string
-        test_endpoint = "test_endpoint"
-        test_message = "Success message"
-
-        success_msg(test_message, test_endpoint)
-        output = sys.stdout.getvalue()
-
-        self.assertIn(Fore.GREEN, output)
-        self.assertIn(test_endpoint, output)
-        self.assertIn("[SUCCESS]", output)
-        self.assertIn(Fore.RESET, output)
-        self.assertIn(test_message, output)
-
-
-    def tearDown(self):
-        # Restore stdout
-        sys.stdout = self.held
 
 if __name__ == '__main__':
     unittest.main()

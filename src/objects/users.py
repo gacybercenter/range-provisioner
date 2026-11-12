@@ -58,6 +58,8 @@ class User:
         class_name = type(self).__name__
         output = f'{class_name}(\n'
         for key, value in self.__dict__.items():
+            if key == 'password':
+                value = '[REDACTED]'
             output += f'{key}: {value}\n'
         output += ')'
         return output
@@ -284,17 +286,21 @@ class User:
 
 class CurrentUsers():
     """
-    Current user object
+    Current user object.
+
+    Set include_permissions to False when user permissions are not needed.
     """
 
     def __init__(self,
                  gconn: guacamole.session,
                  organization: str = '',
-                 debug: bool = False) -> None:
+                 debug: bool = False,
+                 include_permissions: bool = True) -> None:
 
         self.gconn = gconn
         self.organization = organization
         self.debug = debug
+        self.include_permissions = include_permissions
         self.endpoint = "Guacamole"
 
         msg_format.general_msg("Getting current users...",
@@ -319,9 +325,10 @@ class CurrentUsers():
 
     def _create_user(self,
                      user_data: dict) -> User:
-        user_data['permissions'] = self.gconn.detail_user_permissions(
-            user_data['username']
-        )
+        if self.include_permissions:
+            user_data['permissions'] = self.gconn.detail_user_permissions(
+                user_data['username']
+            )
         user_data = parse.clean_dict(user_data)
         user = User(self.gconn,
                     user_data['username'],
@@ -561,8 +568,9 @@ class NewUsers():
         return sharing_profiles
 
     def _update_passwords(self) -> None:
+        current_passwords = {}
+        for old_user in self.current_users:
+            current_passwords.setdefault(old_user.username, old_user.password)
         for new_user in self.users:
-            for old_user in self.current_users:
-                if new_user.username == old_user.username:
-                    new_user.password = old_user.password
-                    break
+            if new_user.username in current_passwords:
+                new_user.password = current_passwords[new_user.username]

@@ -63,6 +63,8 @@ DIR
 |___ templates
 |       |___ main.yaml
 |       |___ guac.yaml
+|       |___ env.yaml     # optional Heat parameter values
+|       |___ ranges.yaml  # optional named configuration overrides
 |___ globals.yaml
 |___ clouds.yaml          (Hidden)
 |___ README.md
@@ -102,6 +104,7 @@ heat:
   stack_name: stack # name of the heat stack. Default is organization's name
   stack_delay: 30 # delay between each heat stack in seconds
   pause: 0.5 # pause between each heat action in seconds
+  jinja: False # render the Heat template before passing it to OpenStack
   parameters: # Update existing heat parameters
   - username: test
   - count: 2
@@ -114,6 +117,79 @@ swift:
   container_name: container # name of the swift container. Default is organization's name
   pause: 0.5 # pause between each swift action in seconds
 ```
+
+_Example parameters within `templates/ranges.yaml`_
+
+Use named ranges to reuse a base `globals.yaml` with different settings:
+
+```yaml
+ranges:
+  training:
+    globals:
+      organization: training
+    heat:
+      stack_name: training
+      amount: 1
+      parameters:
+        - username: student
+        - count: 2
+    guacamole:
+      org_name: training
+    swift:
+      container_name: training
+```
+
+Select one with `--range training`. The provisioner merges its `globals`,
+`heat`, `guacamole`, and `swift` mappings into `globals.yaml`, recursively
+merging mappings and replacing lists or scalar values. For example, a range's
+`heat.parameters` list replaces the base list; include every override you need.
+The source files are not changed. Omitting `--range` preserves the existing
+`globals.yaml` workflow. An unknown range or invalid section stops the run
+before connecting to a cloud.
+
+The range only overrides configuration; it does not rewrite names or
+credentials inside Heat and Guacamole templates. Ensure those templates, cloud
+settings, and provisioning flags are suitable for the selected range before
+running it. The example inherits the base create/update/delete flags.
+
+_Optional Heat parameter file: `templates/env.yaml`_
+
+Use an environment file to supply values for parameters declared in the Heat
+template. Set `env_file` in the `heat` section of `globals.yaml` (or in a named
+range). Paths are relative to the working directory, or to
+`globals.template_dir` when that setting is present (for example, use
+`env_file: env.yaml` when `template_dir: templates`):
+
+```yaml
+heat:
+  env_file: templates/env.yaml
+  # Optional: existing stacks to search for network and subnet IDs
+  env_stacks:
+    - shared
+```
+
+For example, if the Heat template declares `network_id` and `subnet_id`:
+
+```yaml
+parameters:
+  network_id: null
+  subnet_id: null
+```
+
+With `env_stacks: [shared]`, the provisioner looks for Neutron networks and
+subnets in that stack. A resource named `shared-network` or `shared.network`
+fills `network_id`; `shared-subnet` or `shared.subnet` fills `subnet_id`.
+The stack-name prefix is optional. Only keys already listed in the environment
+file are updated. Null `*_id` values must resolve when source stacks are
+specified, and conflicting matches stop the run. Without `env_stacks`, enter
+the desired values directly instead of `null`.
+
+Values take precedence over template defaults; entries in `heat.parameters`
+and applicable multi-stack environment overrides take precedence over the
+environment file. Unknown Heat parameter names are errors. The file is never
+rewritten, including during a dry run. This feature supports the `parameters`
+mapping only, not Heat environment `resource_registry` or other sections.
+Omit `env_file` to keep the existing behavior.
 
 _Example parameters within the `clouds.yaml`_  
 
@@ -249,6 +325,45 @@ To run Range Provisioner manually, use the following command.
 python3 ./src/provisioner.py ARGUMENT
 ```
 
+Append `--dry-run` to inspect the requested action without applying changes.
+The provisioner still connects to the configured services to perform read-only
+discovery. Its output summarizes requested operations rather than providing a
+complete per-resource diff.
+
+For example:
+
+```bash
+python3 ./src/provisioner.py heat --range training --dry-run
+python3 ./src/provisioner.py heat --range training --ranges-file path/to/ranges.yaml
+```
+
+`--ranges-file` is optional and defaults to `templates/ranges.yaml`; it requires
+`--range`. Selecting a range does not by itself enable provisioning.
+
+#### Multi-stack environment overrides
+
+The optional `num_ranges` environment variable must be a positive integer.
+When it is greater than one, `org_name` is preferred as the Heat stack-name
+prefix, and the values of `domain_name`, `domain_netbios_name`, `cs_number`,
+`org_name`, `range_number`, and `csToken` override matching entries explicitly
+listed in `heat.parameters`. Those environment variables must be present for
+each matching entry. Otherwise the configured parameter values are used.
+`heat.amount`, not `num_ranges`, determines how many stack names are generated.
+With one stack, `heat.stack_name` takes precedence over `org_name`; the global
+organization is the fallback.
+
+Configuration and template files must contain YAML mappings. Missing or empty
+template files, invalid Heat parameter overrides, and invalid range selections
+are reported as errors.
+
+Messages are emitted through Python's `range_provisioner` logger. Without an
+existing logging handler, the original colored stdout format is used. Debug
+messages remain controlled by the `debug` setting or `--debug`. Applications
+embedding the provisioner can configure logging handlers and filters normally;
+records include `endpoint` and `message_kind` fields. Debug output can include
+template contents and parameter values; treat its logs as sensitive. Generated
+Guacamole user passwords are not printed by the provisioning summary.
+
 #### Arguments
 
 - swift
@@ -288,7 +403,7 @@ object_upload:
 heat_deploy:
   stage: Heat
   script: |
-      python3 /range-provisioner/src/provisioner.py swift
+      python3 /range-provisioner/src/provisioner.py heat
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -298,7 +413,7 @@ heat_deploy:
 guac_provision:
   stage: Guacamole
   script: |
-      python3 /range-provisioner/src/provisioner.py swift
+      python3 /range-provisioner/src/provisioner.py guacamole
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -336,7 +451,7 @@ python3 -m venv .venv
 ```
 
 ```bash
-./venv/bin/activate      # Linux/Mac
+source .venv/bin/activate      # Linux/Mac
 ```
 
 ```powershell
@@ -353,5 +468,5 @@ pip install -r requirements-dev.txt
 ### Run the tests
 
 ```bash
-pytest tests/unit
+PYTHONPATH=src pytest tests/unit
 ```

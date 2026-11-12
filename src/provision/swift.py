@@ -8,7 +8,8 @@ from utils import msg_format, generate
 def provision(conn: object,
               globals_dict: dict,
               swift_globals: dict,
-              debug=False) -> None:
+              debug=False,
+              dry_run: bool = False) -> None:
     """
     Provisions or deprovisions Swift based on the given parameters.
 
@@ -56,6 +57,14 @@ def provision(conn: object,
                                container_name,
                                assets_dir,
                                debug)
+
+    if dry_run:
+        action = 'update' if update else 'create' if create else 'delete'
+        msg_format.general_msg(
+            f"DRY RUN: Would {action} Swift container '{container_name}'.",
+            endpoint
+        )
+        return
 
     # Provision, deprovision, or reprovision
     if update:

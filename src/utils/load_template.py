@@ -8,55 +8,61 @@ from utils import msg_format
 
 
 def load_template(template_name: str,
-                  template_dir: str = '.') -> dict | None:
-    """
-    Load a template file and return a dictionary
+                  template_dir: str = '.') -> dict:
+    """Render a Jinja template, parse its YAML, and return a mapping.
 
     Args:
-        template (str): The path to the template file.
+        template_name (str): The template filename.
         template_dir (str, optional): The directory containing the template files. Defaults to '.'.
-        debug (bool, optional): Whether to enable debug mode. Defaults to False.
 
     Returns:
-        dict: A dictionary containing the template parameters.
+        dict: The rendered YAML mapping.
+
+    Raises:
+        ValueError: If the template has Jinja syntax errors or does not render
+            to a YAML mapping.
     """
 
     try:
         env = Environment(loader=FileSystemLoader(template_dir))
         template = env.get_template(template_name)
-        parameters = safe_load(template.render())
-
+        rendered = template.render()
     except TemplateSyntaxError as error:
-        error_message = error.message
         raise ValueError(
-            f"Template {template} has a syntax error: {error_message}")
+            f"Template '{template_name}' has a syntax error: {error.message}"
+        ) from error
 
-    except Exception as error:
-        raise error
+    parameters = safe_load(rendered)
+    if not isinstance(parameters, dict):
+        raise ValueError(
+            f"Template '{template_name}' must render to a YAML mapping."
+        )
 
     return parameters
 
 
 def load_yaml_file(file_name: str,
                    template_dir: str | None = None,
-                   debug: bool = False) -> dict | None:
-    """
-    Load a YAML file from the specified directory.
+                   debug: bool = False) -> dict:
+    """Load a Jinja-rendered YAML mapping from the specified directory.
 
     Parameters:
         file_name (str): The name of the YAML file to load.
+        template_dir (str, optional): Directory containing the file.
         debug (bool): Flag to indicate whether debug messages should be displayed.
 
     Returns:
-        dict: A dictionary containing the loaded YAML file, or {} if an error occurred.
+        dict: The loaded YAML mapping.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file extension or contents are invalid.
     """
 
     endpoint = 'Templates'
 
-    if not file_name.split('.')[-1] in ['yaml', 'yml']:
-        msg_format.general_msg(f"'{file_name}' is not a YAML file.",
-                               endpoint)
-        return {}
+    if os.path.splitext(file_name)[1].lower() not in {'.yaml', '.yml'}:
+        raise ValueError(f"'{file_name}' is not a YAML file.")
 
     if template_dir:
         yaml_file_path = f"{template_dir}/{file_name}"
@@ -65,28 +71,20 @@ def load_yaml_file(file_name: str,
         yaml_file_path = file_name
 
     if not os.path.exists(yaml_file_path):
-        msg_format.general_msg(f"Cannot find file '{yaml_file_path}'.",
-                               endpoint)
-        return {}
+        raise FileNotFoundError(f"Cannot find file '{yaml_file_path}'.")
 
     if os.path.getsize(yaml_file_path) == 0:
-        msg_format.general_msg(f"The file '{yaml_file_path}' is empty.",
-                               endpoint)
-        return {}
+        raise ValueError(f"The file '{yaml_file_path}' is empty.")
 
     msg_format.general_msg(f"Loading file '{yaml_file_path}'...",
                            endpoint)
     yaml_dict = load_template(file_name,
                               template_dir)
 
-    if yaml_dict:
-        msg_format.success_msg(f"'{yaml_file_path}' loaded.",
-                               endpoint)
-        msg_format.info_msg(yaml_dict,
-                            endpoint,
-                            debug)
-    else:
-        msg_format.error_msg(f"'{yaml_file_path}' not found.",
-                             endpoint)
+    msg_format.success_msg(f"'{yaml_file_path}' loaded.",
+                           endpoint)
+    msg_format.info_msg(yaml_dict,
+                        endpoint,
+                        debug)
 
     return yaml_dict

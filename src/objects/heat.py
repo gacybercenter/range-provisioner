@@ -16,6 +16,7 @@ class HeatStack:
         template_file (str): Template file for the stack
         parameters (dict): Parameters for the stack
         debug (bool): Debug mode
+        resolve_outputs (bool): Resolve stack outputs during lookup. Defaults to True.
     """
 
     def __init__(self,
@@ -23,7 +24,8 @@ class HeatStack:
                  name: str,
                  template_file: str | None = None,
                  parameters: dict | None = None,
-                 debug: bool = False):
+                 debug: bool = False,
+                 resolve_outputs: bool = True):
 
         self.conn = conn
         self.name = name
@@ -33,7 +35,7 @@ class HeatStack:
         self.endpoint = 'Heat'
         self.stack = None
 
-        self._search()
+        self._search(resolve_outputs=resolve_outputs)
 
     def __hash__(self):
         """
@@ -265,14 +267,18 @@ class HeatStack:
 
         return instances
 
-    def _search(self, delay: float = 0):
+    def _search(self, delay: float = 0, resolve_outputs: bool = True):
         """
         Search for the heat stack in OpenStack
         """
 
         msg_format.general_msg(f"Searching for stack '{self.name}'...",
                                self.endpoint)
-        result = self.conn.get_stack(name_or_id=self.name)
+        if resolve_outputs:
+            result = self.conn.get_stack(name_or_id=self.name)
+        else:
+            result = self.conn.get_stack(name_or_id=self.name,
+                                         resolve_outputs=False)
         sleep(delay)
         if result:
             msg_format.general_msg(f"Found stack '{self.name}'",

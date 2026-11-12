@@ -396,18 +396,22 @@ class SharingProfile(Connection):
 
 class CurrentConnections():
     """
-    An object that holds connection groups, instances and sharing profiles
+    An object that holds connection groups, instances and sharing profiles.
+
+    Set include_details to False when only identifiers are needed.
     """
 
     def __init__(self,
                  gconn: guacamole.session,
                  parent_identifier: str = 'ROOT',
                  names: list | str | None = None,
-                 debug: bool = False):
+                 debug: bool = False,
+                 include_details: bool = True):
 
         self.gconn = gconn
         self.parent_identifier = parent_identifier or 'ROOT'
         self.debug = debug
+        self.include_details = include_details
         self.endpoint = "Guacamole"
 
 
@@ -503,7 +507,8 @@ class CurrentConnections():
                                       dictionary.get('attributes'),
                                       dictionary['identifier'],
                                       debug=self.debug)
-            conn.detail()
+            if self.include_details:
+                conn.detail()
         if dictionary.get('primaryConnectionIdentifier'):
             conn = SharingProfile(self.gconn,
                                   dictionary['name'],
@@ -511,7 +516,8 @@ class CurrentConnections():
                                   dictionary.get('parameters'),
                                   dictionary['identifier'],
                                   debug=self.debug)
-            conn.detail()
+            if self.include_details:
+                conn.detail()
 
         msg_format.info_msg(f"Found {type(conn).__name__} '{conn.name}'",
                             self.endpoint,
@@ -556,11 +562,12 @@ class NewConnections():
         self._find_current_conns()
         self._create_connection_groups()
 
-        servers = oconn.list_servers()
         addresses = {}
-        for server in servers:
-            ip_addr = server['public_v4'] if server['public_v4'] else server['private_v4']
-            addresses[server['name']] = ip_addr
+        if conn_data.get('connectionTemplates'):
+            servers = oconn.list_servers()
+            for server in servers:
+                ip_addr = server['public_v4'] if server['public_v4'] else server['private_v4']
+                addresses[server['name']] = ip_addr
         self._create_connections(addresses)
 
     def create(self,
@@ -640,7 +647,7 @@ class NewConnections():
                                self.endpoint)
 
     def _find_current_conns(self) -> dict:
-        new_groups = self.conn_data.get('groups', self.conn_data['stacks'])
+        new_groups = self.conn_data.get('groups', self.conn_data.get('stacks'))
         if not new_groups:
             return
 
@@ -689,12 +696,16 @@ class NewConnections():
             new_data = parse.recursive_update(defaults, data)
             found = False
             pattern = re.compile(new_data.get("pattern", template))
+            attributes = new_data.get('attributes') or {}
+            guacd_name = attributes.get('guacd-hostname')
+            guacd_ip = ""
+            guacd_resolved = False
             for name, address in addresses.items():
                 if pattern.search(name):
-                    attibutes = new_data.get('attributes') or {}
-                    guacd_name = attibutes.get('guacd-hostname')
-                    guacd_ip = self._get_guacd_ip(guacd_name,
-                                                  addresses) if guacd_name else ""
+                    if not guacd_resolved:
+                        guacd_ip = self._get_guacd_ip(guacd_name,
+                                                      addresses) if guacd_name else ""
+                        guacd_resolved = True
                     conn_instances = self._create_connection_instances(new_data,
                                                                        name,
                                                                        address,

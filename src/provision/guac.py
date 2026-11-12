@@ -16,7 +16,8 @@ def provision(oconn: object,
               gconn: object,
               globals_dict: dict,
               guacamole_globals: dict,
-              debug: bool):
+              debug: bool,
+              dry_run: bool = False):
     """
     Provisions or deprovisions Guacamole based on the given parameters.
 
@@ -80,13 +81,21 @@ def provision(oconn: object,
         current_connections = CurrentConnections(gconn,
                                                  'ROOT',
                                                  names,
-                                                 debug)
-        current_connections.delete(delay=pause)
-
+                                                 debug,
+                                                 include_details=False)
         current_users = CurrentUsers(gconn,
                                      org_name,
-                                     debug)
-        current_users.delete(delay=pause)
+                                     debug,
+                                     include_permissions=False)
+        if dry_run:
+            msg_format.general_msg(
+                f"DRY RUN: Would delete {len(current_connections.connections)} "
+                f"connections and {len(current_users.users)} users.",
+                endpoint
+            )
+        else:
+            current_connections.delete(delay=pause)
+            current_users.delete(delay=pause)
 
     else:
         new_connections = NewConnections(gconn,
@@ -94,7 +103,14 @@ def provision(oconn: object,
                                          conn_params,
                                          debug)
 
-        if update:
+        if dry_run:
+            action = 'update' if update else 'create'
+            msg_format.general_msg(
+                f"DRY RUN: Would {action} "
+                f"{len(new_connections.connections)} connections.",
+                endpoint
+            )
+        elif update:
             new_connections.update(delay=pause)
         else:
             new_connections.create(delay=pause)
@@ -105,16 +121,27 @@ def provision(oconn: object,
                              new_connections.connections,
                              debug)
 
-        if update:
+        if dry_run:
+            action = 'update' if update else 'create'
+            msg_format.general_msg(
+                f"DRY RUN: Would {action} {len(new_users.users)} users.",
+                endpoint
+            )
+        elif update:
             new_users.update(delay=pause)
         else:
             new_users.create(delay=pause)
 
-        msg_format.general_msg("User artifacts:",
-                               endpoint)
-        for user in new_users.users:
-            msg_format.general_msg(f"Username: {user.username}, Password: {user.password}",
+        if not dry_run:
+            msg_format.general_msg("Provisioned users:",
                                    endpoint)
+            for user in new_users.users:
+                msg_format.general_msg(f"Provisioned username: {user.username}",
+                                       endpoint)
 
-    msg_format.success_msg(f"{endpoint} provisioning complete.",
-                           endpoint)
+    if dry_run:
+        msg_format.general_msg(f"{endpoint} dry run complete.",
+                               endpoint)
+    else:
+        msg_format.success_msg(f"{endpoint} provisioning complete.",
+                               endpoint)

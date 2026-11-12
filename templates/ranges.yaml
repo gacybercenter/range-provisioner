@@ -1,0 +1,29 @@
+# Optional named overrides for globals.yaml. Select one with --range.
+ranges:
+  training:
+    globals:
+      organization: training
+    heat:
+      stack_name: training
+      amount: 1
+      parameters:
+        - username: student
+        - count: 2
+    guacamole:
+      org_name: training
+    swift:
+      container_name: training
+
+  workshop:
+    globals:
+      organization: workshop
+    heat:
+      stack_name: workshop
+      amount: 2
+      parameters:
+        - username: student
+        - count: 1
+    guacamole:
+      org_name: workshop
+    swift:
+      container_name: workshop
