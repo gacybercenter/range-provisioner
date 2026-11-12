@@ -556,7 +556,7 @@ class NewConnections():
         self._find_current_conns()
         self._create_connection_groups()
 
-        servers = oconn.list_servers(filters={"status": "ACTIVE"})
+        servers = oconn.list_servers()
         addresses = {}
         for server in servers:
             ip_addr = server['public_v4'] if server['public_v4'] else server['private_v4']
